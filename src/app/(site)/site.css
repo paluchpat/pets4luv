@@ -365,7 +365,7 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 }
 
 .filter-field-label,
-.gallery-filters > .search-text > span {
+.gallery-filter-footer > .search-text > span {
   display: block;
   margin-bottom: 6px;
   font-size: var(--control-label-size);
@@ -776,16 +776,19 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   margin-inline-start: auto;
 }
 
+.gallery-filter-footer {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: inherit;
+}
+
 @media (max-width: 760px) {
   .gallery-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     padding: 17px;
     gap: 14px;
   }
-  .gallery-filters > .search-text,
-  .gallery-filters > .species-field,
-  .compatibility-filters,
-  .filter-actions {
+  .gallery-filters > .species-field {
     grid-column: 1 / -1;
   }
   .compatibility-filters {
@@ -826,20 +829,27 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 
 @media (width > 760px) {
   .gallery-filters {
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
-  .gallery-filters > .search-text,
   .gallery-filters > .species-field {
-    grid-column: span 4;
+    grid-column: 1 / -1;
+    width: min(100%, 360px);
   }
-  .gallery-filters > .filter-select {
-    grid-column: span 2;
-  }
-  .compatibility-filters {
-    grid-column: 1 / span 4;
+  .gallery-filter-footer {
+    grid-template-columns: minmax(18rem, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
   }
   .filter-actions {
-    grid-column: 5 / -1;
+    min-height: var(--control-height);
+  }
+}
+
+@media (min-width: 1120px) {
+  .gallery-filters {
+    grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+  }
+  .gallery-filters > .species-field {
+    grid-column: auto;
   }
 }
 

@@ -138,10 +138,6 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
   return <>
     <form action="/animals" method="get" onSubmit={submitSearch}>
       <div className="gallery-filters">
-        <label className="search-text">
-          <span>Search</span>
-          <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
-        </label>
         <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
         {selects.map(({ name, label, options }) => <FilterSelect
           key={name}
@@ -151,23 +147,29 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
           value={applied[name]}
           onValueChange={value => applyFilters({ [name]: value })}
         />)}
-        <fieldset className="compatibility-filters">
-          <legend>Friendly with</legend>
-          {compatibility.map(({ name, label, icon }) => <label key={name}>
-            <input className="sr-only" type="checkbox" name={name} value="true" checked={applied[name]} onChange={event => applyFilters({ [name]: event.currentTarget.checked })} />
-            <Icon kind={icon} />
-            {label}
-          </label>)}
-        </fieldset>
-        <div className="filter-actions">
-          <noscript><button type="submit" className="button">Apply filters</button></noscript>
-          <Link href={galleryHref({ ...emptyGalleryFilters, sort: applied.sort })} scroll={false} onNavigate={event => {
-            event.preventDefault()
-            window.clearTimeout(searchTimer.current)
-            if (searchInput.current) searchInput.current.value = ''
-            lastSubmittedQuery.current = ''
-            applyFilters(emptyGalleryFilters)
-          }}>Clear filters</Link>
+        <div className="gallery-filter-footer">
+          <fieldset className="compatibility-filters">
+            <legend>Friendly with</legend>
+            {compatibility.map(({ name, label, icon }) => <label key={name}>
+              <input className="sr-only" type="checkbox" name={name} value="true" checked={applied[name]} onChange={event => applyFilters({ [name]: event.currentTarget.checked })} />
+              <Icon kind={icon} />
+              {label}
+            </label>)}
+          </fieldset>
+          <label className="search-text">
+            <span>Additional details</span>
+            <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
+          </label>
+          <div className="filter-actions">
+            <noscript><button type="submit" className="button">Apply filters</button></noscript>
+            <Link href={galleryHref({ ...emptyGalleryFilters, sort: applied.sort })} scroll={false} onNavigate={event => {
+              event.preventDefault()
+              window.clearTimeout(searchTimer.current)
+              if (searchInput.current) searchInput.current.value = ''
+              lastSubmittedQuery.current = ''
+              applyFilters(emptyGalleryFilters)
+            }}>Clear filters</Link>
+          </div>
         </div>
         <GalleryStatus variant="filters" pending={isPending && !isSorting} />
       </div>
