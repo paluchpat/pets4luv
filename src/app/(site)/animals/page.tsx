@@ -31,7 +31,7 @@ export default async function AnimalsPage({ searchParams }: { searchParams: Prom
   }
   const { gender, sort, ...searchFilters } = filters
   const animals = await searchAnimals({ ...searchFilters, sex: gender }, sort)
-  return <main id="main" className="page-shell gallery-page"><div className="page-intro"><p className="section-label">A new chapter starts here</p><h1>Find your companion</h1><p>Every animal has a story. Find an available cat or dog who could be part of yours. To learn about our adoption process please read <Link href={siteLinks.adoption.href}>{siteLinks.adoption.label}</Link> page</p></div>
+  return <main id="main" className="page-shell gallery-page"><div className="page-intro"><p className="section-label">A new chapter starts here</p><h1>Find your companion</h1><p>Every animal has a story. Find an available cat or dog who could be part of yours. Ready to adopt? <Link href={siteLinks.adoption.href}>Learn how adoption works</Link>.</p></div>
     <GalleryFiltersForm filters={filters} totalDocs={animals.totalDocs} page={animals.page} totalPages={animals.totalPages}>
       {animals.docs.length ? <div className="animal-grid">{animals.docs.map(animal => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="empty-state"><h2>No companions match these filters yet.</h2><p>Try adjusting your search, or check back as new animals become available.</p><Link className="text-link" href={galleryHref({ ...emptyGalleryFilters, sort: filters.sort })}>See all available animals →</Link></div>}
     </GalleryFiltersForm>
