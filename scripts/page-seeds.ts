@@ -39,8 +39,18 @@ export const initialPages = [
   {
     slug: 'donate', title: 'Donate to Pets4Luv',
     body: body([
-      paragraph('Every animal deserves a safe place, a full bowl and kind care. Your support can help Pets4Luv provide everyday food, comfort and care while animals wait for their next chapter.'),
-      paragraph('There are many ways to make a difference, from helping with useful supplies to supporting the work that keeps animals comfortable and cared for.'),
+      heading('How your donation helps'),
+      paragraph('Any donation, whether it’s money or supplies, helps us care for the cats and dogs at Pets4Luv. Your gifts help cover veterinary costs and provide food, litter, cleaning supplies, and toys. They also help us provide separate housing for cats and quarantine space for dogs.'),
+      heading('Supplies needed'),
+      paragraph('We appreciate donations of supplies and gift cards from pet, office supply, and general retailers.'),
+      bulletedList([
+        'Food and treats: canned dog food, Fancy Feast wet food for cats and kittens, and dog and cat treats.',
+        'Pet equipment: cat carriers, martingale or limited-slip collars from small to extra-large, and 6-foot leashes.',
+        'Toys and grooming: dog and cat toys, pet wipes, nail clippers, and flea combs. Please skip catnip and rawhide.',
+        'Cleaning and office supplies: 13-gallon and 40-gallon or larger trash bags, paper towels, sponges, dog waste bags, printer paper, and can openers.',
+      ]),
+      paragraph('Pets4Luv is a member of BISSELL Pet Foundation’s Partners for Pets program.'),
+      paragraph('For our current wish list, to arrange a supply drop-off, or to request a donation receipt, email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
     ]),
   },
   {
