@@ -50,13 +50,13 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
     const byID = new Map(result.docs.map(doc => [doc.id, doc]))
     const docs = ids.flatMap(id => {
       const doc = byID.get(id)
-      return doc ? [animalDTO(doc)] : []
+      return doc ? [animalDTO(doc, 'uncropped')] : []
     })
     return { ...pagination, docs }
   }
 
   const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: sortFields })
-  return { docs: result.docs.map(doc => animalDTO(doc)), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
+  return { docs: result.docs.map(doc => animalDTO(doc, 'uncropped')), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 
 export async function getAnimal(slug: string): Promise<AnimalDTO | null> {
