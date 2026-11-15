@@ -65,6 +65,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
   const lastSubmittedQuery = useRef(filters.q)
   const pageToScroll = useRef<number | null>(null)
   const resultsTitle = useRef<HTMLHeadingElement>(null)
+  const allAnimalsHref = galleryHref({ ...emptyGalleryFilters, sort: applied.sort })
 
   useLayoutEffect(() => {
     function restoreSearchFromHistory() {
@@ -141,6 +142,13 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
     applyFilters({ q })
   }
 
+  function clearSearchInput() {
+    window.clearTimeout(searchTimer.current)
+    searchTimer.current = undefined
+    if (searchInput.current) searchInput.current.value = ''
+    lastSubmittedQuery.current = ''
+  }
+
   return <>
     <form action="/animals" method="get" onSubmit={submitSearch}>
       <div className="gallery-filters">
@@ -168,11 +176,9 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
           </fieldset>
           <div className="filter-actions">
             <noscript><button type="submit" className="button">Apply filters</button></noscript>
-            <Link href={galleryHref({ ...emptyGalleryFilters, sort: applied.sort })} scroll={false} onNavigate={event => {
+            <Link href={allAnimalsHref} scroll={false} onNavigate={event => {
               event.preventDefault()
-              window.clearTimeout(searchTimer.current)
-              if (searchInput.current) searchInput.current.value = ''
-              lastSubmittedQuery.current = ''
+              clearSearchInput()
               applyFilters(emptyGalleryFilters)
             }}>Clear filters</Link>
             <Link
@@ -222,7 +228,25 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
     </form>
     <div className="gallery-results">
       <div inert={loadingMode !== null}>
-        {children}
+        {children ?? <div className="empty-state">
+          <h2>No companions match these filters yet.</h2>
+          <p>Try adjusting your search, or check back as new animals become available.</p>
+          <Link
+            className="text-link"
+            href={`${allAnimalsHref}#${galleryResultsHeadingId}`}
+            scroll={false}
+            onNavigate={event => {
+              clearSearchInput()
+              if (`${window.location.pathname}${window.location.search}` === allAnimalsHref) {
+                event.preventDefault()
+                pageToScroll.current = null
+                scrollToGalleryResults(resultsTitle.current)
+                return
+              }
+              pageToScroll.current = 1
+            }}
+          >See all available animals →</Link>
+        </div>}
         {totalPages > 1 && <nav className="pagination" aria-label="Results pages">
           {page > 1 && pageLink(page - 1, '← Previous')}
           <span>Page {page} of {totalPages}</span>
