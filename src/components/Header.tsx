@@ -12,6 +12,8 @@ const navigation = [
     label: 'Information',
     children: [
       { href: '/info/adoption', label: 'About adoptions' },
+      { href: '/info/cat-adoption', label: 'Cat adoption' },
+      { href: '/info/dog-adoption', label: 'Dog adoption' },
       { href: '/info/volunteering', label: 'Volunteer' },
       { href: '/applications', label: 'Forms and applications' },
       { href: '/tnr', label: 'Trap-Neuter-Return (TNR)' },
