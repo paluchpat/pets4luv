@@ -141,7 +141,7 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
             applyFilters(emptyGalleryFilters)
           }}>Clear filters</Link>
         </div>
-        <GalleryStatus className="gallery-status" pending={isPending && !isSorting} message="Looking for friends…" />
+        <GalleryStatus variant="filters" pending={isPending && !isSorting} />
       </div>
       <div className="results-heading">
         <h2 aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
@@ -157,17 +157,23 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
     </form>
     <div className="gallery-results">
       <div inert={isSorting}>{children}</div>
-      <GalleryStatus className="gallery-sort-status" pending={isSorting} message="Sorting results…" />
+      <GalleryStatus variant="sort" pending={isSorting} />
     </div>
   </>
 }
 
-function GalleryStatus({ className, pending, message }: { className: string; pending: boolean; message: string }) {
+const galleryStatusVariants = {
+  filters: { className: 'gallery-status', message: 'Looking for friends…', image: 'gallery-cat', width: 64, height: 40 },
+  sort: { className: 'gallery-sort-status', message: 'Sorting results…', image: 'gallery-cat-sort', width: 768, height: 456 },
+} as const
+
+function GalleryStatus({ variant, pending }: { variant: keyof typeof galleryStatusVariants; pending: boolean }) {
+  const { className, message, image, width, height } = galleryStatusVariants[variant]
   return <div className={className} role="status">
     {pending && <>
       <picture>
-        <source media="(prefers-reduced-motion: reduce)" srcSet="/images/gallery-cat-static.png" />
-        <img src="/images/gallery-cat.apng" alt="" width={64} height={40} />
+        <source media="(prefers-reduced-motion: reduce)" srcSet={`/images/${image}-static.png`} />
+        <img src={`/images/${image}.apng`} alt="" width={width} height={height} />
       </picture>
       <span>{message}</span>
     </>}

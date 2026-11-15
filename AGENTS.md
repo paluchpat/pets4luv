@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Commit and push
+
+After substantial Pets4Luv code changes, run the relevant checks, review the staged diff, then commit and push the task's changes to the configured GitHub remote without waiting for a separate request. Follow any branch or push instructions for the current task.
+
+This repository is public. Stage only files that belong to the task. Keep secrets, local environment files, databases, backups, uploads, and private rescue or user data out of Git. Use a GitHub noreply address for public commit metadata.
