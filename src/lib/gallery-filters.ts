@@ -1,3 +1,5 @@
+export const galleryResultsHeadingId = 'gallery-results-heading'
+
 export const gallerySortOptions = [
   { value: 'name-asc', label: 'Name (A-Z)' },
   { value: 'name-desc', label: 'Name (Z-A)' },

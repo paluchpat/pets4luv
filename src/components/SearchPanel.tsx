@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { type MouseEvent, useRef, useState } from 'react'
+import { galleryResultsHeadingId } from '@/lib/gallery-filters'
 import { Icon } from './Icons'
 import { FilterSelect } from './FilterSelect'
 import { SpeciesPicker } from './SpeciesPicker'
@@ -31,7 +32,7 @@ export function SearchPanel() {
 
   return <section className="search-panel" aria-labelledby="find-title">
     <div className="search-heading"><h2 id="find-title">Find your furry best friend</h2><Link className="text-link" href="/animals">View all animals <span aria-hidden="true">→</span></Link></div>
-    <form action="/animals" className="home-filters" method="get" ref={animalSearch}>
+    <form action={`/animals#${galleryResultsHeadingId}`} className="home-filters" method="get" ref={animalSearch}>
       <SpeciesPicker showLabel />
       <FilterSelect label="Age" name="ageGroup" options={ageOptions} />
       <FilterSelect label="Gender" name="gender" options={genderOptions} />

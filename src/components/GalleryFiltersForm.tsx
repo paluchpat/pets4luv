@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLayoutEffect, useOptimistic, useRef, useTransition, type FormEvent, type ReactNode } from 'react'
 import { animalColorOptions, type AnimalColor } from '@/lib/animal-colors'
-import { emptyGalleryFilters, galleryHref, gallerySortOptions, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
+import { emptyGalleryFilters, galleryHref, galleryResultsHeadingId, gallerySortOptions, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
 import { FilterSelect } from './FilterSelect'
 import { Icon } from './Icons'
 import { SpeciesPicker } from './SpeciesPicker'
@@ -39,8 +39,6 @@ const compatibility = [
   { name: 'goodWithCats', label: 'Cats', icon: 'cat' },
   { name: 'goodWithChildren', label: 'Children', icon: 'child' },
 ] as const
-
-const resultsHeadingId = 'gallery-results-heading'
 
 export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, children }: {
   filters: GalleryFilters
@@ -91,16 +89,16 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
   useLayoutEffect(() => {
     const requestedPage = pageToScroll.current
     pageToScroll.current = null
-    if (requestedPage !== filters.page || window.location.hash !== `#${resultsHeadingId}`) return
+    if (requestedPage !== filters.page || window.location.hash !== `#${galleryResultsHeadingId}`) return
     resultsTitle.current?.focus({ preventScroll: true })
     // Use the site's scroll behavior, including its reduced-motion override.
-    document.getElementById(resultsHeadingId)?.scrollIntoView()
+    document.getElementById(galleryResultsHeadingId)?.scrollIntoView()
   }, [filters])
 
   function pageLink(destination: number, label: string) {
     return <Link
       className="button secondary"
-      href={`${galleryHref(filters, destination)}#${resultsHeadingId}`}
+      href={`${galleryHref(filters, destination)}#${galleryResultsHeadingId}`}
       scroll={false}
       onNavigate={() => { pageToScroll.current = destination }}
     >{label}</Link>
@@ -193,7 +191,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
       </p>
-      <div id={resultsHeadingId} className="results-heading">
+      <div id={galleryResultsHeadingId} className="results-heading">
         <h2 ref={resultsTitle} tabIndex={-1} aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
         <FilterSelect
           className="gallery-sort"
