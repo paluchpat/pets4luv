@@ -16,6 +16,18 @@ Open http://localhost:3000 for the website and http://localhost:3000/admin for P
 
 On a fresh checkout with supported Node installed, run `npm ci`, then `npm run setup`, `npm run seed`, and `npm run dev`. Setup creates a random secret in the ignored `.env`; seed preserves existing records. Keep the original secret when moving an existing database.
 
+## Protected Vercel preview
+
+Enable Vercel Authentication and system environment variables. Add a separate `PAYLOAD_SECRET`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `BLOB_READ_WRITE_TOKEN` for a **private** Vercel Blob store, and `AI_ENABLED=false` to the Preview environment. Leave `NEXT_PUBLIC_SERVER_URL` unset so Payload uses the current preview hostname.
+
+Initialize an empty preview database from a clean checkout using an environment file stored outside the checkout with the same preview credentials. This command uses the committed fictional fixtures and demo images.
+
+```sh
+NODE_ENV=development TURSO_PUSH_SCHEMA=true node --env-file=/absolute/path/to/preview.env --import tsx scripts/seed.ts
+```
+
+Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/admin` to create the first administrator. Both photo collections use the private Blob store. Payload serves approved media through its regular file routes and requires staff login for intake files. Browser uploads on Vercel are limited to 4 MiB per file.
+
 ## Content editing
 
 - **Animals:** add approved public photos, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
@@ -46,7 +58,7 @@ Credit eligibility, balance, expiry, and billing behavior have **not** been veri
 ./scripts/local.sh build
 ```
 
-The initial preview uses ordinary development schema synchronization. Before production hosting, introduce reviewed migrations, production backups, email delivery, and deployment-specific configuration. Do not expose this demo as a live adoption system with fictional fixtures.
+The hosted preview uses schema synchronization during initial seeding. Before production hosting, introduce reviewed migrations, production backups, email delivery, and deployment-specific configuration. Do not expose this demo as a live adoption system with fictional fixtures.
 
 Initial verification on November 7, 2026: production build and TypeScript checks passed; seven backend integration tests passed; desktop and 320/390px mobile browser checks passed. The manager's own editing/usability session is still pending. Local preview screenshots are in `output/qa`.
 

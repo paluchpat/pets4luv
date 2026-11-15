@@ -173,6 +173,27 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
         </div>
         <GalleryStatus variant="filters" pending={isPending && !isSorting} />
       </div>
+      <nav className="gallery-listing-links" aria-labelledby="gallery-listing-heading">
+        <h2 id="gallery-listing-heading">You can also find our adoptable animals here</h2>
+        <div className="gallery-listing-actions">
+          <a
+            className="button secondary"
+            href="https://www.petfinder.com/search/cats-for-adoption/?shelterRescue=521e2d23-2a7e-4a1d-8a22-b6c7e0acf003&includeOutOfTown=true"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Petfinder <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          <a
+            className="button secondary"
+            href="https://www.adoptapet.com/shelter/89959-pets4luv-foundation-hicksville-new-york"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Adopt a Pet <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </nav>
       <div id={resultsHeadingId} className="results-heading">
         <h2 ref={resultsTitle} tabIndex={-1} aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
         <FilterSelect

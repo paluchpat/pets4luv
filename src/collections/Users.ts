@@ -2,7 +2,10 @@ import type { CollectionConfig } from 'payload'
 import { adminField, isAdmin, isStaff } from '../access'
 
 export const Users: CollectionConfig = {
-  slug: 'users', auth: { tokenExpiration: 7200, maxLoginAttempts: 5, lockTime: 600000 },
+  slug: 'users', auth: {
+    tokenExpiration: 7200, maxLoginAttempts: 5, lockTime: 600000,
+    cookies: { secure: process.env.VERCEL === '1' && process.env.VERCEL_ENV !== 'development' },
+  },
   admin: { useAsTitle: 'email', group: 'Administration' },
   access: {
     admin: ({ req }) => Boolean(req.user && ['admin', 'editor'].includes(String(req.user.role))),
