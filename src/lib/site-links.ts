@@ -6,6 +6,7 @@ const legacyPaths: Record<string, string> = {
   '/adopt': '/animals',
   '/adoption': '/info/adoption',
   '/volunteer': '/info/volunteering',
+  '/volunteering': '/info/volunteering',
   '/about': '/about',
   '/info/about': '/about',
   '/our-mission': '/about',

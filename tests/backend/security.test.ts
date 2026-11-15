@@ -6,6 +6,7 @@ import path from 'node:path'
 import { getPayload, type Payload } from 'payload'
 import { animalDTO, buildAnimalWhere } from '../../src/lib/public-content'
 import { seedMissingPages } from '../../scripts/page-seeds'
+import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -165,4 +166,51 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   for (const href of ['tel:+15168607057', 'mailto:info@pets4luv.org', '/animals']) assert.ok(aboutBody.includes(href))
   assert.equal((await payload.count({ collection: 'animals' })).totalDocs, beforeAnimals.totalDocs)
   assert.equal((await payload.count({ collection: 'users' })).totalDocs, beforeUsers.totalDocs)
+})
+
+test('volunteering seed creates official copy and only upgrades the exact demo without a pending draft', async () => {
+  assert.equal(await seedVolunteering(payload), 'created')
+  const { docs: [article] } = await payload.find({ collection: 'knowledge', where: { slug: { equals: 'volunteering' } }, depth: 0 })
+  assert.equal(article.title, 'Volunteer with Pets4Luv')
+  assert.equal(await seedVolunteering(payload), 'preserved')
+
+  const body = pageBody('This fictional demonstration illustrates where approved volunteering information will appear. A real rescue may need help with animal care, transport, events and foster support. Ask the organization about its current opportunities, training and age requirements.')
+  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
+  const demo = {
+    title: 'A little of your time. A lot of love.',
+    slug: 'volunteering',
+    category: 'volunteering',
+    body,
+    source: 'Fictional demonstration fixture',
+    reviewer: 'Demo content',
+    reviewedAt: '2026-11-07',
+    _status: 'published',
+  } as const
+  const record = { collection: 'knowledge', id: article.id, depth: 0 } as const
+
+  const edited = await payload.update({ ...record, data: { ...demo, body: pageBody('Staff edited volunteering copy.') } })
+  assert.equal(await seedVolunteering(payload), 'preserved')
+  assert.deepEqual((await payload.findByID(record)).body, edited.body)
+
+  await payload.update({ ...record, data: demo })
+  const draft = await payload.update({ ...record, draft: true, data: { slug: 'volunteering-draft', title: 'Staff draft', _status: 'draft' } })
+  assert.equal(await seedVolunteering(payload), 'preserved')
+  const latest = await payload.findByID({ ...record, draft: true })
+  assert.equal(latest._status, 'draft')
+  assert.equal(latest.slug, draft.slug)
+  assert.equal(latest.title, draft.title)
+  assert.equal((await payload.findByID({ ...record, draft: false })).title, demo.title)
+
+  await payload.update({ ...record, data: demo })
+  assert.equal(await seedVolunteering(payload), 'updated')
+  const updated = await payload.findByID({ ...record, overrideAccess: false })
+  assert.equal(updated.title, 'Volunteer with Pets4Luv')
+  assert.equal(updated.source, 'https://www.pets4luv.org/volunteering')
+  assert.equal(updated.reviewer, null)
+  assert.equal(updated.reviewedAt, null)
+  assert.equal(updated.body.root.children.length, 3)
+  const publishedBody = JSON.stringify(updated.body)
+  assert.ok(publishedBody.includes('mailto:info@pets4luv.org'))
+  assert.ok(publishedBody.includes('tel:+15168607057'))
+  assert.equal(await seedVolunteering(payload), 'preserved')
 })

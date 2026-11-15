@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { resolvePublicHref } from '../../src/lib/site-links'
 
 test('old-site URLs resolve only to known local destinations', () => {
-  const paths = { '': '/', '/': '/', '/donate': '/donate', '/contact-us': '/contact', '/contact': '/contact', '/adopt': '/animals', '/adoption': '/info/adoption', '/volunteer': '/info/volunteering', '/about': '/about', '/info/about': '/about', '/Our-Mission': '/about' }
+  const paths = { '': '/', '/': '/', '/donate': '/donate', '/contact-us': '/contact', '/contact': '/contact', '/adopt': '/animals', '/adoption': '/info/adoption', '/volunteer': '/info/volunteering', '/Volunteering': '/info/volunteering', '/about': '/about', '/info/about': '/about', '/Our-Mission': '/about' }
   for (const host of ['https://pets4luv.org', 'http://www.pets4luv.org', '//PETS4LUV.ORG', 'https://legacy.Pets4Luv.org', 'https://pets4luv.org.']) {
     for (const [legacy, local] of Object.entries(paths)) {
       assert.equal(resolvePublicHref(`${host}${legacy}`), local)
