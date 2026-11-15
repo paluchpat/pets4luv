@@ -842,6 +842,9 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   .filter-actions {
     min-height: var(--control-height);
   }
+  .filter-actions:has(> noscript > button) {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (min-width: 1120px) {
