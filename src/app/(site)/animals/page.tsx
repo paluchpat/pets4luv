@@ -28,7 +28,7 @@ export default async function AnimalsPage({ searchParams }: { searchParams: Prom
   const animals = await searchAnimals(filters)
   return <main id="main" className="page-shell gallery-page"><div className="page-intro"><p className="section-label">A new chapter starts here</p><h1>Find your companion</h1><p>Every animal has a story. Find an available cat or dog who could be part of yours.</p></div>
     <GalleryFiltersForm filters={filters} />
-    <div className="results-heading" aria-live="polite"><h2>{animals.totalDocs} {animals.totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2><p>Currently available animals</p></div>
+    <div className="results-heading" aria-live="polite"><h2>{animals.totalDocs} {animals.totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2></div>
     {animals.docs.length ? <div className="animal-grid">{animals.docs.map(animal => <AnimalCard key={animal.id} animal={animal} />)}</div> : <div className="empty-state"><h2>No companions match these filters yet.</h2><p>Try adjusting your search, or check back as new animals become available.</p><Link className="text-link" href="/animals">See all available animals →</Link></div>}
     {animals.totalPages > 1 && <nav className="pagination" aria-label="Results pages">{animals.page > 1 && <Link className="button secondary" href={galleryHref(filters, animals.page - 1)}>← Previous</Link>}<span>Page {animals.page} of {animals.totalPages}</span>{animals.page < animals.totalPages && <Link className="button secondary" href={galleryHref(filters, animals.page + 1)}>Next →</Link>}</nav>}
   </main>

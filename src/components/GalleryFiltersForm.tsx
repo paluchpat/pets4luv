@@ -10,8 +10,8 @@ import { ageOptions, sexOptions, sizeOptions } from './filter-options'
 
 const selects = [
   { name: 'ageGroup', label: 'Age', options: ageOptions },
-  { name: 'size', label: 'Size', options: sizeOptions },
   { name: 'sex', label: 'Sex', options: sexOptions },
+  { name: 'size', label: 'Size', options: sizeOptions },
 ] as const
 
 const compatibility = [
@@ -26,29 +26,60 @@ export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
   const [applied, setApplied] = useOptimistic(filters)
   const latestFilters = useRef(applied)
   const searchInput = useRef<HTMLInputElement>(null)
+  const searchTimer = useRef<number | undefined>(undefined)
   const lastSubmittedQuery = useRef(filters.q)
 
   useLayoutEffect(() => {
+    function restoreSearchFromHistory() {
+      window.clearTimeout(searchTimer.current)
+      if (window.location.pathname !== '/animals' || !searchInput.current) return
+      const queries = new URLSearchParams(window.location.search).getAll('q')
+      const q = queries.length === 1 ? queries[0].slice(0, 200) : ''
+      searchInput.current.value = q
+      lastSubmittedQuery.current = q
+    }
+
+    window.addEventListener('popstate', restoreSearchFromHistory)
+    return () => {
+      window.removeEventListener('popstate', restoreSearchFromHistory)
+      window.clearTimeout(searchTimer.current)
+    }
+  }, [])
+
+  useLayoutEffect(() => {
     latestFilters.current = applied
-    // Filter changes leave the input's draft alone. A different URL query replaces it.
-    if (applied.q !== lastSubmittedQuery.current && searchInput.current) {
+    // Preserve typing while the current search or filter navigation is still in flight.
+    if (!isPending && applied.q !== lastSubmittedQuery.current && searchInput.current) {
+      window.clearTimeout(searchTimer.current)
       searchInput.current.value = applied.q
       lastSubmittedQuery.current = applied.q
     }
-  }, [applied])
+  }, [applied, isPending])
 
   function applyFilters(changes: Partial<GalleryFilters>) {
     // Merge into the latest selection even before Next commits its server response.
     const next = { ...latestFilters.current, ...changes, page: 1 }
     latestFilters.current = next
-    startTransition(() => {
+    startTransition(async () => {
       setApplied(next)
       router.push(galleryHref(next), { scroll: false })
+      await new Promise<void>(resolve => window.setTimeout(resolve, 1500))
     })
+  }
+
+  function scheduleSearch(q: string) {
+    window.clearTimeout(searchTimer.current)
+    searchTimer.current = window.setTimeout(() => {
+      searchTimer.current = undefined
+      if (q === latestFilters.current.q) return
+      lastSubmittedQuery.current = q
+      applyFilters({ q })
+    }, 300)
   }
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    window.clearTimeout(searchTimer.current)
     const q = (searchInput.current?.value ?? '').slice(0, 200)
     lastSubmittedQuery.current = q
     applyFilters({ q })
@@ -57,7 +88,7 @@ export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
   return <form action="/animals" method="get" className="gallery-filters" onSubmit={submitSearch}>
     <label className="search-text">
       <span>Search</span>
-      <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} />
+      <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
     </label>
     <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
     {selects.map(({ name, label, options }) => <FilterSelect
@@ -75,35 +106,27 @@ export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
       </label>)}
     </fieldset>
     <div className="filter-actions">
-      <button type="submit" className="button">Show matching pets <span aria-hidden="true">→</span></button>
+      <noscript><button type="submit" className="button">Apply filters</button></noscript>
       <Link href="/animals" scroll={false} onNavigate={event => {
         event.preventDefault()
+        window.clearTimeout(searchTimer.current)
         if (searchInput.current) searchInput.current.value = ''
         lastSubmittedQuery.current = ''
         applyFilters(emptyGalleryFilters)
       }}>Clear filters</Link>
     </div>
-    <GalleryLoading pending={isPending} />
+    <GalleryStatus pending={isPending} />
   </form>
 }
 
-function GalleryLoading({ pending }: { pending: boolean }) {
-  return <div className="gallery-loading" role="status">
+function GalleryStatus({ pending }: { pending: boolean }) {
+  return <div className="gallery-status" role="status">
     {pending && <>
-      <svg viewBox="0 0 56 34" aria-hidden="true" focusable="false">
-        <g stroke="var(--burgundy)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none">
-          <path d="M13 25C6 31 1 25 4 20" />
-          <path d="M11 27c0-7 5-12 13-12l3-7 4 5 6-3v6c3 2 3 6 0 8-2 2-5 2-8 2l-4 3H14c-2 0-3-1-3-2Z" fill="#f8e1ce" />
-          <path d="M30 18h.1m5 1h.1" strokeWidth="2.3" />
-          <path d="m38 22 1-.5m-20 6c1-2 2-3 4-3" />
-          <path className="gallery-loading-paw" d="M25 24c4 1 7 0 11-1" strokeWidth="2.5" />
-        </g>
-        <g className="gallery-loading-yarn">
-          <circle cx="45" cy="25" r="5.5" fill="var(--burgundy)" />
-          <path d="M41.5 22.5 45.5 29m-2-8 5 7m-6.5-2.5 5.5-3m-3.4 5.4 4.6-2.8" fill="none" stroke="#fff6ed" strokeWidth=".8" strokeLinecap="round" />
-        </g>
-      </svg>
-      <span>Finding matches…</span>
+      <picture>
+        <source media="(prefers-reduced-motion: reduce)" srcSet="/images/gallery-cat-static.png" />
+        <img src="/images/gallery-cat.apng" alt="" width={64} height={40} />
+      </picture>
+      <span>Looking for friends…</span>
     </>}
   </div>
 }
