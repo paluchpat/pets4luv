@@ -1,0 +1,66 @@
+.section {
+  border-top: 1px solid var(--line);
+  padding-block: clamp(36px, 6vw, 68px) clamp(26px, 4vw, 48px);
+  text-align: center;
+}
+
+.title {
+  margin-bottom: 14px;
+  font-family: var(--serif);
+  font-size: clamp(30px, 4vw, 46px);
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+
+.intro {
+  max-width: 54ch;
+  margin: 0 auto;
+  font-size: clamp(17px, 2vw, 20px);
+  text-wrap: pretty;
+}
+
+.uses {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(28px, 4vw, 46px) clamp(20px, 4vw, 48px);
+  max-width: 1040px;
+  margin: clamp(32px, 4.5vw, 48px) auto clamp(30px, 4vw, 44px);
+  padding: 0;
+  list-style: none;
+}
+
+.use svg {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 12px;
+  color: var(--burgundy);
+}
+
+.use h3 {
+  margin-bottom: 8px;
+  color: var(--burgundy);
+  font-family: var(--serif);
+  font-size: clamp(19px, 2vw, 23px);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.use p {
+  max-width: 32ch;
+  margin: 0 auto;
+  font-size: 17px;
+  text-wrap: pretty;
+}
+
+@media (max-width: 850px) {
+  .uses {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 540px) {
+  .uses {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

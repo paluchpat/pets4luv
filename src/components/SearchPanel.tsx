@@ -91,5 +91,5 @@ export function SearchPanel() {
 }
 
 export function ChatLauncher() {
-  return <button className="button chat-launcher" type="button" onClick={() => { document.getElementById('ask-pets4luv')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('companion-message')?.focus({ preventScroll: true }) }}><Icon kind="chat" />Ask Pets4Luv</button>
+  return <button className="button secondary chat-launcher" type="button" onClick={() => { document.getElementById('ask-pets4luv')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); document.getElementById('companion-message')?.focus({ preventScroll: true }) }}><Icon kind="chat" />Ask Pets4Luv</button>
 }

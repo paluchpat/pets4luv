@@ -147,6 +147,10 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
           value={applied[name]}
           onValueChange={value => applyFilters({ [name]: value })}
         />)}
+        <label className="search-text">
+          <span className="filter-field-label">Additional details</span>
+          <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
+        </label>
         <div className="gallery-filter-footer">
           <fieldset className="compatibility-filters">
             <legend>Friendly with</legend>
@@ -156,10 +160,6 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
               {label}
             </label>)}
           </fieldset>
-          <label className="search-text">
-            <span>Additional details</span>
-            <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
-          </label>
           <div className="filter-actions">
             <noscript><button type="submit" className="button">Apply filters</button></noscript>
             <Link href={galleryHref({ ...emptyGalleryFilters, sort: applied.sort })} scroll={false} onNavigate={event => {

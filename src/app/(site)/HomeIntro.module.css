@@ -1,0 +1,19 @@
+.intro {
+  padding-block: clamp(4px, 1vw, 12px) clamp(22px, 3vw, 36px);
+  text-align: center;
+}
+
+.intro h2 {
+  margin-bottom: 12px;
+  font-family: var(--serif);
+  font-size: clamp(27px, 4vw, 38px);
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+
+.intro p {
+  max-width: 68ch;
+  margin: 0 auto;
+  font-size: clamp(17px, 2vw, 20px);
+  text-wrap: pretty;
+}
