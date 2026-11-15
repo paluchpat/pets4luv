@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload'
 import { isStaff, publishedOrStaff, slugField } from '../access'
 
-const reservedSlugs = new Set(['admin', 'api', 'animals', 'info', 'pages', 'media', 'intake-files', 'intakes', 'users', 'knowledge', 'homepage', 'images', 'fonts', 'assets', 'public', 'favicon', 'robots', 'sitemap', 'manifest', 'health'])
+const reservedSlugs = new Set(['admin', 'api', 'animals', 'applications', 'info', 'pages', 'media', 'intake-files', 'intakes', 'users', 'knowledge', 'homepage', 'images', 'fonts', 'assets', 'public', 'favicon', 'robots', 'sitemap', 'manifest', 'health'])
 
 export function validatePageSlug(value: unknown): true | string {
   const valid = slugField.validate(value)
