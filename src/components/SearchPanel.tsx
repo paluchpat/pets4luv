@@ -1,15 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { useRef, useState } from 'react'
+import { type MouseEvent, useRef, useState } from 'react'
 import { Icon } from './Icons'
 import { FilterSelect } from './FilterSelect'
 import { SpeciesPicker } from './SpeciesPicker'
 import { ageOptions, genderOptions } from './filter-options'
 
+function isBackdropEvent(event: MouseEvent<HTMLDialogElement>) {
+  if (event.target !== event.currentTarget) return false
+
+  const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect()
+  return event.clientX < left || event.clientX >= right || event.clientY < top || event.clientY >= bottom
+}
+
 export function SearchPanel() {
   const animalSearch = useRef<HTMLFormElement>(null)
   const chatDialog = useRef<HTMLDialogElement>(null)
+  const startedOnBackdrop = useRef(false)
   const [canSend, setCanSend] = useState(false)
 
   function goToAnimalSearch() {
@@ -48,6 +56,7 @@ export function SearchPanel() {
           disabled={!canSend}
           onClick={event => {
             event.currentTarget.focus({ preventScroll: true })
+            startedOnBackdrop.current = false
             chatDialog.current?.showModal()
           }}
         >Send <span aria-hidden="true">▶</span></button>
@@ -59,6 +68,15 @@ export function SearchPanel() {
       ref={chatDialog}
       aria-labelledby="chat-dialog-title"
       aria-describedby="chat-dialog-description"
+      onPointerDown={event => {
+        startedOnBackdrop.current = event.isPrimary && event.button === 0 && isBackdropEvent(event)
+      }}
+      onPointerCancel={() => { startedOnBackdrop.current = false }}
+      onClick={event => {
+        const shouldClose = startedOnBackdrop.current && isBackdropEvent(event)
+        startedOnBackdrop.current = false
+        if (shouldClose) event.currentTarget.close()
+      }}
     >
       <h2 id="chat-dialog-title">Ask Pets4Luv is still in development</h2>
       <p id="chat-dialog-description">In the meantime, use the animal search form to find adoptable cats and dogs.</p>
