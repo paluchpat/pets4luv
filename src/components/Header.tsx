@@ -14,8 +14,8 @@ const navigation = [
       { href: '/info/adoption', label: 'About adoptions' },
       { href: '/info/volunteering', label: 'Volunteer' },
       { href: '/applications', label: 'Forms and applications' },
-      { href: '/tnr', label: 'TNR' },
-      { href: '/medical', label: 'Medical' },
+      { href: '/tnr', label: 'Trap, Neuter, Return (TNR)' },
+      { href: '/medical', label: 'Medical assistance' },
       { href: '/injured-feral-cats', label: 'Injured feral cats' },
     ],
   },
@@ -24,6 +24,10 @@ const navigation = [
 ] as const
 
 type NavigationVariant = 'desktop' | 'mobile'
+
+function isHoverPointer(pointerType: string) {
+  return pointerType === 'mouse' || pointerType === 'pen'
+}
 
 function InformationMenu({
   variant,
@@ -38,40 +42,64 @@ function InformationMenu({
   links: ReadonlyArray<{ href: string; label: string }>
   onLinkClick?: () => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [openedBy, setOpenedBy] = useState<'hover' | 'activation' | null>(null)
   const group = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const listId = `${variant}-information-links`
+  const open = openedBy !== null
   const isCurrent = links.some(link => pathname === link.href)
 
-  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => { setOpenedBy(null) }, [pathname])
 
   useEffect(() => {
     if (!open || variant !== 'desktop') return
 
     function closeOnOutsidePress(event: PointerEvent) {
       if (event.target instanceof Node && !group.current?.contains(event.target)) {
-        setOpen(false)
+        setOpenedBy(null)
       }
     }
 
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+
+      if (group.current?.contains(document.activeElement)) {
+        button.current?.focus()
+      }
+      setOpenedBy(null)
+    }
+
     document.addEventListener('pointerdown', closeOnOutsidePress)
-    return () => document.removeEventListener('pointerdown', closeOnOutsidePress)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePress)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
   }, [open, variant])
 
   return (
     <div
       ref={group}
       className="information-nav"
+      onPointerEnter={variant === 'desktop' ? (event) => {
+        if (isHoverPointer(event.pointerType) && event.buttons === 0) {
+          setOpenedBy(value => value ?? 'hover')
+        }
+      } : undefined}
+      onPointerLeave={variant === 'desktop' ? (event) => {
+        if (isHoverPointer(event.pointerType) && !event.currentTarget.querySelector(':focus-visible')) {
+          setOpenedBy(value => value === 'hover' ? null : value)
+        }
+      } : undefined}
       onBlur={(event) => {
         if (variant === 'desktop' && !event.currentTarget.contains(event.relatedTarget)) {
-          setOpen(false)
+          setOpenedBy(null)
         }
       }}
       onKeyDown={(event) => {
-        if (event.key === 'Escape' && open) {
+        if (variant === 'mobile' && event.key === 'Escape' && open) {
           event.stopPropagation()
-          setOpen(false)
+          setOpenedBy(null)
           button.current?.focus()
         }
       }}
@@ -83,10 +111,16 @@ function InformationMenu({
         aria-expanded={open}
         aria-controls={listId}
         data-current={isCurrent || undefined}
-        onClick={() => setOpen(value => !value)}
+        onClick={(event) => {
+          if (openedBy === 'hover' && event.detail > 0 && (
+            !(event.nativeEvent instanceof PointerEvent) || isHoverPointer(event.nativeEvent.pointerType)
+          )) return
+
+          setOpenedBy(value => value ? null : 'activation')
+        }}
       >
         {label}
-        <ChevronDown aria-hidden="true" />
+        {variant === 'mobile' && <ChevronDown aria-hidden="true" />}
       </button>
       <ul id={listId} className="information-links" hidden={!open}>
         {links.map(link => (
@@ -95,7 +129,7 @@ function InformationMenu({
               href={link.href}
               aria-current={pathname === link.href ? 'page' : undefined}
               onClick={() => {
-                setOpen(false)
+                setOpenedBy(null)
                 onLinkClick?.()
               }}
             >

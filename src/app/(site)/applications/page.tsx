@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { pets4LuvAddress } from '@/lib/site-address'
 
 export const metadata: Metadata = { title: 'Applications' }
 
@@ -52,7 +53,7 @@ export default function ApplicationsPage() {
   return <main id="main" className="page-shell information-page applications-page">
     <div className="page-intro">
       <h1>Applications</h1>
-      <p>Download and print the available form you need. Bring your completed application in person. To confirm where to drop it off, call <a href={phoneHref}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a>.</p>
+      <p>Download and print the available form you need. Bring your completed application to {pets4LuvAddress}. If you have questions, call <a href={phoneHref}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a>.</p>
     </div>
     <nav className="application-jump-links" aria-label="Application categories">
       {groups.map(({ id, title }) => <a key={id} className="button secondary" href={`#${id}`}>{title}</a>)}

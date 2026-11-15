@@ -380,6 +380,18 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   margin: 0;
   overflow-wrap: anywhere;
 }
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+.site-footer address {
+  font-style: normal;
+  margin-top: 6px;
+}
+.site-footer .social-links {
+  margin-top: 6px;
+}
 .contact-details .text-link {
   white-space: normal;
 }
