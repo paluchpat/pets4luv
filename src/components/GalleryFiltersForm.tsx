@@ -40,6 +40,14 @@ const compatibility = [
   { name: 'goodWithChildren', label: 'Children', icon: 'child' },
 ] as const
 
+type GalleryLoadingMode = 'search' | 'sort'
+
+function scrollToGalleryResults(title: HTMLHeadingElement | null) {
+  title?.focus({ preventScroll: true })
+  // Use the site's scroll behavior, including its reduced-motion override.
+  document.getElementById(galleryResultsHeadingId)?.scrollIntoView()
+}
+
 export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, children }: {
   filters: GalleryFilters
   totalDocs: number
@@ -50,7 +58,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [applied, setApplied] = useOptimistic(filters)
-  const [isSorting, setSorting] = useOptimistic(false)
+  const [loadingMode, setLoadingMode] = useOptimistic<GalleryLoadingMode | null>(null)
   const latestFilters = useRef(applied)
   const searchInput = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<number | undefined>(undefined)
@@ -90,9 +98,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
     const requestedPage = pageToScroll.current
     pageToScroll.current = null
     if (requestedPage !== filters.page || window.location.hash !== `#${galleryResultsHeadingId}`) return
-    resultsTitle.current?.focus({ preventScroll: true })
-    // Use the site's scroll behavior, including its reduced-motion override.
-    document.getElementById(galleryResultsHeadingId)?.scrollIntoView()
+    scrollToGalleryResults(resultsTitle.current)
   }, [filters])
 
   function pageLink(destination: number, label: string) {
@@ -111,7 +117,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
     latestFilters.current = next
     startTransition(async () => {
       setApplied(next)
-      if (changes.sort !== undefined) setSorting(true)
+      setLoadingMode(changes.sort === undefined ? 'search' : 'sort')
       router.push(galleryHref(next), { scroll: false })
       await new Promise<void>(resolve => window.setTimeout(resolve, 1500))
     })
@@ -169,9 +175,18 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
               lastSubmittedQuery.current = ''
               applyFilters(emptyGalleryFilters)
             }}>Clear filters</Link>
+            <Link
+              className="button"
+              href={`#${galleryResultsHeadingId}`}
+              prefetch={false}
+              onNavigate={event => {
+                event.preventDefault()
+                scrollToGalleryResults(resultsTitle.current)
+              }}
+            >Show results</Link>
           </div>
         </div>
-        <GalleryStatus variant="filters" pending={isPending && !isSorting} />
+        <GalleryStatus variant="filters" loadingMode={loadingMode === 'search' ? loadingMode : null} />
       </div>
       <p className="gallery-listing-links">
         You can also find our adoptable animals on{' '}
@@ -206,7 +221,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
       </div>
     </form>
     <div className="gallery-results">
-      <div inert={isSorting}>
+      <div inert={loadingMode !== null}>
         {children}
         {totalPages > 1 && <nav className="pagination" aria-label="Results pages">
           {page > 1 && pageLink(page - 1, '← Previous')}
@@ -214,25 +229,26 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
           {page < totalPages && pageLink(page + 1, 'Next →')}
         </nav>}
       </div>
-      <GalleryStatus variant="sort" pending={isSorting} />
+      <GalleryStatus variant="results" loadingMode={loadingMode} />
     </div>
   </>
 }
 
 const galleryStatusVariants = {
-  filters: { className: 'gallery-status', message: 'Looking for friends…', image: 'gallery-cat', width: 64, height: 40 },
-  sort: { className: 'gallery-sort-status', message: 'Sorting results…', image: 'gallery-cat-sort', width: 768, height: 456 },
+  filters: { className: 'gallery-status', image: 'gallery-cat', width: 64, height: 40 },
+  results: { className: 'gallery-results-status', image: 'gallery-cat-sort', width: 768, height: 456 },
 } as const
 
-function GalleryStatus({ variant, pending }: { variant: keyof typeof galleryStatusVariants; pending: boolean }) {
-  const { className, message, image, width, height } = galleryStatusVariants[variant]
-  return <div className={className} role="status">
-    {pending && <>
+function GalleryStatus({ variant, loadingMode }: { variant: keyof typeof galleryStatusVariants; loadingMode: GalleryLoadingMode | null }) {
+  const { className, image, width, height } = galleryStatusVariants[variant]
+  const isInline = variant === 'filters'
+  return <div className={className} role={isInline ? undefined : 'status'} aria-hidden={isInline || undefined}>
+    {loadingMode && <>
       <picture>
         <source media="(prefers-reduced-motion: reduce)" srcSet={`/images/${image}-static.png`} />
         <img src={`/images/${image}.apng`} alt="" width={width} height={height} />
       </picture>
-      <span>{message}</span>
+      <span>{loadingMode === 'sort' ? 'Sorting results…' : 'Looking for friends…'}</span>
     </>}
   </div>
 }
