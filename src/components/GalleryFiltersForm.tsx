@@ -40,7 +40,15 @@ const compatibility = [
   { name: 'goodWithChildren', label: 'Children', icon: 'child' },
 ] as const
 
-export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: GalleryFilters; totalDocs: number; children: ReactNode }) {
+const resultsHeadingId = 'gallery-results-heading'
+
+export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, children }: {
+  filters: GalleryFilters
+  totalDocs: number
+  page: number
+  totalPages: number
+  children: ReactNode
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [applied, setApplied] = useOptimistic(filters)
@@ -49,9 +57,12 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
   const searchInput = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<number | undefined>(undefined)
   const lastSubmittedQuery = useRef(filters.q)
+  const pageToScroll = useRef<number | null>(null)
+  const resultsTitle = useRef<HTMLHeadingElement>(null)
 
   useLayoutEffect(() => {
     function restoreSearchFromHistory() {
+      pageToScroll.current = null
       window.clearTimeout(searchTimer.current)
       if (window.location.pathname !== '/animals' || !searchInput.current) return
       const queries = new URLSearchParams(window.location.search).getAll('q')
@@ -77,7 +88,26 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
     }
   }, [applied, isPending])
 
+  useLayoutEffect(() => {
+    const requestedPage = pageToScroll.current
+    pageToScroll.current = null
+    if (requestedPage !== filters.page || window.location.hash !== `#${resultsHeadingId}`) return
+    resultsTitle.current?.focus({ preventScroll: true })
+    // Use the site's scroll behavior, including its reduced-motion override.
+    document.getElementById(resultsHeadingId)?.scrollIntoView()
+  }, [filters])
+
+  function pageLink(destination: number, label: string) {
+    return <Link
+      className="button secondary"
+      href={`${galleryHref(filters, destination)}#${resultsHeadingId}`}
+      scroll={false}
+      onNavigate={() => { pageToScroll.current = destination }}
+    >{label}</Link>
+  }
+
   function applyFilters(changes: Partial<GalleryFilters>) {
+    pageToScroll.current = null
     // Merge into the latest selection even before Next commits its server response.
     const next = { ...latestFilters.current, ...changes, page: 1 }
     latestFilters.current = next
@@ -143,8 +173,8 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
         </div>
         <GalleryStatus variant="filters" pending={isPending && !isSorting} />
       </div>
-      <div className="results-heading">
-        <h2 aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
+      <div id={resultsHeadingId} className="results-heading">
+        <h2 ref={resultsTitle} tabIndex={-1} aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
         <FilterSelect
           className="gallery-sort"
           label="Sort by"
@@ -156,7 +186,14 @@ export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: 
       </div>
     </form>
     <div className="gallery-results">
-      <div inert={isSorting}>{children}</div>
+      <div inert={isSorting}>
+        {children}
+        {totalPages > 1 && <nav className="pagination" aria-label="Results pages">
+          {page > 1 && pageLink(page - 1, '← Previous')}
+          <span>Page {page} of {totalPages}</span>
+          {page < totalPages && pageLink(page + 1, 'Next →')}
+        </nav>}
+      </div>
       <GalleryStatus variant="sort" pending={isSorting} />
     </div>
   </>
