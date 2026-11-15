@@ -51,6 +51,7 @@ const groups: ApplicationGroup[] = [
 
 export default function ApplicationsPage() {
   return <main id="main" className="page-shell information-page applications-page">
+    <p className="section-label">Pets4Luv information</p>
     <div className="page-intro">
       <h1>Applications</h1>
       <p>Download and print the available form you need. Bring your completed application to {pets4LuvAddress}. If you have questions, call <a href={phoneHref}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a>.</p>

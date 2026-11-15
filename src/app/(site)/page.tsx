@@ -16,13 +16,17 @@ export default async function HomePage() {
     <div className="home-content">
       <section className={styles.intro} aria-labelledby="foundation-title">
         <h2 id="foundation-title">Pets4Luv Foundation</h2>
-        <p>Pets4Luv Foundation is a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs.</p>
+        <p>
+          We are a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs.<br />
+          We rely on <Link href="/donate">your donations</Link> to give cats and dogs the care they need and the chance to find a loving home.
+        </p>
       </section>
       <SearchPanel />
       <section className="weekly" aria-labelledby="weekly-title"><div className="weekly-intro"><p className="section-label">Featured animals of the week</p><h2 id="weekly-title">{homepage.heading}</h2><RichContent value={homepage.intro} text={homepage.introText} /></div>
         {spotlight ? <article className="spotlight"><Link className="portrait-photo spotlight-photo" href={`/animals/${spotlight.slug}`} aria-label={`Meet ${spotlight.name}`}><PortraitPhoto animal={spotlight} /></Link><div className="spotlight-caption"><div><strong>{spotlight.name}</strong><span>This week’s spotlight</span></div><Link className="animal-meet-link" href={`/animals/${spotlight.slug}`}><span className="animal-meet-link-label">Meet {spotlight.name}</span><span aria-hidden="true">→</span></Link></div></article> : <p className="empty-state">Our next featured friends are on their way. <Link href="/animals">Explore available animals.</Link></p>}
         {companions.length > 0 && <div className="weekly-companions">{companions.map(animal => <article className="weekly-animal" key={animal.id}><Link href={`/animals/${animal.slug}`} className="portrait-photo weekly-animal-photo" aria-label={`Meet ${animal.name}`}><PortraitPhoto animal={animal} /></Link><div><h3><Link href={`/animals/${animal.slug}`}>{animal.name}</Link></h3><p>{animal.summary}</p><Link className="text-link animal-meet-link" href={`/animals/${animal.slug}`}><span className="animal-meet-link-label">Meet {animal.name}</span><span aria-hidden="true">→</span></Link></div></article>)}</div>}
-      </section><div className="home-end"><p>Sample animals · Local demo</p><ChatLauncher /></div>
+      </section>
+      <ChatLauncher />
       <HomeDonationImpact />
     </div>
   </main>
