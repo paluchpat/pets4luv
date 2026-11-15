@@ -1,0 +1,22 @@
+{
+  "mode": "Built-in image-generation tool",
+  "variants": [
+    {
+      "file": "07-editorial-serif-v4",
+      "label": "Version 1 — Current serif typography",
+      "prompt": "Use case: precise-object-edit / website UI mockup. Image 1 is the current approved Pets4Luv homepage, the edit target. Preserve its layout, ivory and burgundy palette, exact logo, navigation, hero photograph of cat lying directly next to golden dog, exact hero text 'Every animal deserves a next chapter.' and 'Help them find theirs.', no hero button, flat shadow-free search container, filter controls, 'Find your furry best friend' heading, integrated chat directly below filters, weekly spotlight/photos/copy and floating Ask Pets4Luv button. Full-page straight-on desktop screenshot, same aspect ratio as image 1. Update the chat input placeholder to EXACTLY 'Tell us about your ideal companion' without ellipsis, removing 'your home and'. Keep the separate heading 'OR tell us what you’re looking for' and the helper line about adoption, pet care, or volunteering. Do not add a bottom conversation banner. No cropping or device frame. Change ONLY that placeholder text. Preserve the current serif typography and all other elements as closely as possible.",
+      "refs": [
+        "design/homepage-mockups/05-editorial-search-chat-v3.png"
+      ]
+    },
+    {
+      "file": "08-editorial-sans-serif-v4",
+      "label": "Version 2 — Clean sans-serif typography",
+      "prompt": "Use case: precise-object-edit / website UI mockup. Image 1 is the current approved Pets4Luv homepage, the edit target. Preserve its layout, ivory and burgundy palette, exact logo, navigation, hero photograph of cat lying directly next to golden dog, exact hero text 'Every animal deserves a next chapter.' and 'Help them find theirs.', no hero button, flat shadow-free search container, filter controls, 'Find your furry best friend' heading, integrated chat directly below filters, weekly spotlight/photos/copy and floating Ask Pets4Luv button. Full-page straight-on desktop screenshot, same aspect ratio as image 1. Update the chat input placeholder to EXACTLY 'Tell us about your ideal companion' without ellipsis, removing 'your home and'. Keep the separate heading 'OR tell us what you’re looking for' and the helper line about adoption, pet care, or volunteering. Do not add a bottom conversation banner. No cropping or device frame. Image 2 is a TYPOGRAPHY REFERENCE ONLY. Use the clean modern sans-serif fonts visible in its main white-and-teal website: bold friendly geometric/humanist sans-serif headlines, clean readable regular sans-serif body copy, medium/semibold navigation and UI labels. Convert ALL website text in image 1 to this sans-serif style: hero headline, subtitle, nav links, search heading, form controls, chat heading/input/helper, weekly editorial heading, animal names, descriptions, captions and footer. No serif website text remains; the original organization logo artwork must stay intact and must NOT be typeset differently. Preserve the burgundy/ivory COLORS from image 1; do NOT adopt teal/green colors or dashboard layout from image 2. Ignore all image-viewer thumbnail sidebar and download UI visible in image 2; these must NOT appear in output. Fit sans-serif hero headline legibly on left without obscuring animal faces; allow sensible line breaks and small font size changes to maintain composition. Preserve hierarchy with bold headings and regular body text. This is the same approved homepage with a new font treatment, not the directory layout.",
+      "refs": [
+        "design/homepage-mockups/05-editorial-search-chat-v3.png",
+        "User-provided white-and-teal typography reference"
+      ]
+    }
+  ]
+}

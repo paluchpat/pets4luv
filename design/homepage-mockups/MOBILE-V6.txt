@@ -1,0 +1,9 @@
+Pets4Luv — mobile adaptation of approved hybrid v6
+
+13-mobile-search-v6.png: top of the page, including mobile navigation, motto and animal hero, filters, and integrated chat.
+14-mobile-highlights-v6.png: continuation below the search panel, with weekly introduction, Luna, Milo, Olive, and chat launcher.
+These are two consecutive scroll views of one homepage, not separate alternative designs.
+
+Mobile choices: navigation collapses into Menu; Donate remains visible; animal faces stay visible; species selector spans the panel; age and size share a row; Show matching pets is full width; chat uses a multiline input with a separate Send button; weekly content stacks vertically. The launcher is omitted while the inline composer is visible and has reserved clearance below animal links in the lower view.
+
+Static visual concepts created with the built-in image-generation tool. Sample animals and imagery are illustrative. Original logo asset should be used unchanged in implementation. Actual responsive behavior, tap targets, menu interaction and accessibility require implementation/testing. Generation prompts included in mobile-v6-prompts.json.

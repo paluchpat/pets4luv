@@ -1,0 +1,34 @@
+{
+  "mode": "Built-in image-generation tool; demo imagery, not real adoption listings",
+  "prompts": [
+    [
+      "hero",
+      "Generate a standalone photorealistic website hero photograph inspired by the photo in the provided approved website reference. NO TEXT, NO UI, NO LOGO. Wide landscape 3:2. Gentle senior golden retriever and tabby-and-white cat lying directly next to each other on a chunky beige knit blanket. Dog and cat heads near each other on the RIGHT two thirds of frame, eyes open friendly and natural, touching shoulders, both faces fully visible. Warm sunlight from window, cozy neutral home, softly blurred background. LEFT third darker low-detail softly shaded background and blanket for later HTML heading overlay. Match warm editorial photography of reference. Realistic anatomy, gentle natural lighting."
+    ],
+    [
+      "luna",
+      "Generate ONE standalone photorealistic animal adoption portrait, NO TEXT UI LOGO. Square portrait of the fluffy gray-brown tabby and white cat Luna shown in the large weekly spotlight in this reference, sitting on a cozy blanket beside a bright window, looking gently upward toward right. Warm natural window light, green eyes, white chest and paws, soft background. Crop with room around ears, beautiful natural editorial photo matching reference."
+    ],
+    [
+      "milo",
+      "Generate ONE standalone photorealistic animal adoption portrait, NO TEXT UI LOGO. Square portrait of the cheerful black-and-white dog Milo in this reference, medium adult mixed-breed dog with white muzzle and chest, happy open mouth and natural tongue, soft floppy ears, outdoors with warm blurred foliage background. Friendly natural editorial photograph, enough room around ears."
+    ],
+    [
+      "olive",
+      "Generate ONE standalone photorealistic animal adoption portrait, NO TEXT UI LOGO. Square portrait of a curious calico-tabby cat Olive similar to small weekly portrait in reference, beautiful orange gray brown fur patches with white chest, large green eyes, sitting by window. Warm natural editorial photography, blurred neutral home background, enough room around ears."
+    ],
+    [
+      "jasper",
+      "Create one standalone square photorealistic adoption portrait for Jasper, a fictional large senior male mixed-breed dog. Natural warm editorial rescue photography, outdoors on a shady garden path with softly blurred golden-green foliage. Jasper has a warm sandy tan coat, a black nose, a visibly silver-gray muzzle and eyebrows, broad head, large soft drop ears, and calm brown eyes. He is sitting and looking at the camera with a gentle relaxed expression. Eye-level photograph, soft natural afternoon light, head and shoulders centrally framed with generous room around both ears and below the muzzle so a slightly landscape crop preserves his face. Realistic age and fur texture. Single dog, no lettering, UI, frames, watermark, humans, or other animals."
+    ],
+    [
+      "poppy",
+      "Create one standalone square photorealistic adoption portrait for Poppy, a fictional baby female domestic shorthair kitten. The tiny kitten has solid blue-gray short fur with a small white chin and one white paw, bright round amber eyes, delicate whiskers, and a visibly kitten-like face. She sits on a simple ivory linen cushion, in the soft daylight of a neutral home, looking forward with a curious expression. Warm natural editorial rescue photography, shallow depth of field, real fur and linen texture. Head and chest centrally framed with generous room above both ears and below the face for a slightly landscape gallery crop. One kitten only, no text, UI, borders, logo or watermark."
+    ],
+    [
+      "scout",
+      "Create one standalone square photorealistic adoption portrait for Scout, a fictional small young female mixed breed dog. Scout is a petite russet-and-cream scruffy terrier mix, with lightly wiry fur, a narrow cream blaze on her chest, semi-upright ears with one gently tipped over, and dark brown eyes. She sits alert and friendly by pale sage garden siding with soft garden greenery out of focus. Warm late afternoon natural editorial rescue photography, realistic scruffy fur, eye-level camera, head and shoulders centered with generous room above the ears and below the face for a slightly landscape gallery crop. Single dog only, no lettering, UI, border, logos, or watermark."
+    ]
+  ],
+  "mobileHero": "Create one standalone website hero PHOTO asset, NO TEXT, NO UI, NO LOGO. Use the hero photo scene of the supplied mobile mockup as composition reference. Portrait 4:5. Golden retriever and tabby-white cat lying next to each other on beige chunky blanket across lower half of portrait, both faces fully visible, both awake gentle expression. Their heads and ears must be entirely in BOTTOM 55% of frame, leaving TOP 45% as softly dark blurred warm home background for later HTML motto overlay. Same cozy sunlit window, warm editorial realistic photography. No words or website elements whatsoever."
+}

@@ -1,0 +1,8 @@
+Pets4Luv — refined mobile mockup
+
+15-mobile-search-refined-v7-final.png: final top scroll section with shorter hero and tighter chat spacing.
+16-mobile-highlights-refined-v7.png: continuation with a smaller weekly headline and closer introduction.
+
+Both are consecutive scroll sections of the same homepage. Wording, burgundy/ivory style, hybrid typography, filters, chat and animal links are retained. Earlier mockups remain available separately. The file named 15-mobile-search-refined-v7.png is an intermediate draft and is not included here.
+
+Static concepts generated with the built-in image-generation tool. Animal images remain illustrative. Real mobile interactions and accessibility need validation during implementation. Initial prompts and the final hero refinement prompt are included.

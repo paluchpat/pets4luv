@@ -1,0 +1,78 @@
+# Pets4Luv local prototype
+
+A Payload CMS + Next.js website based on the approved Pets4Luv desktop and mobile mockups. SQLite and uploaded files stay on this computer. All seeded animal records and policy examples are fictional demonstration content.
+
+## Run locally
+
+Use Node **24.22.2** (see `.nvmrc`) and npm. This checkout also has an ignored project-local Node runtime; the wrapper below selects it without changing your system Node.
+
+```sh
+./scripts/local.sh setup
+./scripts/local.sh seed
+./scripts/local.sh dev
+```
+
+Open http://localhost:3000 for the website and http://localhost:3000/admin for Payload. The server binds to loopback only. Create your first administrator in Payload's setup screen; no shared administrator password is seeded.
+
+On a fresh checkout with supported Node installed, run `npm ci`, then `npm run setup`, `npm run seed`, and `npm run dev`. Setup creates a random secret in the ignored `.env`; seed preserves existing records. Keep the original secret when moving an existing database.
+
+## Content editing
+
+- **Animals:** add approved public photos, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
+- **Homepage highlights:** edit the introduction with the rich-text toolbar, select available animals, and drag the rows to order them. Use the authenticated preview before publishing.
+- **Pages:** edit Donate, Contact, and other general information pages with the rich-text toolbar. A published page with slug `donate` appears at `/donate`; drafts stay private. Navigation links are maintained in the site code.
+- **Knowledge:** maintain adoption, volunteering, and care content. Replace the clearly marked demonstration copy with rescue-approved information.
+- **Private intake files / Intakes:** upload the animal source photo and information card privately, record supplied facts, and link an animal draft. Only approved animal photographs belong in the public photo library. AI extraction is not active.
+- **Staff:** the administrator can create an editor account for the content manager. Editors can maintain content but cannot assign administrative roles.
+
+Use **unknown** for unassessed compatibility. Public compatibility filters match explicit yes assessments, never unknown or conditional values.
+
+Donate and Contact are local pages. The Donate page lists the rescue’s Zeffy, PayPal, and Venmo links and its mailing address. The providers handle online donations. Contact details can be added through Payload when available. `./scripts/local.sh seed:pages` creates only missing starter pages and preserves existing drafts and published content.
+
+Public content must not send visitors to the former rescue website. Known legacy links in rich text are rewritten to their matching local pages; unrecognized legacy destinations render as ordinary text. This rule also applies to future CMS edits.
+
+## AI remains disabled
+
+The visible chat is an unavailable-state preview. It does not generate responses, send messages to a provider, or infer animal traits. The server chat endpoint also refuses requests. No OpenAI SDK or API key is needed for this build. An environment flag alone must not turn on paid requests.
+
+Credit eligibility, balance, expiry, and billing behavior have **not** been verified. Enabling live visitor/admin AI is a later implementation step after verification and an agreed spending allowance. The manual CMS and gallery work independently of AI.
+
+## Verification
+
+```sh
+./scripts/local.sh typecheck
+./scripts/local.sh test:backend
+./scripts/local.sh test:site
+./scripts/local.sh build
+```
+
+The initial preview uses ordinary development schema synchronization. Before production hosting, introduce reviewed migrations, production backups, email delivery, and deployment-specific configuration. Do not expose this demo as a live adoption system with fictional fixtures.
+
+Initial verification on November 7, 2026: production build and TypeScript checks passed; seven backend integration tests passed; desktop and 320/390px mobile browser checks passed. The manager's own editing/usability session is still pending. Local preview screenshots are in `output/qa`.
+
+Dependency overrides pin patched DOMPurify and happy-dom versions. The installation audit reported no high or critical advisories, with 5 moderate and 7 low advisories remaining; review these again before production deployment.
+
+## Backup and restore
+
+Stop the app before copying its database and uploads together:
+
+```sh
+./scripts/local.sh backup -- --confirm-stopped
+./scripts/local.sh restore -- backups/BACKUP_NAME /absolute/path/to/a-new-restore-directory
+```
+
+Restore verifies SQLite integrity and writes into a new directory; it does not overwrite the working application. Backups include public and private uploads. Preserve `.env` securely and separately; it is intentionally excluded from backups and Git.
+
+## Project layout
+
+- `src/app/(site)` — public homepage, gallery, animal profiles and information pages.
+- `src/app/(payload)` — CMS administration, REST API and authenticated preview routes.
+- `src/collections`, `src/globals` — content schema and permissions.
+- `src/lib/content.ts` — public data projection and shared search queries.
+- `public/images` — local demo imagery and original Pets4Luv logo.
+- `data`, `uploads`, `backups` — local runtime data, excluded from Git.
+- `design/homepage-mockups` — design exploration and approved references.
+
+Approved desktop: `12-editorial-hybrid-refined-v6.png`. Approved mobile: `15-mobile-search-refined-v7-final.png` and `16-mobile-highlights-refined-v7.png`.
+
+Demo animal images were created with the built-in image-generation tool; prompts are recorded in `design/implementation-assets-prompts.json`. The site logo is the original asset from pets4luv.org, retained at `public/images/logo.png`. These images are illustrative and must not be represented as real available animals.

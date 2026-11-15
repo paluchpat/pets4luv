@@ -1,0 +1,51 @@
+{
+  "name": "pets4luv-local",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.22.1"
+  },
+  "packageManager": "npm@11.17.0",
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "seed": "node --env-file=.env --import tsx scripts/seed.ts",
+    "seed:pages": "node --env-file=.env --import tsx scripts/seed-pages.ts",
+    "generate:types": "payload generate:types",
+    "generate:importmap": "payload generate:importmap",
+    "backup": "node scripts/backup.mjs",
+    "restore": "node scripts/restore.mjs",
+    "test:backend": "node --env-file=.env --import tsx --test tests/backend/*.test.ts",
+    "test:site": "node --import tsx --test tests/site/*.test.ts"
+  },
+  "dependencies": {
+    "@fontsource/dm-sans": "5.3.0",
+    "@fontsource/libre-baskerville": "5.3.0",
+    "@payloadcms/db-sqlite": "3.93.0",
+    "@payloadcms/live-preview-react": "3.93.0",
+    "@payloadcms/next": "3.93.0",
+    "@payloadcms/richtext-lexical": "3.93.0",
+    "graphql": "16.15.0",
+    "lucide-react": "0.468.0",
+    "next": "16.4.5",
+    "payload": "3.93.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "dompurify": "3.4.17",
+    "happy-dom": "21.0.4"
+  }
+}

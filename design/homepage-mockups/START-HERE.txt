@@ -1,0 +1,36 @@
+PETS4LUV — FOUR HOMEPAGE DESIGN DIRECTIONS
+Prepared November 5, 2026
+
+These are static visual concepts for discussion, not implemented web pages.
+Animal photos are AI-generated and animal details/copy are illustrative, not current adoption listings.
+Each concept includes adoption discovery, weekly highlights, and a conversational helper.
+
+01 — WARM WELCOME
+Cream, forest green, soft shapes, and friendly serif typography.
+Focus: warmth, reassurance, and approachable adoption.
+
+02 — BIG PERSONALITIES
+Yellow, cobalt, bold rounded lettering, and playful animal portraits.
+Focus: joy, personality, and a memorable visual identity.
+
+03 — FIND YOUR MATCH
+White and teal, structured filters, immediate animal results, and prominent chat.
+Focus: useful search and helping visitors discover suitable animals quickly.
+
+04 — EVERY ANIMAL, A STORY
+Large photography, burgundy, editorial typography, and featured animal stories.
+Focus: emotional connection and the rescue's mission.
+
+REVIEW PROMPT
+Ask each reviewer to choose a first and second favorite, then name the elements they would keep or change. Layout, typography, colors, and chat placement can be combined across directions.
+
+NOTES FOR IMPLEMENTATION
+Use pets4luv-logo-original.png as the actual logo asset. Generated concept images may approximate small logo lettering.
+Search controls, donation links, and chat are visual treatments only; they do not change the implementation scope or activate services. The search-first mockup illustrates draft filter selections before pressing Show matches; final behavior must clearly distinguish applied filters.
+Use real approved animal photos and verified information before launch. Responsive/mobile layouts will follow selection of a direction.
+
+PROVENANCE
+Original logo and organizational context: https://www.pets4luv.org/
+Logo: https://www.pets4luv.org/images/Element16767.png
+Concepts created with the built-in image-generation tool, not the paid API/CLI fallback.
+The full generation prompt set is included in prompts.json.

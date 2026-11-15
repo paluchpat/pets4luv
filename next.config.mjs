@@ -1,0 +1,7 @@
+import { withPayload } from '@payloadcms/next/withPayload'
+
+export default withPayload({
+  poweredByHeader: false,
+  devIndicators: false,
+  serverExternalPackages: ['sharp'],
+})
