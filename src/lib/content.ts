@@ -84,6 +84,7 @@ export async function getHomepage(): Promise<HomepageDTO> {
 }
 
 export async function getKnowledge(slug: string) {
+  if (slug === 'care') return null
   const payload = await getPayload({ config })
   const result = await payload.find({ collection: 'knowledge', overrideAccess: false, draft: false, depth: 0, where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] }, limit: 1 })
   const doc = result.docs[0] as any

@@ -33,7 +33,7 @@ Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/
 - **Animals:** add approved public photos, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
 - **Homepage highlights:** edit the introduction with the rich-text toolbar, select available animals, and drag the rows to order them. Use the authenticated preview before publishing.
 - **Pages:** edit Donate, Contact, and other general information pages with the rich-text toolbar. A published page with slug `donate` appears at `/donate`; drafts stay private. Navigation links are maintained in the site code.
-- **Knowledge:** maintain adoption, volunteering, and care content. Replace the clearly marked demonstration copy with rescue-approved information.
+- **Adoption & volunteering:** edit the rescue’s adoption and volunteering articles. Replace the clearly marked demonstration copy with rescue-approved information.
 - **Private intake files / Intakes:** upload the animal source photo and information card privately, record supplied facts, and link an animal draft. Only approved animal photographs belong in the public photo library. AI extraction is not active.
 - **Staff:** the administrator can create an editor account for the content manager. Editors can maintain content but cannot assign administrative roles.
 

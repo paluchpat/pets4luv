@@ -51,13 +51,6 @@ for (const animal of demo) {
 }
 const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as any
 if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['luna', 'milo', 'olive'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
-const articles = [
-  { slug: 'care', title: 'Helping a new animal feel at home', category: 'care', text: 'Prepare a quiet space, fresh water and a predictable routine. Let your new companion settle at their own pace. Ask the rescue for its approved transition guidance and consult a veterinarian for individual health concerns. This is fictional demonstration content rather than a rescue policy.' },
-] as const
-for (const { text, ...article } of articles) {
-  const existing = await payload.find({ collection: 'knowledge', where: { slug: { equals: article.slug } }, limit: 1, draft: true })
-  if (!existing.docs.length) await payload.create({ collection: 'knowledge', data: { ...article, body: richText(text), source: 'Fictional demonstration fixture', reviewer: 'Demo content', reviewedAt: '2026-11-07', _status: 'published' } })
-}
 await seedAdoption(payload)
 await seedVolunteering(payload)
 await seedPages(payload)
