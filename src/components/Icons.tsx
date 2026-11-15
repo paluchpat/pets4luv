@@ -1,10 +1,12 @@
 import type { SVGProps } from 'react'
 
-type IconProps = SVGProps<SVGSVGElement> & { kind: 'paw' | 'cat' | 'dog' | 'child' | 'chat' | 'arrow' }
+type IconProps = SVGProps<SVGSVGElement> & { kind: 'paw' | 'cat' | 'dog' | 'child' | 'chat' | 'arrow' | 'send' | 'external' }
 
 export function Icon({ kind, ...props }: IconProps) {
   return <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
     {kind === 'arrow' && <><path d="M4 16h24M20 8l8 8-8 8" /></>}
+    {kind === 'send' && <path fill="currentColor" stroke="none" d="m10 6 17 10-17 10Z" />}
+    {kind === 'external' && <path strokeWidth="2.5" d="M7 25 25 7M14 7h11v11" />}
     {kind === 'chat' && <path d="M28 14c0 6-6 10-13 10h-3l-7 5 2-8C4 19 2 17 2 14 2 7 8 3 15 3s13 4 13 11Z" />}
     {kind === 'paw' && <><path fill="currentColor" stroke="none" d="M16 14c-4 0-5 5-8 8-3 4 1 8 5 6 2-1 4-1 6 0 4 2 8-2 5-6-3-3-4-8-8-8Z" /><ellipse cx="6" cy="12" rx="3" ry="4" fill="currentColor" stroke="none" transform="rotate(-25 6 12)"/><ellipse cx="13" cy="7" rx="3" ry="4" fill="currentColor" stroke="none"/><ellipse cx="21" cy="7" rx="3" ry="4" fill="currentColor" stroke="none"/><ellipse cx="27" cy="13" rx="3" ry="4" fill="currentColor" stroke="none" transform="rotate(25 27 13)"/></>}
     {kind === 'cat' && <>

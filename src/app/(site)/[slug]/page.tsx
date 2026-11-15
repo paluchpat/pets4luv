@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getPage } from '@/lib/content'
 import { pets4LuvAddress } from '@/lib/site-address'
+import { Icon } from '@/components/Icons'
 import { RichContent } from '@/components/RichContent'
 import { SocialLinks } from '@/components/SocialLinks'
 
@@ -30,13 +31,13 @@ export default async function ContentPage({ params }: Props) {
       <p>Your generosity helps us continue to <strong>“bring families together one rescue at a time.”</strong></p>
       <div className="donation-actions">
         <a className="button" href="https://www.zeffy.com/en-US/donation-form/help-needed-for-medical-costs" target="_blank" rel="noopener noreferrer">
-          Donate with Zeffy <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          Donate with Zeffy <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
         </a>
         <a className="button secondary" href="https://www.paypal.com/paypalme/pets4luvfoundation" target="_blank" rel="noopener noreferrer">
-          PayPal <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          PayPal <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
         </a>
         <a className="button secondary" href="https://venmo.com/pets4luv" target="_blank" rel="noopener noreferrer">
-          Venmo @pets4luv <span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          Venmo @pets4luv <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
         </a>
       </div>
       <div className="donation-mail">
@@ -56,7 +57,7 @@ export default async function ContentPage({ params }: Props) {
         <h3>Visiting Pets4Luv</h3>
         <address>{pets4LuvAddress}</address>
         <a className="text-link" href={`https://www.google.com/maps/dir/?api=1&destination=${mapsDestination}`} target="_blank" rel="noopener noreferrer">
-          Google Maps directions&nbsp;<span aria-hidden="true">↗</span><span className="sr-only"> (opens in a new tab)</span>
+          Google Maps directions&nbsp;<Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
         </a>
       </div>
       <iframe

@@ -60,7 +60,7 @@ export function SearchPanel() {
             startedOnBackdrop.current = false
             chatDialog.current?.showModal()
           }}
-        >Send <span aria-hidden="true">▶</span></button>
+        >Send <Icon kind="send" /></button>
       </div>
       <p className="chat-help">{resourceLinks}</p>
     </section>

@@ -737,6 +737,11 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 .contact-details .text-link {
   white-space: normal;
 }
+.contact-details .text-link svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+}
 .contact-map {
   display: block;
   width: 100%;
