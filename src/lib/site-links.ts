@@ -5,6 +5,8 @@ const legacyPaths: Record<string, string> = {
   '/contact': '/contact',
   '/adopt': '/animals',
   '/adoption': '/info/adoption',
+  '/cat-adoption-information': '/info/adoption#cat-adoption',
+  '/dog-adoption-information': '/info/adoption#dog-adoption',
   '/volunteer': '/info/volunteering',
   '/volunteering': '/info/volunteering',
   '/about': '/about',
@@ -34,5 +36,7 @@ export function resolvePublicHref(url: string): string | null {
   let pathname: string
   try { pathname = decodeURIComponent(parsed.pathname).toLowerCase().replace(/\/+$/, '') || '/' } catch { return null }
   const destination = legacyPaths[pathname]
-  return destination ? `${destination}${parsed.search}${parsed.hash}` : null
+  if (!destination) return null
+  const [path, anchor] = destination.split('#')
+  return `${path}${parsed.search}${parsed.hash || (anchor ? `#${anchor}` : '')}`
 }

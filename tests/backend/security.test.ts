@@ -5,6 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { getPayload, type Payload } from 'payload'
 import { animalDTO, buildAnimalWhere } from '../../src/lib/public-content'
+import { seedAdoption } from '../../scripts/adoption-seed'
 import { seedMissingPages } from '../../scripts/page-seeds'
 import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { validatePageSlug } from '../../src/collections/Pages'
@@ -213,4 +214,30 @@ test('volunteering seed creates official copy and only upgrades the exact demo w
   assert.ok(publishedBody.includes('mailto:info@pets4luv.org'))
   assert.ok(publishedBody.includes('tel:+15168607057'))
   assert.equal(await seedVolunteering(payload), 'preserved')
+})
+
+test('adoption seed replaces the untouched shared demo and preserves independently edited species articles', async () => {
+  const body = pageBody('This is a fictional local demonstration, not an operating rescue. In a real adoption process, the rescue will discuss your household, help you meet an animal and explain its approved adoption policies. Contact the rescue directly for current fees, application requirements and availability.')
+  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
+  const legacy = await payload.create({ collection: 'knowledge', data: { title: 'Find your new best friend', slug: 'adoption', category: 'adoption', body, source: 'Fictional demonstration fixture', reviewer: 'Demo content', reviewedAt: '2026-11-07', _status: 'published' } })
+  const cat = await payload.create({ collection: 'knowledge', draft: true, data: { title: 'Staff cat draft', slug: 'cat-adoption', category: 'adoption', body: pageBody('Pending cat edits.'), _status: 'draft' } })
+
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'updated', 'cat-adoption': 'preserved', 'dog-adoption': 'created' })
+  const shared = await payload.findByID({ collection: 'knowledge', id: legacy.id, overrideAccess: false })
+  assert.equal(shared.title, 'How adoption works')
+  assert.equal(shared.reviewer, null)
+  assert.equal(shared.reviewedAt, null)
+  assert.match(shared.source ?? '', /Cat-Adoption-Information.*Dog-Adoption-Information/)
+  const steps = shared.body.root.children.find(node => node.type === 'list')
+  assert.equal(steps?.tag, 'ol')
+  assert.equal(Array.isArray(steps?.children) && steps.children.length, 3)
+  for (const href of ['mailto:info@pets4luv.org', 'tel:+15168607057']) assert.ok(JSON.stringify(shared.body).includes(href))
+  assert.equal((await payload.findByID({ collection: 'knowledge', id: cat.id, draft: true })).title, 'Staff cat draft')
+  await assert.rejects(() => payload.findByID({ collection: 'knowledge', id: cat.id, draft: false, overrideAccess: false }))
+
+  const { docs: [dog] } = await payload.find({ collection: 'knowledge', where: { slug: { equals: 'dog-adoption' } }, overrideAccess: false })
+  assert.equal(dog.title, 'Dog adoption')
+  await payload.update({ collection: 'knowledge', id: dog.id, data: { title: 'Staff dog copy' } })
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved', 'cat-adoption': 'preserved', 'dog-adoption': 'preserved' })
+  assert.equal((await payload.findByID({ collection: 'knowledge', id: dog.id, overrideAccess: false })).title, 'Staff dog copy')
 })
