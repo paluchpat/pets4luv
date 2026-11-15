@@ -50,7 +50,7 @@ for (const animal of demo) {
   animals[animal.slug] = created.id
 }
 const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as any
-if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['luna', 'milo', 'olive'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
+if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['poppy', 'fern', 'cleo'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
 await seedAdoption(payload)
 await seedVolunteering(payload)
 await seedPages(payload)
