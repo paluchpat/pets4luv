@@ -20,7 +20,6 @@ export default async function ContentPage({ params }: Props) {
   const isContact = slug === 'contact'
 
   return <main id="main" className={`page-shell information-page content-page${isDonate ? ' donation-page' : ''}`}>
-    <Link className="back-link" href="/">← Home</Link>
     <p className="section-label">{isDonate ? 'Every bit of kindness matters' : isContact ? 'Let’s connect' : 'Pets4Luv information'}</p>
     <h1>{page.title}</h1>
     {isDonate && <section className="donation-options" aria-labelledby="donation-options-title">

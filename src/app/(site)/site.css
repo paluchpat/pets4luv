@@ -210,6 +210,9 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
     --control-font-size: 16px;
     --control-label-size: 12px;
   }
+  .filter-select {
+    --field-padding-inline: 14px;
+  }
   .filter-select-option {
     min-height: var(--control-height);
   }
@@ -229,7 +232,8 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
     height: 22px;
   }
   .filter-select {
-    --field-padding-inline: 4px;
+    /* Leave room for “Any gender”, the chevron, gap and borders. */
+    --field-padding-inline: clamp(4px, calc((100% - 99px) / 2), 14px);
     --select-arrow-width: 10px;
     --select-arrow-gap: 2px;
   }

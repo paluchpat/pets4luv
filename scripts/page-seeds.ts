@@ -63,7 +63,6 @@ export const initialPages = [
   {
     slug: 'about', title: 'About Pets4Luv',
     body: body([
-      heading('Welcome'),
       paragraph('Pets4Luv Foundation is a registered 501(c)(3) nonprofit animal rescue. Your donations are tax-deductible. Our organization has no paid board members. They are all here for the love of animals. All of our funding comes from private donations. We receive no government funding to run our organization. Pets4Luv is a no-kill rescue, which means we will never euthanize an animal for space.'),
       paragraph('Pets4Luv is an all-breed dog and cat rescue. Our primary focus is on the rescue, rehabilitation, and rehoming of animals that are injured, ill, or disabled, animals with other special needs, and senior animals. We care for animals with both temporary and lifelong conditions. We also focus on educating the public about companion animal illnesses, medical conditions, and disabilities to help dispel misconceptions about these conditions. We hope that making this information more readily available to the public will increase the chances of animals with special needs finding loving forever families.'),
       heading('Our mission'),

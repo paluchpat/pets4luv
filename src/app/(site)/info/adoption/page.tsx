@@ -23,7 +23,6 @@ export default async function AdoptionPage() {
   ].filter(section => section !== null)
 
   return <main id="main" className="page-shell information-page">
-    <Link className="back-link" href="/">← Home</Link>
     <p className="section-label">Pets4Luv information</p>
     <h1>{adoption?.title || fallbackTitle}</h1>
     {sections.length > 0 && <nav className="local-page-actions page-intro" aria-label="Adoption sections">
