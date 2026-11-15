@@ -2,28 +2,49 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useLayoutEffect, useOptimistic, useRef, useTransition, type FormEvent } from 'react'
-import { emptyGalleryFilters, galleryHref, type GalleryFilters } from '@/lib/gallery-filters'
+import { useLayoutEffect, useOptimistic, useRef, useTransition, type FormEvent, type ReactNode } from 'react'
+import { animalColorOptions, type AnimalColor } from '@/lib/animal-colors'
+import { emptyGalleryFilters, galleryHref, gallerySortOptions, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
 import { FilterSelect } from './FilterSelect'
+import { Icon } from './Icons'
 import { SpeciesPicker } from './SpeciesPicker'
-import { ageOptions, sexOptions, sizeOptions } from './filter-options'
+import { ageOptions, genderOptions, sizeOptions } from './filter-options'
+
+const colorSwatches: Record<AnimalColor, string> = {
+  black: '#242023',
+  brown: '#79503a',
+  cream: '#f6e8cc',
+  gold: '#c69833',
+  gray: '#85838b',
+  orange: '#e47d37',
+  red: '#b83f38',
+  tan: '#c9a679',
+  white: '#ffffff',
+}
+
+const colorOptions = [
+  { value: '', label: 'Any color' },
+  ...animalColorOptions.map(option => ({ ...option, swatch: colorSwatches[option.value] })),
+]
 
 const selects = [
   { name: 'ageGroup', label: 'Age', options: ageOptions },
-  { name: 'sex', label: 'Sex', options: sexOptions },
+  { name: 'gender', label: 'Gender', options: genderOptions },
+  { name: 'color', label: 'Color', options: colorOptions },
   { name: 'size', label: 'Size', options: sizeOptions },
 ] as const
 
 const compatibility = [
-  { name: 'goodWithDogs', label: 'Dogs' },
-  { name: 'goodWithCats', label: 'Cats' },
-  { name: 'goodWithChildren', label: 'Children' },
+  { name: 'goodWithDogs', label: 'Dogs', icon: 'dog' },
+  { name: 'goodWithCats', label: 'Cats', icon: 'cat' },
+  { name: 'goodWithChildren', label: 'Children', icon: 'child' },
 ] as const
 
-export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
+export function GalleryFiltersForm({ filters, totalDocs, children }: { filters: GalleryFilters; totalDocs: number; children: ReactNode }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [applied, setApplied] = useOptimistic(filters)
+  const [isSorting, setSorting] = useOptimistic(false)
   const latestFilters = useRef(applied)
   const searchInput = useRef<HTMLInputElement>(null)
   const searchTimer = useRef<number | undefined>(undefined)
@@ -62,6 +83,7 @@ export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
     latestFilters.current = next
     startTransition(async () => {
       setApplied(next)
+      if (changes.sort !== undefined) setSorting(true)
       router.push(galleryHref(next), { scroll: false })
       await new Promise<void>(resolve => window.setTimeout(resolve, 1500))
     })
@@ -85,48 +107,69 @@ export function GalleryFiltersForm({ filters }: { filters: GalleryFilters }) {
     applyFilters({ q })
   }
 
-  return <form action="/animals" method="get" className="gallery-filters" onSubmit={submitSearch}>
-    <label className="search-text">
-      <span>Search</span>
-      <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
-    </label>
-    <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
-    {selects.map(({ name, label, options }) => <FilterSelect
-      key={name}
-      label={label}
-      name={name}
-      options={options}
-      value={applied[name]}
-      onValueChange={value => applyFilters({ [name]: value })}
-    />)}
-    <fieldset className="compatibility-filters">
-      <legend>Friendly with</legend>
-      {compatibility.map(({ name, label }) => <label key={name}>
-        <input type="checkbox" name={name} value="true" checked={applied[name]} onChange={event => applyFilters({ [name]: event.currentTarget.checked })} /> {label}
-      </label>)}
-    </fieldset>
-    <div className="filter-actions">
-      <noscript><button type="submit" className="button">Apply filters</button></noscript>
-      <Link href="/animals" scroll={false} onNavigate={event => {
-        event.preventDefault()
-        window.clearTimeout(searchTimer.current)
-        if (searchInput.current) searchInput.current.value = ''
-        lastSubmittedQuery.current = ''
-        applyFilters(emptyGalleryFilters)
-      }}>Clear filters</Link>
+  return <>
+    <form action="/animals" method="get" onSubmit={submitSearch}>
+      <div className="gallery-filters">
+        <label className="search-text">
+          <span>Search</span>
+          <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
+        </label>
+        <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
+        {selects.map(({ name, label, options }) => <FilterSelect
+          key={name}
+          label={label}
+          name={name}
+          options={options}
+          value={applied[name]}
+          onValueChange={value => applyFilters({ [name]: value })}
+        />)}
+        <fieldset className="compatibility-filters">
+          <legend>Friendly with</legend>
+          {compatibility.map(({ name, label, icon }) => <label key={name}>
+            <input className="sr-only" type="checkbox" name={name} value="true" checked={applied[name]} onChange={event => applyFilters({ [name]: event.currentTarget.checked })} />
+            <Icon kind={icon} />
+            {label}
+          </label>)}
+        </fieldset>
+        <div className="filter-actions">
+          <noscript><button type="submit" className="button">Apply filters</button></noscript>
+          <Link href={galleryHref({ ...emptyGalleryFilters, sort: applied.sort })} scroll={false} onNavigate={event => {
+            event.preventDefault()
+            window.clearTimeout(searchTimer.current)
+            if (searchInput.current) searchInput.current.value = ''
+            lastSubmittedQuery.current = ''
+            applyFilters(emptyGalleryFilters)
+          }}>Clear filters</Link>
+        </div>
+        <GalleryStatus className="gallery-status" pending={isPending && !isSorting} message="Looking for friends…" />
+      </div>
+      <div className="results-heading">
+        <h2 aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
+        <FilterSelect
+          className="gallery-sort"
+          label="Sort by"
+          name="sort"
+          options={gallerySortOptions}
+          value={applied.sort}
+          onValueChange={value => applyFilters({ sort: parseGallerySort(value) })}
+        />
+      </div>
+    </form>
+    <div className="gallery-results">
+      <div inert={isSorting}>{children}</div>
+      <GalleryStatus className="gallery-sort-status" pending={isSorting} message="Sorting results…" />
     </div>
-    <GalleryStatus pending={isPending} />
-  </form>
+  </>
 }
 
-function GalleryStatus({ pending }: { pending: boolean }) {
-  return <div className="gallery-status" role="status">
+function GalleryStatus({ className, pending, message }: { className: string; pending: boolean; message: string }) {
+  return <div className={className} role="status">
     {pending && <>
       <picture>
         <source media="(prefers-reduced-motion: reduce)" srcSet="/images/gallery-cat-static.png" />
         <img src="/images/gallery-cat.apng" alt="" width={64} height={40} />
       </picture>
-      <span>Looking for friends…</span>
+      <span>{message}</span>
     </>}
   </div>
 }

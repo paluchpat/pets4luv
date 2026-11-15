@@ -6,5 +6,5 @@ export function AnimalPhoto({ animal, className = '' }: { animal: AnimalDTO; cla
 }
 
 export function AnimalCard({ animal }: { animal: AnimalDTO }) {
-  return <article className="animal-card"><Link href={`/animals/${animal.slug}`} className="animal-card-photo"><AnimalPhoto animal={animal} /></Link><div className="animal-card-body"><p className="eyebrow">{animal.species === 'cat' ? 'Cat' : 'Dog'} · {animal.ageLabel || animal.ageGroup} · {animal.size}</p><h2><Link href={`/animals/${animal.slug}`}>{animal.name}</Link></h2><p>{animal.summary}</p><Link className="text-link" href={`/animals/${animal.slug}`}>Meet {animal.name} <span aria-hidden="true">→</span></Link></div></article>
+  return <article className="animal-card"><Link href={`/animals/${animal.slug}`} className="animal-card-photo"><AnimalPhoto animal={animal} /></Link><div className="animal-card-body"><p className="eyebrow">{animal.species === 'cat' ? 'Cat' : 'Dog'} · {animal.ageLabel || animal.ageGroup} · {animal.size}</p><h2><Link href={`/animals/${animal.slug}`}>{animal.name}</Link></h2><p>{animal.summary}</p><Link className="text-link animal-meet-link" href={`/animals/${animal.slug}`}><span className="animal-meet-link-label">Meet {animal.name}</span>{' '}<span aria-hidden="true">→</span></Link></div></article>
 }

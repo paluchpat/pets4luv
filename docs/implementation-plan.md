@@ -60,7 +60,7 @@ Provide documented commands for setup, development, build, seed, backup, and res
 
 | Content | Purpose and initial fields |
 | --- | --- |
-| Animals | Stable ID, optional unique rescue intake ID, name, slug, species, sex, reported breed, age or estimated birth date, size, optional weight, energy level, compatibility assessments, public care needs, description, photos, and adoption status. |
+| Animals | Stable ID, optional unique rescue intake ID, name, slug, species, gender, reported breed, age or estimated birth date, size, optional weight, energy level, compatibility assessments, public care needs, description, photos, and adoption status. |
 | Homepage | Short introduction, ordered references to featured animals, optional heading, draft and published versions. |
 | Knowledge articles | Title, category, rich-text body, published state, source or policy reference, reviewer, and review date. Categories cover adoption, volunteering, and general care. |
 | Public media | Approved animal photos, responsive image variants, captions, alt text, and associations with animal records. |
@@ -92,7 +92,7 @@ Both manual and AI-assisted changes go through the same draft, validation, previ
 
 ## Visitor experience
 
-Build a responsive homepage, an adoption gallery, individual animal profiles, and readable knowledge pages. Start with filters for species, age group, size, sex, and compatibility, plus text search. Default to available animals. Keep filter state in the URL so searches can be shared and browser navigation behaves predictably.
+Build a responsive homepage, an adoption gallery, individual animal profiles, and readable knowledge pages. Start with filters for species, age group, size, gender, and compatibility, plus text search. Default to available animals. Keep filter state in the URL so searches can be shared and browser navigation behaves predictably.
 
 Use paginated results, optimized image sizes, accessible labels, keyboard navigation, and useful empty/error states. Staff can update content without rebuilding the application. Publication and adoption-status changes invalidate affected cached pages and search results.
 

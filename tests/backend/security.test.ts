@@ -26,8 +26,8 @@ before(async () => {
   editor = await payload.create({ collection: 'users', overrideAccess: false, user: admin, data: { email: 'editor@example.invalid', password: 'Temporary-test-only-99236', name: 'Test Editor', role: 'editor' } })
   publicPhotoID = (await payload.create({ collection: 'media', data: { alt: 'Approved test fixture' }, filePath: path.resolve('public/images/luna.png') })).id
   const basic = { name: 'Fixture', slug: 'published-fixture', species: 'cat' as const, sex: 'female' as const, ageGroup: 'adult' as const, size: 'small' as const, summary: 'Fictional fixture', description: 'Fictional fixture', status: 'available' as const, internalNotes: 'PRIVATE SENTINEL', rescueIntakeID: 'PRIVATE-1', photos: [{ photo: publicPhotoID }], compatibility: { dogs: 'unknown' as const, cats: 'yes' as const, children: 'conditional' as const } }
-  publishedID = (await payload.create({ collection: 'animals', data: { ...basic, _status: 'published' } })).id
-  draftID = (await payload.create({ collection: 'animals', draft: true, data: { ...basic, slug: 'secret-draft', rescueIntakeID: 'PRIVATE-2', _status: 'draft' } })).id
+  publishedID = (await payload.create({ collection: 'animals', data: { ...basic, colors: ['black', 'white'], _status: 'published' } })).id
+  draftID = (await payload.create({ collection: 'animals', draft: true, data: { ...basic, colors: ['gray'], slug: 'secret-draft', rescueIntakeID: 'PRIVATE-2', _status: 'draft' } })).id
   privateFileID = (await payload.create({ collection: 'intake-files', data: { label: 'Private test card' }, file: { data: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'), mimetype: 'image/png', name: `private-${Date.now()}.png`, size: 68 } })).id
 })
 after(async () => {
@@ -53,6 +53,18 @@ test('unknown and conditional compatibility never match a positive filter', asyn
   assert.equal(unknown.totalDocs, 0)
   assert.equal(conditional.totalDocs, 0)
   assert.equal(yes.totalDocs, 1)
+})
+
+test('animal color matches any selected color on an available, published animal', async () => {
+  for (const color of ['black', 'white']) {
+    const result = await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ species: 'cat', color }) })
+    assert.deepEqual(result.docs.map((doc) => doc.id), [publishedID])
+  }
+  for (const filters of [{ color: 'gray' }, { color: 'red' }, { color: 'white', species: 'dog' }]) {
+    const result = await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere(filters) })
+    assert.equal(result.totalDocs, 0)
+  }
+  assert.deepEqual(buildAnimalWhere({ color: 'not-a-color' }), buildAnimalWhere())
 })
 
 test('private files, intakes and write operations require staff', async () => {

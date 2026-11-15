@@ -3,13 +3,59 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { draftMode, headers } from 'next/headers'
 
+import { defaultGallerySort, type GallerySort } from './gallery-filters'
 import { animalDTO, buildAnimalWhere, richTextToText, type AnimalDTO, type AnimalFilters, type HomepageDTO, type RichText } from './public-content'
 export * from './public-content'
 
-export async function searchAnimals(filters: AnimalFilters = {}) {
+const galleryPageSize = 12
+const gallerySortFields: Record<GallerySort, string[]> = {
+  'name-asc': ['name', 'id'],
+  'name-desc': ['-name', 'id'],
+  'age-asc': ['-estimatedBirthDate', 'name', 'id'],
+  'age-desc': ['estimatedBirthDate', 'name', 'id'],
+  newest: ['-createdAt', 'name', 'id'],
+  oldest: ['createdAt', 'name', 'id'],
+}
+
+export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySort = defaultGallerySort) {
   const payload = await getPayload({ config })
   const page = Math.min(10000, Math.max(1, Math.floor(Number(filters.page) || 1)))
-  const result = await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, where: buildAnimalWhere(filters), limit: 12, page, sort: 'name' })
+  const query = { collection: 'animals', overrideAccess: false, draft: false, where: buildAnimalWhere(filters) } as const
+  const sortFields = gallerySortFields[sort]
+
+  if (sort === 'age-asc' || sort === 'age-desc') {
+    const { docs: matches } = await payload.find({
+      ...query,
+      depth: 0,
+      pagination: false,
+      select: { estimatedBirthDate: true },
+      sort: sortFields,
+    })
+    // Keep undated animals at the end in both directions before selecting the page.
+    const dated = matches.filter(animal => animal.estimatedBirthDate)
+    const undated = matches.filter(animal => !animal.estimatedBirthDate)
+    const offset = (page - 1) * galleryPageSize
+    const ids = [...dated, ...undated].slice(offset, offset + galleryPageSize).map(animal => animal.id)
+    const pagination = { totalDocs: matches.length, totalPages: Math.ceil(matches.length / galleryPageSize), page }
+
+    if (!ids.length) return { ...pagination, docs: [] }
+
+    const result = await payload.find({
+      ...query,
+      depth: 2,
+      pagination: false,
+      limit: galleryPageSize,
+      where: { and: [query.where, { id: { in: ids } }] },
+    })
+    const byID = new Map(result.docs.map(doc => [doc.id, doc]))
+    const docs = ids.flatMap(id => {
+      const doc = byID.get(id)
+      return doc ? [animalDTO(doc)] : []
+    })
+    return { ...pagination, docs }
+  }
+
+  const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: sortFields })
   return { docs: result.docs.map(animalDTO), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 

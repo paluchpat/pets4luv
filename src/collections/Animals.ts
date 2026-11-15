@@ -1,5 +1,6 @@
 import type { CollectionConfig, Field } from 'payload'
 import { isStaff, publishedOrStaff, slugField } from '../access'
+import { animalColorOptions } from '../lib/animal-colors'
 
 const compatibility = (name: string, label: string): Field => ({
   name, label, type: 'select', required: true, defaultValue: 'unknown', options: ['yes', 'no', 'unknown', 'conditional'],
@@ -14,8 +15,9 @@ export const Animals: CollectionConfig = {
     { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
     { name: 'species', type: 'select', required: true, options: ['cat', 'dog'] },
     { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'On hold', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
-    { name: 'sex', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
+    { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
     { name: 'breed', label: 'Reported breed (optional)', type: 'text' },
+    { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },
     { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
     { name: 'estimatedBirthDate', type: 'date', admin: { description: 'An estimate, not a confirmed birth date. Age display advances from this date.' } },
     { name: 'ageEstimateReferenceDate', type: 'date' },

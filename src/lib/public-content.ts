@@ -1,4 +1,5 @@
 import type { Where } from 'payload'
+import { isAnimalColor } from './animal-colors'
 
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
 export type RichText = { root: { children: unknown[]; [key: string]: unknown }; [key: string]: unknown }
@@ -10,7 +11,7 @@ export type AnimalDTO = {
   compatibility: { dogs: Assessment; cats: Assessment; children: Assessment }; compatibilityNotes: string;
 }
 export type HomepageDTO = { heading: string; intro: RichText | null; introText: string; featuredAnimals: AnimalDTO[] }
-export type AnimalFilters = { q?: string; species?: string; ageGroup?: string; size?: string; sex?: string; goodWithDogs?: string | boolean; goodWithCats?: string | boolean; goodWithChildren?: string | boolean; page?: string | number }
+export type AnimalFilters = { q?: string; species?: string; ageGroup?: string; size?: string; sex?: string; color?: string; goodWithDogs?: string | boolean; goodWithCats?: string | boolean; goodWithChildren?: string | boolean; page?: string | number }
 
 // Deliberately reconstruct DTOs. Never return raw CMS documents to visitor routes or future AI tools.
 export function animalDTO(doc: any): AnimalDTO {
@@ -48,6 +49,7 @@ export function buildAnimalWhere(filters: AnimalFilters = {}): Where {
     const value = filters[key]
     if (value && allowed[key].includes(value)) and.push({ [key]: { equals: value } })
   }
+  if (isAnimalColor(filters.color)) and.push({ colors: { contains: filters.color } })
   for (const [filter, field] of [['goodWithDogs', 'dogs'], ['goodWithCats', 'cats'], ['goodWithChildren', 'children']] as const) {
     if ([true, 'true', 'yes', '1'].includes(filters[filter] as any)) and.push({ [`compatibility.${field}`]: { equals: 'yes' } })
   }

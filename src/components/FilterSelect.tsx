@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 
-type Option = { value: string; label: string }
+type Option = { value: string; label: string; swatch?: string }
 type Props = {
   name: string
   label: string
@@ -78,7 +78,26 @@ export function FilterSelect({ name, label, options, defaultValue = '', value: c
     {enhanced ? <>
       <input type="hidden" name={name} value={value} />
       <button ref={trigger} type="button" id={triggerId} className="filter-select-trigger" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-labelledby={`${labelId} ${id}-value`} aria-activedescendant={open ? `${id}-option-${activeIndex}` : undefined} onKeyDown={onKeyDown} onClick={() => { setActiveIndex(selectedIndex); setOpen(previous => !previous) }}><span id={`${id}-value`}>{options[selectedIndex].label}</span><svg viewBox="0 0 16 10" width="16" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="m2 2 6 6 6-6" /></svg></button>
-      {open && <div ref={list} id={listId} role="listbox" aria-labelledby={labelId} className="filter-select-options">{options.map((option, index) => <div key={option.value} id={`${id}-option-${index}`} role="option" aria-selected={option.value === value} data-option-index={index} data-highlighted={index === activeIndex || undefined} className="filter-select-option" onPointerDown={event => event.preventDefault()} onPointerMove={event => { if (event.pointerType === 'mouse') setActiveIndex(index) }} onClick={() => choose(index)}><span>{option.label}</span><span className="filter-option-check" aria-hidden="true">{option.value === value ? '✓' : ''}</span></div>)}</div>}
+      {open && <div ref={list} id={listId} role="listbox" aria-labelledby={labelId} className="filter-select-options">
+        {options.map((option, index) => <div
+          key={option.value}
+          id={`${id}-option-${index}`}
+          role="option"
+          aria-selected={option.value === value}
+          data-option-index={index}
+          data-highlighted={index === activeIndex || undefined}
+          className="filter-select-option"
+          onPointerDown={event => event.preventDefault()}
+          onPointerMove={event => { if (event.pointerType === 'mouse') setActiveIndex(index) }}
+          onClick={() => choose(index)}
+        >
+          <span className={option.swatch ? 'filter-option-label' : undefined}>
+            {option.swatch && <span className="filter-option-swatch" aria-hidden="true" style={{ backgroundColor: option.swatch }} />}
+            {option.label}
+          </span>
+          <span className="filter-option-check" aria-hidden="true">{option.value === value ? '✓' : ''}</span>
+        </div>)}
+      </div>}
     </> : <select id={`${id}-native`} name={name} defaultValue={value} onChange={event => {
       if (controlledValue === undefined) setLocalValue(event.currentTarget.value)
       onValueChange?.(event.currentTarget.value)
