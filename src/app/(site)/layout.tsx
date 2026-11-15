@@ -41,7 +41,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <Link href="/donate">Donate</Link>
         <Link href="/contact">Contact</Link>
       </nav>
-      <p className="demo-notice">Local development demo · Animal profiles and sample information are fictional. This is not the rescue’s live adoption catalog.</p>
+      <p className="demo-notice">Development demo · Animal profiles and sample information are fictional. This is not the rescue’s live adoption catalog.</p>
     </footer>
   </body></html>
 }

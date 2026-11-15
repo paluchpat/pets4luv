@@ -72,7 +72,7 @@ export default async function ContentPage({ params }: Props) {
     {isContact && <div className="local-page-actions"><Link className="button" href="/info/adoption">Adoption information <span aria-hidden="true">→</span></Link><Link className="button secondary" href="/info/volunteering">Volunteering information <span aria-hidden="true">→</span></Link></div>}
     <div className="info-bottom">
       {!isDonate && <Link className="text-link" href={isContact ? '/animals' : '/contact'}>{isContact ? 'Meet available animals' : 'Contact Pets4Luv'} <span aria-hidden="true">→</span></Link>}
-      <p className="small-note">Local development demo · Animal profiles and sample information are fictional.</p>
+      <p className="small-note">Development demo · Animal profiles and sample information are fictional.</p>
     </div>
   </main>
 }
