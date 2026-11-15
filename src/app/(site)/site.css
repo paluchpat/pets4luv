@@ -394,6 +394,21 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   flex-wrap: wrap;
   gap: 4px 16px;
 }
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375em;
+  text-decoration-line: none;
+}
+.social-links a span {
+  text-decoration-line: underline;
+  text-decoration-thickness: inherit;
+}
+.social-links svg {
+  flex: none;
+  width: 1.125em;
+  height: 1.125em;
+}
 .site-footer address {
   font-style: normal;
   margin-top: 6px;
