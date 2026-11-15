@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util'
 import type { SerializedHeadingNode, SerializedLinkNode, SerializedListNode, SerializedParagraphNode, SerializedTextNode } from '@payloadcms/richtext-lexical'
 import type { Payload } from 'payload'
 import type { Page } from '../src/payload-types'
@@ -35,6 +36,23 @@ function body(children: Page['body']['root']['children']): Page['body'] {
   return { root: { ...element, type: 'root', children } }
 }
 
+const contact = {
+  slug: 'contact',
+  title: 'Contact Pets4Luv',
+  body: body([
+    paragraph('We are glad you are here. Whether you are hoping to meet an animal or find a way to help, you can start by exploring our adoption and volunteering information.'),
+  ]),
+}
+
+const previousContactBody = body([
+  ...contact.body.root.children,
+  paragraph('Approved contact details will be added here when they are ready. Please check back for ways to get in touch.'),
+])
+
+function isPreviousContactStarter(page: Page) {
+  return page._status === 'published' && page.slug === contact.slug && page.title === contact.title && isDeepStrictEqual(page.body, previousContactBody)
+}
+
 export const initialPages = [
   {
     slug: 'donate', title: 'Donate to Pets4Luv',
@@ -53,13 +71,7 @@ export const initialPages = [
       paragraph('For our current wish list, to arrange a supply drop-off, or to request a donation receipt, email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
     ]),
   },
-  {
-    slug: 'contact', title: 'Contact Pets4Luv',
-    body: body([
-      paragraph('We are glad you are here. Whether you are hoping to meet an animal or find a way to help, you can start by exploring our adoption and volunteering information.'),
-      paragraph('Approved contact details will be added here when they are ready. Please check back for ways to get in touch.'),
-    ]),
-  },
+  contact,
   {
     slug: 'about', title: 'About Pets4Luv',
     body: body([
@@ -82,16 +94,50 @@ export const initialPages = [
       paragraph('Looking for your next companion? ', link('Meet our available animals', '/animals'), '.'),
     ]),
   },
+  {
+    slug: 'tnr', title: 'Trap-Neuter-Return (TNR)',
+    body: body([
+      paragraph('Trap-neuter-return helps manage community cat populations. Cats are humanely trapped, spayed or neutered, and returned to the area where they were found.'),
+      paragraph('For help with TNR, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+    ]),
+  },
+  {
+    slug: 'medical', title: 'Medical Assistance',
+    body: body([
+      paragraph('If cost is a barrier to necessary, non-routine veterinary care for your pet, please ask us about medical assistance.'),
+      paragraph('To ask about an application, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '. You can also find the request on our ', link('Applications page', '/applications#get-help'), '.'),
+    ]),
+  },
+  {
+    slug: 'injured-feral-cats', title: 'Injured Feral Cats',
+    body: body([
+      paragraph('If you’ve found an injured feral cat, please contact Pets4Luv for help. Call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+    ]),
+  },
 ] as const
 
-/** Only create absent pages. Existing published content and unpublished drafts are always preserved. */
-export async function seedMissingPages(payload: Payload): Promise<string[]> {
+/** Create absent pages and refresh the unedited Contact starter. */
+export async function seedPages(payload: Payload): Promise<{ created: string[]; refreshedContact: boolean }> {
   const created: string[] = []
+  let refreshedContact = false
   for (const page of initialPages) {
-    const existing = await payload.find({ collection: 'pages', where: { slug: { equals: page.slug } }, draft: true, limit: 1, depth: 0 })
-    if (existing.docs.length) continue
+    const lookup = { collection: 'pages', where: { slug: { equals: page.slug } }, limit: 1, depth: 0 } as const
+    const { docs: [stored] } = await payload.find({ ...lookup, draft: false })
+    if (stored) {
+      if (isPreviousContactStarter(stored)) {
+        // Match by ID so a pending draft that changed the slug is preserved too.
+        const latest = await payload.findByID({ collection: 'pages', id: stored.id, draft: true, depth: 0 })
+        if (isPreviousContactStarter(latest)) {
+          await payload.update({ collection: 'pages', id: stored.id, draft: false, data: { body: contact.body, _status: 'published' } })
+          refreshedContact = true
+        }
+      }
+      continue
+    }
+    const { docs: [draft] } = await payload.find({ ...lookup, draft: true })
+    if (draft) continue
     await payload.create({ collection: 'pages', data: { ...page, _status: 'published' } })
     created.push(page.slug)
   }
-  return created
+  return { created, refreshedContact }
 }

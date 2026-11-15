@@ -1,3 +1,12 @@
+const localAliases: Record<string, string> = {
+  '/info/about': '/about',
+  '/our-mission': '/about',
+  '/tnr': '/tnr',
+  '/medical': '/medical',
+  '/medical-assistance': '/medical',
+  '/injured-feral-cats': '/injured-feral-cats',
+}
+
 const legacyPaths: Record<string, string> = {
   '/': '/',
   '/donate': '/donate',
@@ -11,8 +20,7 @@ const legacyPaths: Record<string, string> = {
   '/volunteer': '/info/volunteering',
   '/volunteering': '/info/volunteering',
   '/about': '/about',
-  '/info/about': '/about',
-  '/our-mission': '/about',
+  ...localAliases,
 }
 
 /** Resolve saved public links without ever sending visitors to the previous site. */
@@ -23,7 +31,9 @@ export function resolvePublicHref(url: string): string | null {
   if (href.startsWith('#')) return href
   if (/^(mailto|tel):\S+$/i.test(href)) return href
   if (href.startsWith('/') && !href.startsWith('//')) {
-    return href.replace(/^\/(?:our-mission|info\/about)\/*(?=[?#]|$)/i, '/about')
+    const [path] = href.split(/[?#]/, 1)
+    const destination = localAliases[path.toLowerCase().replace(/\/+$/, '')]
+    return destination ? `${destination}${href.slice(path.length)}` : href
   }
   if (!/^(https?:\/\/|\/\/)/i.test(href)) return null
 

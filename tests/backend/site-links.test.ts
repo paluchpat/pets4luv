@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { resolvePublicHref } from '../../src/lib/site-links'
 
 test('old-site URLs resolve only to known local destinations', () => {
-  const paths = { '': '/', '/': '/', '/donate': '/donate', '/contact-us': '/contact', '/contact': '/contact', '/adopt': '/animals', '/adoption': '/info/adoption', '/Applications': '/applications', '/Cat-Adoption-Information': '/info/adoption#cat-adoption', '/Dog-Adoption-Information': '/info/adoption#dog-adoption', '/volunteer': '/info/volunteering', '/Volunteering': '/info/volunteering', '/about': '/about', '/info/about': '/about', '/Our-Mission': '/about' }
+  const paths = { '': '/', '/': '/', '/donate': '/donate', '/contact-us': '/contact', '/contact': '/contact', '/adopt': '/animals', '/adoption': '/info/adoption', '/Applications': '/applications', '/Cat-Adoption-Information': '/info/adoption#cat-adoption', '/Dog-Adoption-Information': '/info/adoption#dog-adoption', '/volunteer': '/info/volunteering', '/Volunteering': '/info/volunteering', '/about': '/about', '/info/about': '/about', '/Our-Mission': '/about', '/TNR': '/tnr', '/Medical-Assistance': '/medical', '/Medical': '/medical', '/Injured-Feral-Cats': '/injured-feral-cats' }
   for (const host of ['https://pets4luv.org', 'http://www.pets4luv.org', '//PETS4LUV.ORG', 'https://legacy.Pets4Luv.org', 'https://pets4luv.org.']) {
     for (const [legacy, local] of Object.entries(paths)) {
       assert.equal(resolvePublicHref(`${host}${legacy}`), local)
@@ -29,6 +29,9 @@ test('safe local, contact, hash and unrelated external links are preserved', () 
   assert.equal(resolvePublicHref('  /contact  '), '/contact')
   assert.equal(resolvePublicHref('/Our-Mission/?source=footer#history'), '/about?source=footer#history')
   assert.equal(resolvePublicHref('/info/about'), '/about')
+  assert.equal(resolvePublicHref('/TNR'), '/tnr')
+  assert.equal(resolvePublicHref('/Medical-Assistance/?source=footer#get-help'), '/medical?source=footer#get-help')
+  assert.equal(resolvePublicHref('/Injured-Feral-Cats'), '/injured-feral-cats')
 })
 
 test('unsafe protocols, confusing URL syntax and malformed URLs are rejected', () => {

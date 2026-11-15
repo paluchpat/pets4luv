@@ -6,7 +6,7 @@ import path from 'node:path'
 import { getPayload, type Payload } from 'payload'
 import { animalDTO, buildAnimalWhere } from '../../src/lib/public-content'
 import { seedAdoption } from '../../scripts/adoption-seed'
-import { seedMissingPages } from '../../scripts/page-seeds'
+import { seedPages } from '../../scripts/page-seeds'
 import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { validatePageSlug } from '../../src/collections/Pages'
 
@@ -148,15 +148,15 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   const donate = await payload.create({ collection: 'pages', user: editor, overrideAccess: false, draft: true, data: { title: 'Manager draft donation copy', slug: 'donate', body: pageBody('DO NOT OVERWRITE'), _status: 'draft' } })
   const beforeAnimals = await payload.count({ collection: 'animals' })
   const beforeUsers = await payload.count({ collection: 'users' })
-  assert.deepEqual(await seedMissingPages(payload), ['contact', 'about'])
-  assert.deepEqual(await seedMissingPages(payload), [])
+  assert.deepEqual(await seedPages(payload), { created: ['contact', 'about', 'tnr', 'medical', 'injured-feral-cats'], refreshedContact: false })
+  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
   const preserved = await payload.findByID({ collection: 'pages', id: donate.id, draft: true })
   assert.equal(preserved.title, 'Manager draft donation copy')
   assert.equal(preserved._status, 'draft')
   assert.ok(JSON.stringify(preserved.body).includes('DO NOT OVERWRITE'))
   const contact = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: 'contact' } } })
   assert.equal(contact.docs[0]?.title, 'Contact Pets4Luv')
-  assert.ok(!JSON.stringify(contact.docs).includes('pets4luv.org'))
+  assert.ok(!JSON.stringify(contact.docs).includes('Approved contact details'))
   const { docs: [about] } = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: 'about' } } })
   assert.equal(about?.title, 'About Pets4Luv')
   assert.equal(about._status, 'published')
@@ -165,8 +165,38 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   assert.equal(Array.isArray(list?.children) && list.children.length, 6)
   const aboutBody = JSON.stringify(about.body)
   for (const href of ['tel:+15168607057', 'mailto:info@pets4luv.org', '/animals']) assert.ok(aboutBody.includes(href))
+  for (const [slug, title] of Object.entries({ tnr: 'Trap-Neuter-Return (TNR)', medical: 'Medical Assistance', 'injured-feral-cats': 'Injured Feral Cats' })) {
+    const { docs: [page] } = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: slug } } })
+    assert.equal(page?.title, title)
+    assert.equal(page._status, 'published')
+    const content = JSON.stringify(page.body)
+    assert.ok(content.includes('tel:+15168607057'))
+    assert.ok(content.includes('mailto:info@pets4luv.org'))
+  }
   assert.equal((await payload.count({ collection: 'animals' })).totalDocs, beforeAnimals.totalDocs)
   assert.equal((await payload.count({ collection: 'users' })).totalDocs, beforeUsers.totalDocs)
+})
+
+test('the Contact starter refresh preserves a pending draft and published staff edits', async () => {
+  const { docs: [contact] } = await payload.find({ collection: 'pages', where: { slug: { equals: 'contact' } } })
+  const previousBody = structuredClone(contact.body)
+  const placeholder = pageBody('Approved contact details will be added here when they are ready. Please check back for ways to get in touch.').root.children[0]
+  Object.assign(placeholder, { textFormat: 0, textStyle: '' })
+  previousBody.root.children.push(placeholder)
+  await payload.update({ collection: 'pages', id: contact.id, data: { body: previousBody, _status: 'published' } })
+
+  await payload.update({ collection: 'pages', id: contact.id, draft: true, data: { title: 'Pending staff contact edit', slug: 'contact-draft', _status: 'draft' } })
+  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
+  assert.equal((await payload.findByID({ collection: 'pages', id: contact.id, draft: true })).slug, 'contact-draft')
+  assert.deepEqual((await payload.findByID({ collection: 'pages', id: contact.id, draft: false })).body, previousBody)
+
+  await payload.update({ collection: 'pages', id: contact.id, data: { title: 'Staff contact information', slug: contact.slug, body: previousBody, _status: 'published' } })
+  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
+  await payload.update({ collection: 'pages', id: contact.id, data: { title: contact.title, _status: 'published' } })
+
+  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: true })
+  assert.deepEqual((await payload.findByID({ collection: 'pages', id: contact.id, draft: false })).body, contact.body)
+  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
 })
 
 test('volunteering seed creates official copy and only upgrades the exact demo without a pending draft', async () => {

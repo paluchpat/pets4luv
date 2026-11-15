@@ -2,7 +2,7 @@ import path from 'node:path'
 import { getPayload } from 'payload'
 import config from '../src/payload.config'
 import { seedAdoption } from './adoption-seed'
-import { seedMissingPages } from './page-seeds'
+import { seedPages } from './page-seeds'
 import { seedVolunteering } from './volunteering-seed'
 
 const payload = await getPayload({ config })
@@ -60,6 +60,6 @@ for (const { text, ...article } of articles) {
 }
 await seedAdoption(payload)
 await seedVolunteering(payload)
-await seedMissingPages(payload)
+await seedPages(payload)
 console.log('Starter content is ready. Existing edits were preserved. Create your own administrator at /admin. The seed creates no staff accounts.')
 await payload.destroy()
