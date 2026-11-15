@@ -14,7 +14,7 @@ const navigation = [
       { href: '/info/adoption', label: 'About adoptions' },
       { href: '/info/volunteering', label: 'Volunteer' },
       { href: '/applications', label: 'Forms and applications' },
-      { href: '/tnr', label: 'Trap, Neuter, Return (TNR)' },
+      { href: '/tnr', label: 'Trap-Neuter-Return (TNR)' },
       { href: '/medical', label: 'Medical assistance' },
       { href: '/injured-feral-cats', label: 'Injured feral cats' },
     ],
