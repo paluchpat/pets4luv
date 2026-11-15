@@ -1,23 +1,77 @@
+import type { SerializedHeadingNode, SerializedLinkNode, SerializedListNode, SerializedParagraphNode, SerializedTextNode } from '@payloadcms/richtext-lexical'
 import type { Payload } from 'payload'
+import type { Page } from '../src/payload-types'
 
-function body(paragraphs: string[]) {
-  return { root: { type: 'root', format: '' as const, indent: 0, version: 1, direction: null, children: paragraphs.map((text) => ({ type: 'paragraph', format: '' as const, indent: 0, version: 1, direction: null, textFormat: 0, textStyle: '', children: [{ type: 'text', version: 1, text, detail: 0, format: 0, mode: 'normal', style: '' }] })) } }
+const element = { format: '' as const, indent: 0, version: 1, direction: null }
+
+function text(value: string): SerializedTextNode {
+  return { type: 'text', version: 1, text: value, detail: 0, format: 0, mode: 'normal', style: '' }
+}
+
+function paragraph(...parts: (string | SerializedLinkNode)[]): SerializedParagraphNode {
+  return { ...element, type: 'paragraph', textFormat: 0, textStyle: '', children: parts.map(part => typeof part === 'string' ? text(part) : part) }
+}
+
+function heading(value: string): SerializedHeadingNode {
+  return { ...element, type: 'heading', tag: 'h2', children: [text(value)] }
+}
+
+function bulletedList(items: string[]): SerializedListNode {
+  return {
+    ...element,
+    type: 'list',
+    tag: 'ul',
+    listType: 'bullet',
+    start: 1,
+    children: items.map((item, index) => ({ ...element, type: 'listitem', value: index + 1, children: [text(item)] })),
+  }
+}
+
+function link(label: string, url: string): SerializedLinkNode {
+  return { ...element, type: 'link', version: 3, fields: { linkType: 'custom', newTab: false, url }, children: [text(label)] }
+}
+
+function body(children: Page['body']['root']['children']): Page['body'] {
+  return { root: { ...element, type: 'root', children } }
 }
 
 export const initialPages = [
   {
     slug: 'donate', title: 'Donate to Pets4Luv',
-    paragraphs: [
-      'Every animal deserves a safe place, a full bowl and kind care. Your support can help Pets4Luv provide everyday food, comfort and care while animals wait for their next chapter.',
-      'There are many ways to make a difference, from helping with useful supplies to supporting the work that keeps animals comfortable and cared for.',
-    ],
+    body: body([
+      paragraph('Every animal deserves a safe place, a full bowl and kind care. Your support can help Pets4Luv provide everyday food, comfort and care while animals wait for their next chapter.'),
+      paragraph('There are many ways to make a difference, from helping with useful supplies to supporting the work that keeps animals comfortable and cared for.'),
+    ]),
   },
   {
     slug: 'contact', title: 'Contact Pets4Luv',
-    paragraphs: [
-      'We are glad you are here. Whether you are hoping to meet an animal or find a way to help, you can start by exploring our adoption and volunteering information.',
-      'Approved contact details will be added here when they are ready. Please check back for ways to get in touch.',
-    ],
+    body: body([
+      paragraph('We are glad you are here. Whether you are hoping to meet an animal or find a way to help, you can start by exploring our adoption and volunteering information.'),
+      paragraph('Approved contact details will be added here when they are ready. Please check back for ways to get in touch.'),
+    ]),
+  },
+  {
+    slug: 'about', title: 'About Pets4Luv',
+    body: body([
+      heading('Welcome'),
+      paragraph('Pets4Luv Foundation is a registered 501(c)(3) nonprofit animal rescue. Your donations are tax-deductible. Our organization has no paid board members. They are all here for the love of animals. All of our funding comes from private donations. We receive no government funding to run our organization. Pets4Luv is a no-kill rescue, which means we will never euthanize an animal for space.'),
+      paragraph('Pets4Luv is an all-breed dog and cat rescue. Our primary focus is on the rescue, rehabilitation, and rehoming of animals that are injured, ill, or disabled, animals with other special needs, and senior animals. We care for animals with both temporary and lifelong conditions. We also focus on educating the public about companion animal illnesses, medical conditions, and disabilities to help dispel misconceptions about these conditions. We hope that making this information more readily available to the public will increase the chances of animals with special needs finding loving forever families.'),
+      heading('Our mission'),
+      paragraph('Volunteers run Pets4Luv entirely, and we have no paid employees. Our goal is to make rescue and adoption more visible on Long Island. By bringing rescue into busy public places, we can reach people who might never visit a shelter and show them another way to find their next dog or cat. We also want prospective owners to understand the risks of poor breeding and inadequate care in the pet trade.'),
+      paragraph('By making this information easy to find, we hope to correct misconceptions that allow outdated and inhumane practices and laws to continue.'),
+      heading('Other areas of focus'),
+      bulletedList([
+        'Maintain a fund to help pet owners who cannot afford veterinary care and prevent unnecessary euthanasia.',
+        'Provide pet food to owners in need.',
+        'Teach the public about pet care, animal well-being, and the responsibilities of pet ownership.',
+        'Bring veterinarians and emergency animal hospitals together to make care more affordable.',
+        'Offer young people classes on caring for and interacting with animals.',
+        'Use trap-neuter-return (TNR) to manage the size and health of community cat populations.',
+      ]),
+      heading('Contact us'),
+      paragraph('If you have questions about Pets4Luv, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+      paragraph('Looking for your next companion? ', link('Meet our available animals', '/animals'), '.'),
+    ]),
   },
 ] as const
 
@@ -27,7 +81,7 @@ export async function seedMissingPages(payload: Payload): Promise<string[]> {
   for (const page of initialPages) {
     const existing = await payload.find({ collection: 'pages', where: { slug: { equals: page.slug } }, draft: true, limit: 1, depth: 0 })
     if (existing.docs.length) continue
-    await payload.create({ collection: 'pages', data: { title: page.title, slug: page.slug, body: body([...page.paragraphs]), _status: 'published' } })
+    await payload.create({ collection: 'pages', data: { ...page, _status: 'published' } })
     created.push(page.slug)
   }
   return created

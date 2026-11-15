@@ -27,7 +27,7 @@ On a fresh checkout with supported Node installed, run `npm ci`, then `npm run s
 
 Use **unknown** for unassessed compatibility. Public compatibility filters match explicit yes assessments, never unknown or conditional values.
 
-Donate and Contact are local pages. The Donate page lists the rescue’s Zeffy, PayPal, and Venmo links and its mailing address. The providers handle online donations. Contact details can be added through Payload when available. `./scripts/local.sh seed:pages` creates only missing starter pages and preserves existing drafts and published content.
+Donate, Contact, and About are local pages. The Donate page lists the rescue’s Zeffy, PayPal, and Venmo links and its mailing address. The providers handle online donations. Contact details can be added through Payload when available. `./scripts/local.sh seed:pages` creates only missing starter pages and preserves existing drafts and published content.
 
 Public content must not send visitors to the former rescue website. Known legacy links in rich text are rewritten to their matching local pages; unrecognized legacy destinations render as ordinary text. This rule also applies to future CMS edits.
 

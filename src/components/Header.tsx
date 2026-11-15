@@ -9,7 +9,7 @@ const navigation = [
   { href: '/animals', label: 'Adopt' },
   { href: '/info/adoption', label: 'How adoption works' },
   { href: '/info/volunteering', label: 'Volunteer' },
-  { href: '/info/about', label: 'About' },
+  { href: '/about', label: 'About' },
 ]
 
 export function Header() {

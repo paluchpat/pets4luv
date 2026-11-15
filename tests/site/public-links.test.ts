@@ -9,8 +9,8 @@ function renderLink(url: string, newTab = false, type: 'link' | 'autolink' = 'li
   return renderToStaticMarkup(createElement(RichContent, { value }))
 }
 
-test('legacy donation and contact links render as same-tab local links', () => {
-  for (const [url, path] of [['https://www.pets4luv.org/Donate', '/donate'], ['http://pets4luv.org/Contact-Us', '/contact']]) {
+test('legacy donation, contact and about links render as same-tab local links', () => {
+  for (const [url, path] of [['https://www.pets4luv.org/Donate', '/donate'], ['http://pets4luv.org/Contact-Us', '/contact'], ['https://pets4luv.org/About', '/about'], ['https://pets4luv.org/Our-Mission', '/about']]) {
     const output = renderLink(url, true)
     assert.ok(output.includes(`href="${path}"`), output)
     assert.doesNotMatch(output, /target=|rel=|pets4luv\.org/)

@@ -142,11 +142,11 @@ test('Pages slugs are unique, root-only and cannot collide with reserved routes'
   await assert.rejects(() => payload.create({ collection: 'pages', user: editor, overrideAccess: false, data: { title: 'Duplicate', slug: 'staff-page', body: pageBody('Duplicate'), _status: 'published' } }))
 })
 
-test('page seed creates only missing Donate and Contact and preserves existing drafts', async () => {
+test('page seed creates missing starter pages and preserves existing drafts', async () => {
   const donate = await payload.create({ collection: 'pages', user: editor, overrideAccess: false, draft: true, data: { title: 'Manager draft donation copy', slug: 'donate', body: pageBody('DO NOT OVERWRITE'), _status: 'draft' } })
   const beforeAnimals = await payload.count({ collection: 'animals' })
   const beforeUsers = await payload.count({ collection: 'users' })
-  assert.deepEqual(await seedMissingPages(payload), ['contact'])
+  assert.deepEqual(await seedMissingPages(payload), ['contact', 'about'])
   assert.deepEqual(await seedMissingPages(payload), [])
   const preserved = await payload.findByID({ collection: 'pages', id: donate.id, draft: true })
   assert.equal(preserved.title, 'Manager draft donation copy')
@@ -155,6 +155,14 @@ test('page seed creates only missing Donate and Contact and preserves existing d
   const contact = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: 'contact' } } })
   assert.equal(contact.docs[0]?.title, 'Contact Pets4Luv')
   assert.ok(!JSON.stringify(contact.docs).includes('pets4luv.org'))
+  const { docs: [about] } = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: 'about' } } })
+  assert.equal(about?.title, 'About Pets4Luv')
+  assert.equal(about._status, 'published')
+  const list = about.body.root.children.find(node => node.type === 'list')
+  assert.equal(list?.tag, 'ul')
+  assert.equal(Array.isArray(list?.children) && list.children.length, 6)
+  const aboutBody = JSON.stringify(about.body)
+  for (const href of ['tel:+15168607057', 'mailto:info@pets4luv.org', '/animals']) assert.ok(aboutBody.includes(href))
   assert.equal((await payload.count({ collection: 'animals' })).totalDocs, beforeAnimals.totalDocs)
   assert.equal((await payload.count({ collection: 'users' })).totalDocs, beforeUsers.totalDocs)
 })

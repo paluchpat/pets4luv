@@ -6,7 +6,9 @@ const legacyPaths: Record<string, string> = {
   '/adopt': '/animals',
   '/adoption': '/info/adoption',
   '/volunteer': '/info/volunteering',
-  '/about': '/info/about',
+  '/about': '/about',
+  '/info/about': '/about',
+  '/our-mission': '/about',
 }
 
 /** Resolve saved public links without ever sending visitors to the previous site. */
@@ -16,7 +18,9 @@ export function resolvePublicHref(url: string): string | null {
   if (!href || /[\u0000-\u001f\u007f\\]/.test(href)) return null
   if (href.startsWith('#')) return href
   if (/^(mailto|tel):\S+$/i.test(href)) return href
-  if (href.startsWith('/') && !href.startsWith('//')) return href
+  if (href.startsWith('/') && !href.startsWith('//')) {
+    return href.replace(/^\/(?:our-mission|info\/about)\/*(?=[?#]|$)/i, '/about')
+  }
   if (!/^(https?:\/\/|\/\/)/i.test(href)) return null
 
   let parsed: URL
