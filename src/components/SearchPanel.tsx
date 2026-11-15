@@ -19,7 +19,7 @@ export function SearchPanel() {
     form?.scrollIntoView({ block: 'center' })
   }
 
-  const resourceLinks = <>You can also read about <Link href="/info/adoption">adoption</Link> or <Link href="/info/volunteering">volunteering</Link>, or get the <Link href="/applications">application forms</Link>.</>
+  const resourceLinks = <>You can also read about <Link href="/info/adoption">adoption</Link>, <Link href="/info/volunteering">volunteering</Link>, or get the <Link href="/applications">application forms</Link>.</>
 
   return <section className="search-panel" aria-labelledby="find-title">
     <div className="search-heading"><h2 id="find-title">Find your furry best friend</h2><Link className="text-link" href="/animals">View all animals <span aria-hidden="true">→</span></Link></div>
