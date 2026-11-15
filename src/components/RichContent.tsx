@@ -3,16 +3,19 @@ import { resolvePublicHref } from '@/lib/site-links'
 
 type RichNode = { type?: string; text?: string; format?: number; tag?: string; url?: string; fields?: { url?: string; newTab?: boolean }; children?: RichNode[] }
 
-function render(node: RichNode, key: number): ReactNode {
+function render(node: RichNode, key: number, headingId?: string): ReactNode {
   if (node.type === 'text') {
     let value: ReactNode = node.text || ''
     if ((node.format || 0) & 1) value = <strong>{value}</strong>
     if ((node.format || 0) & 2) value = <em>{value}</em>
     return <span key={key}>{value}</span>
   }
-  const children = node.children?.map(render)
+  const children = node.children?.map((child, index) => render(child, index))
   if (node.type === 'paragraph') return <p key={key}>{children}</p>
-  if (node.type === 'heading') return node.tag === 'h3' ? <h3 key={key}>{children}</h3> : <h2 key={key}>{children}</h2>
+  if (node.type === 'heading') {
+    if (node.tag === 'h3') return <h3 key={key}>{children}</h3>
+    return <h2 key={key} id={headingId} tabIndex={headingId ? -1 : undefined}>{children}</h2>
+  }
   if (node.type === 'list') return node.tag === 'ol' ? <ol key={key}>{children}</ol> : <ul key={key}>{children}</ul>
   if (node.type === 'listitem') return <li key={key}>{children}</li>
   if (node.type === 'linebreak') return <br key={key} />
@@ -26,7 +29,11 @@ function render(node: RichNode, key: number): ReactNode {
   return <span key={key}>{children}</span>
 }
 
-export function RichContent({ value, text }: { value?: unknown; text?: string }) {
+export function RichContent({ value, text, headingIds }: {
+  value?: unknown
+  text?: string
+  headingIds?: ReadonlyMap<number, string>
+}) {
   const root = (value as { root?: RichNode } | null)?.root
-  return <div className="rich-content">{root?.children?.length ? root.children.map(render) : text?.split('\n').filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+  return <div className="rich-content">{root?.children?.length ? root.children.map((node, index) => render(node, index, headingIds?.get(index))) : text?.split('\n').filter(Boolean).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
 }

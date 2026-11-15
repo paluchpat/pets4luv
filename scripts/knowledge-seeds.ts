@@ -1,5 +1,5 @@
 import { isDeepStrictEqual } from 'node:util'
-import type { SerializedLinkNode, SerializedListNode, SerializedParagraphNode, SerializedTextNode } from '@payloadcms/richtext-lexical'
+import type { SerializedHeadingNode, SerializedLinkNode, SerializedListNode, SerializedParagraphNode, SerializedTextNode } from '@payloadcms/richtext-lexical'
 import type { Payload } from 'payload'
 import type { Knowledge } from '../src/payload-types'
 
@@ -28,7 +28,11 @@ export function orderedList(items: string[]): SerializedListNode {
   }
 }
 
-export function body(...children: (SerializedParagraphNode | SerializedListNode)[]): Knowledge['body'] {
+export function heading(value: string): SerializedHeadingNode {
+  return { ...element, type: 'heading', tag: 'h2', children: [text(value)] }
+}
+
+export function body(...children: (SerializedHeadingNode | SerializedParagraphNode | SerializedListNode)[]): Knowledge['body'] {
   return { root: { ...element, type: 'root', children } }
 }
 

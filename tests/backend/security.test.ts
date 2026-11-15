@@ -4,8 +4,8 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { getPayload, type Payload } from 'payload'
-import { animalDTO, buildAnimalWhere } from '../../src/lib/public-content'
-import { seedAdoption } from '../../scripts/adoption-seed'
+import { animalDTO, buildAnimalWhere, richTextToText } from '../../src/lib/public-content'
+import { consolidateAdoption, seedAdoption } from '../../scripts/adoption-seed'
 import { seedPages } from '../../scripts/page-seeds'
 import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { validatePageSlug } from '../../src/collections/Pages'
@@ -246,14 +246,11 @@ test('volunteering seed creates official copy and only upgrades the exact demo w
   assert.equal(await seedVolunteering(payload), 'preserved')
 })
 
-test('adoption seed replaces the untouched shared demo and preserves independently edited species articles', async () => {
-  const body = pageBody('This is a fictional local demonstration, not an operating rescue. In a real adoption process, the rescue will discuss your household, help you meet an animal and explain its approved adoption policies. Contact the rescue directly for current fees, application requirements and availability.')
-  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
-  const legacy = await payload.create({ collection: 'knowledge', data: { title: 'Find your new best friend', slug: 'adoption', category: 'adoption', body, source: 'Fictional demonstration fixture', reviewer: 'Demo content', reviewedAt: '2026-11-07', _status: 'published' } })
-  const cat = await payload.create({ collection: 'knowledge', draft: true, data: { title: 'Staff cat draft', slug: 'cat-adoption', category: 'adoption', body: pageBody('Pending cat edits.'), _status: 'draft' } })
-
-  assert.deepEqual(await seedAdoption(payload), { adoption: 'updated', 'cat-adoption': 'preserved', 'dog-adoption': 'created' })
-  const shared = await payload.findByID({ collection: 'knowledge', id: legacy.id, overrideAccess: false })
+test('adoption seed writes a single article and preserves staff drafts', async () => {
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'created' })
+  const { docs: [shared], totalDocs } = await payload.find({ collection: 'knowledge', where: { category: { equals: 'adoption' } }, overrideAccess: false })
+  assert.equal(totalDocs, 1)
+  assert.equal(shared.slug, 'adoption')
   assert.equal(shared.title, 'How adoption works')
   assert.equal(shared.reviewer, null)
   assert.equal(shared.reviewedAt, null)
@@ -262,12 +259,79 @@ test('adoption seed replaces the untouched shared demo and preserves independent
   assert.equal(steps?.tag, 'ol')
   assert.equal(Array.isArray(steps?.children) && steps.children.length, 3)
   for (const href of ['mailto:info@pets4luv.org', 'tel:+15168607057']) assert.ok(JSON.stringify(shared.body).includes(href))
-  assert.equal((await payload.findByID({ collection: 'knowledge', id: cat.id, draft: true })).title, 'Staff cat draft')
-  await assert.rejects(() => payload.findByID({ collection: 'knowledge', id: cat.id, draft: false, overrideAccess: false }))
+  assert.deepEqual(shared.body.root.children.filter(node => node.type === 'heading').map(node => [node.tag, richTextToText(node)]), [
+    ['h2', 'Cat adoption'],
+    ['h2', 'Dog adoption'],
+  ])
 
-  const { docs: [dog] } = await payload.find({ collection: 'knowledge', where: { slug: { equals: 'dog-adoption' } }, overrideAccess: false })
-  assert.equal(dog.title, 'Dog adoption')
-  await payload.update({ collection: 'knowledge', id: dog.id, data: { title: 'Staff dog copy' } })
-  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved', 'cat-adoption': 'preserved', 'dog-adoption': 'preserved' })
-  assert.equal((await payload.findByID({ collection: 'knowledge', id: dog.id, overrideAccess: false })).title, 'Staff dog copy')
+  const body = pageBody('This is a fictional local demonstration, not an operating rescue. In a real adoption process, the rescue will discuss your household, help you meet an animal and explain its approved adoption policies. Contact the rescue directly for current fees, application requirements and availability.')
+  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
+  const demo = { title: 'Find your new best friend', slug: 'adoption', body, source: 'Fictional demonstration fixture', reviewer: 'Demo content', reviewedAt: '2026-11-07', _status: 'published' } as const
+  const record = { collection: 'knowledge', id: shared.id } as const
+  await payload.update({ ...record, data: demo })
+  await payload.update({ ...record, draft: true, data: { slug: 'adoption-draft', title: 'Staff adoption draft', _status: 'draft' } })
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved' })
+  assert.equal((await payload.findByID({ ...record, draft: true })).title, 'Staff adoption draft')
+  assert.deepEqual((await payload.findByID({ ...record, draft: false })).body, demo.body)
+
+  await payload.update({ ...record, data: demo })
+  const cat = await payload.create({ collection: 'knowledge', draft: true, data: { title: 'Staff cat draft', slug: 'cat-adoption', category: 'adoption', body: pageBody('Pending cat edits.'), _status: 'draft' } })
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'updated' })
+  assert.deepEqual((await payload.findByID({ ...record, overrideAccess: false })).body, shared.body)
+  assert.equal((await payload.findByID({ collection: 'knowledge', id: cat.id, draft: true })).title, 'Staff cat draft')
+  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved' })
+
+  await payload.delete({ collection: 'knowledge', id: cat.id })
+  await payload.delete(record)
+})
+
+test('adoption consolidation copies published edits and resumes after a partial deletion', async t => {
+  const collection = 'knowledge' as const
+  const defaults = { category: 'adoption', _status: 'published' } as const
+  const overview = await payload.create({ collection, data: { ...defaults, title: 'Staff adoption overview', slug: 'adoption', body: pageBody('Edited overview.'), source: 'Edited source.' } })
+  const cat = await payload.create({ collection, data: { ...defaults, title: 'Cat adoption', slug: 'cat-adoption', body: pageBody('Edited cat policy.') } })
+  const dog = await payload.create({ collection, data: { ...defaults, title: 'Dog adoption', slug: 'dog-adoption', body: pageBody('Edited dog policy.') } })
+  const record = { collection, id: overview.id } as const
+  const dogRecord = { collection, id: dog.id } as const
+  await payload.update({ ...dogRecord, draft: true, data: { slug: 'dog-adoption-draft', body: pageBody('Pending staff edits.'), _status: 'draft' } })
+  await assert.rejects(() => consolidateAdoption(payload), /draft for "dog-adoption"/)
+  assert.deepEqual((await payload.findByID(record)).body, overview.body)
+  assert.equal((await payload.findByID({ collection, id: cat.id })).slug, cat.slug)
+  await payload.update({ ...dogRecord, data: { slug: dog.slug, body: dog.body, _status: 'published' } })
+
+  const originalDelete = payload.delete
+  const failSecondDelete = t.mock.method(payload, 'delete', async (options: { id?: number }) => {
+    if (options.id === dog.id) throw new Error('Temporary deletion failure')
+    return Reflect.apply(originalDelete, payload, [options])
+  })
+  await assert.rejects(() => consolidateAdoption(payload), /Temporary deletion failure/)
+  failSecondDelete.mock.restore()
+
+  const combined = await payload.findByID(record)
+  assert.equal(combined.title, overview.title)
+  assert.equal(combined.source, overview.source)
+  const combinedChildren = combined.body.root.children
+  assert.deepEqual(combinedChildren.map(richTextToText), [
+    'Edited overview.',
+    'Cat adoption',
+    'Edited cat policy.',
+    'Dog adoption',
+    'Edited dog policy.',
+  ])
+  assert.deepEqual([combinedChildren[1].tag, combinedChildren[3].tag], ['h2', 'h2'])
+  assert.deepEqual(combinedChildren[0], overview.body.root.children[0])
+  assert.deepEqual(combinedChildren[2], cat.body.root.children[0])
+  assert.deepEqual(combinedChildren[4], dog.body.root.children[0])
+  assert.equal(await payload.findByID({ collection, id: cat.id, disableErrors: true }), null)
+
+  await payload.update({ ...dogRecord, data: { body: pageBody('New dog policy.') } })
+  await assert.rejects(() => consolidateAdoption(payload), /different copy for "dog-adoption"/)
+  assert.equal(richTextToText((await payload.findByID(dogRecord)).body), 'New dog policy.')
+  assert.deepEqual((await payload.findByID(record)).body, combined.body)
+
+  await payload.update({ ...dogRecord, data: { body: dog.body } })
+  assert.deepEqual(await consolidateAdoption(payload), { updated: false, deleted: ['dog-adoption'] })
+  assert.deepEqual(await consolidateAdoption(payload), { updated: false, deleted: [] })
+  assert.equal(await payload.findByID({ ...dogRecord, disableErrors: true }), null)
+  assert.deepEqual((await payload.findByID(record)).body, combined.body)
 })

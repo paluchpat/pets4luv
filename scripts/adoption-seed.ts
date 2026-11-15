@@ -1,5 +1,8 @@
+import { isDeepStrictEqual } from 'node:util'
 import type { Payload } from 'payload'
-import { body, link, orderedList, paragraph, seedKnowledgeArticle } from './knowledge-seeds'
+import { body, heading, link, orderedList, paragraph, seedKnowledgeArticle } from './knowledge-seeds'
+import { richTextToText } from '../src/lib/public-content'
+import type { Knowledge } from '../src/payload-types'
 
 const demo = {
   title: 'Find your new best friend',
@@ -12,6 +15,26 @@ const demo = {
 const catSource = 'https://www.pets4luv.org/Cat-Adoption-Information'
 const dogSource = 'https://www.pets4luv.org/Dog-Adoption-Information'
 const published = { category: 'adoption', reviewer: null, reviewedAt: null, _status: 'published' } as const
+
+const speciesSections = [
+  {
+    slug: 'cat-adoption',
+    title: 'Cat adoption',
+    paragraphs: [
+      paragraph('Cats adopted through Pets4Luv live indoors as companions. Declawing and devocalization are permitted only when medically necessary.'),
+      paragraph('Cat adoption includes rabies and FVRCP vaccinations, testing for FIV, FeLV, and heartworm, deworming, spay or neuter surgery, and a microchip.'),
+    ],
+  },
+  {
+    slug: 'dog-adoption',
+    title: 'Dog adoption',
+    paragraphs: [
+      paragraph('Dogs adopted through Pets4Luv live indoors as companions. Devocalization, ear cropping, and tail docking are permitted only when medically necessary. Pets4Luv encourages obedience training and advises against shock or prong collars.'),
+      paragraph('Pools and other water features must have safeguards that keep dogs out of the water. Pets4Luv generally requires an enclosed area with a physical fence. It does not accept electronic fences and considers homes without fencing individually.'),
+      paragraph('Dog adoption includes age-appropriate vaccinations, heartworm and fecal testing, deworming, spay or neuter surgery, and a microchip.'),
+    ],
+  },
+]
 
 const adoption = {
   ...published,
@@ -27,36 +50,93 @@ const adoption = {
     ]),
     paragraph('Pets4Luv generally spays or neuters animals before adoption. If surgery must be delayed for medical reasons, sign a spay or neuter agreement and arrange an appointment with the veterinarian Pets4Luv designates.'),
     paragraph('Pets4Luv may follow up by phone or with a home visit. Contact the rescue for the current payment, medical support, and refund terms in the Adoption Agreement.'),
-  ),
-}
-
-const catAdoption = {
-  ...published,
-  slug: 'cat-adoption',
-  title: 'Cat adoption',
-  source: catSource,
-  body: body(
-    paragraph('Cats adopted through Pets4Luv live indoors as companions. Declawing and devocalization are permitted only when medically necessary.'),
-    paragraph('Cat adoption includes rabies and FVRCP vaccinations, testing for FIV, FeLV, and heartworm, deworming, spay or neuter surgery, and a microchip.'),
-  ),
-}
-
-const dogAdoption = {
-  ...published,
-  slug: 'dog-adoption',
-  title: 'Dog adoption',
-  source: dogSource,
-  body: body(
-    paragraph('Dogs adopted through Pets4Luv live indoors as companions. Devocalization, ear cropping, and tail docking are permitted only when medically necessary. Pets4Luv encourages obedience training and advises against shock or prong collars.'),
-    paragraph('Pools and other water features must have safeguards that keep dogs out of the water. Pets4Luv generally requires an enclosed area with a physical fence. It does not accept electronic fences and considers homes without fencing individually.'),
-    paragraph('Dog adoption includes age-appropriate vaccinations, heartworm and fecal testing, deworming, spay or neuter surgery, and a microchip.'),
+    ...speciesSections.flatMap(section => [heading(section.title), ...section.paragraphs]),
   ),
 }
 
 export async function seedAdoption(payload: Payload) {
-  return {
-    adoption: await seedKnowledgeArticle(payload, adoption, demo),
-    'cat-adoption': await seedKnowledgeArticle(payload, catAdoption),
-    'dog-adoption': await seedKnowledgeArticle(payload, dogAdoption),
+  return { adoption: await seedKnowledgeArticle(payload, adoption, demo) }
+}
+
+const knowledgeLookup = { collection: 'knowledge', depth: 0 } as const
+
+async function assertCurrent(payload: Payload, article: Knowledge) {
+  // Read by ID because a staff draft may have changed the slug.
+  const latest = await payload.findByID({ ...knowledgeLookup, id: article.id, draft: true, disableErrors: true })
+  if (article._status === 'draft' || latest?._status === 'draft') {
+    throw new Error(`Publish or discard the draft for "${article.slug}" before consolidating adoption.`)
   }
+  if (article._status !== 'published' || !isDeepStrictEqual(latest, article)) {
+    throw new Error(`The adoption article "${article.slug}" changed during consolidation.`)
+  }
+}
+
+async function findAdoptionArticle(payload: Payload, slug: string) {
+  const lookup = { ...knowledgeLookup, where: { slug: { equals: slug } }, limit: 1 }
+  const { docs: [article] } = await payload.find({ ...lookup, draft: false })
+  if (article) {
+    await assertCurrent(payload, article)
+    return article
+  }
+  const { docs } = await payload.find({ ...lookup, draft: true })
+  if (docs.length) throw new Error(`Publish or discard the draft for "${slug}" before consolidating adoption.`)
+}
+
+export async function consolidateAdoption(payload: Payload) {
+  const overview = await findAdoptionArticle(payload, adoption.slug)
+  if (!overview) throw new Error('The published adoption overview is missing.')
+  const legacy = await Promise.all(speciesSections.map(section => findAdoptionArticle(payload, section.slug)))
+  const children = overview.body.root.children
+  const headings = children.flatMap((node, index) => {
+    if (node.type !== 'heading') return []
+    const title = richTextToText(node)
+    return speciesSections.some(section => section.title === title) ? [{ index, tag: node.tag, title }] : []
+  })
+
+  let expectedBody = overview.body
+  const updated = headings.length === 0
+  if (updated) {
+    const [cat, dog] = legacy
+    if (!cat || !dog) throw new Error('Both published species articles are required to combine their copy.')
+    expectedBody = {
+      ...overview.body,
+      root: {
+        ...overview.body.root,
+        children: [
+          ...children,
+          heading(speciesSections[0].title),
+          ...cat.body.root.children,
+          heading(speciesSections[1].title),
+          ...dog.body.root.children,
+        ],
+      },
+    }
+    await assertCurrent(payload, overview)
+    await payload.update({ ...knowledgeLookup, id: overview.id, draft: false, data: { body: expectedBody } })
+  } else {
+    if (headings.length !== speciesSections.length || headings.some(({ tag, title }, index) => tag !== 'h2' || title !== speciesSections[index].title)) {
+      throw new Error('The adoption overview already has unexpected species headings.')
+    }
+    for (const [index, article] of legacy.entries()) {
+      const existing = children.slice(headings[index].index + 1, headings[index + 1]?.index)
+      if (!existing.length || (article && !isDeepStrictEqual(existing, article.body.root.children))) {
+        throw new Error(`The published overview has different copy for "${speciesSections[index].slug}".`)
+      }
+    }
+  }
+
+  const verified = await payload.findByID({ ...knowledgeLookup, id: overview.id, draft: false })
+  if (verified.slug !== adoption.slug || verified._status !== 'published' || !isDeepStrictEqual(verified.body, expectedBody)) {
+    throw new Error('The combined adoption body could not be verified.')
+  }
+
+  const deleted: string[] = []
+  for (const article of legacy) {
+    if (!article) continue
+    await assertCurrent(payload, verified)
+    await assertCurrent(payload, article)
+    await payload.delete({ ...knowledgeLookup, id: article.id })
+    deleted.push(article.slug)
+  }
+  return { updated, deleted }
 }
