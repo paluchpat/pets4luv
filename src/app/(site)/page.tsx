@@ -17,8 +17,8 @@ export default async function HomePage() {
       <section className={styles.intro} aria-labelledby="foundation-title">
         <h2 id="foundation-title">Pets4Luv Foundation</h2>
         <p>
-          We are a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs.<br />
-          We rely on <Link href="/donate">your donations</Link> to give cats and dogs the care they need and the chance to find a loving home.
+          We are a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs. We give them a safe place to rest and recover at their own pace.<br />
+          We rely on <Link href="/donate">your donations</Link> to give animals the care they need and the chance to find a loving home.
         </p>
       </section>
       <SearchPanel />
