@@ -56,7 +56,7 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
   }
 
   const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: sortFields })
-  return { docs: result.docs.map(animalDTO), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
+  return { docs: result.docs.map(doc => animalDTO(doc)), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 
 export async function getAnimal(slug: string): Promise<AnimalDTO | null> {
@@ -79,7 +79,7 @@ export async function getHomepage(): Promise<HomepageDTO> {
   const homepage = await payload.findGlobal({ slug: 'homepage', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }) as any
   const ids = (homepage.featuredAnimals || []).map((row: any) => typeof row.animal === 'object' ? row.animal?.id : row.animal).filter(Boolean)
   const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: 6, where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }, { status: { equals: 'available' } }] } }) : { docs: [] }
-  const byID = new Map(result.docs.map((doc: any) => [String(doc.id), animalDTO(doc)]))
+  const byID = new Map(result.docs.map((doc: any) => [String(doc.id), animalDTO(doc, 'uncropped')]))
   return { heading: homepage.heading || 'A few faces to fall for', intro: homepage.intro || null, introText: richTextToText(homepage.intro), featuredAnimals: ids.map((id: any) => byID.get(String(id))).filter(Boolean) as AnimalDTO[] }
 }
 
