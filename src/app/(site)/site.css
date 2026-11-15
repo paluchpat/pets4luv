@@ -944,10 +944,6 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   color: var(--burgundy);
 }
 
-.compatibility-filters .icon-eyes {
-  stroke-width: 2.3;
-}
-
 .compatibility-filters input:checked + svg .icon-outline {
   fill: currentColor;
 }

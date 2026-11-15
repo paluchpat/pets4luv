@@ -6,9 +6,20 @@ import { Header } from '@/components/Header'
 import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
 import { pets4LuvAddress } from '@/lib/site-address'
+import { siteLinks } from '@/lib/site-navigation'
 import './site.css'
 
 export const metadata: Metadata = { title: { default: 'Pets4Luv · Bringing families together', template: '%s · Pets4Luv' }, description: 'Find your new companion. Explore adoptable cats and dogs and learn about Pets4Luv.' }
+
+const footerLinks = [
+  siteLinks.adopt,
+  siteLinks.adoption,
+  siteLinks.applications,
+  siteLinks.volunteer,
+  siteLinks.about,
+  siteLinks.donate,
+  siteLinks.contact,
+]
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const preview = (await draftMode()).isEnabled
@@ -33,13 +44,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <SocialLinks />
       </div>
       <nav aria-label="Footer navigation">
-        <Link href="/animals">Adopt</Link>
-        <Link href="/info/adoption">Adoption information</Link>
-        <Link href="/applications">Applications</Link>
-        <Link href="/info/volunteering">Volunteer</Link>
-        <Link href="/about">About</Link>
-        <Link href="/donate">Donate</Link>
-        <Link href="/contact">Contact</Link>
+        {footerLinks.map(({ href, label }) => <Link key={href} href={href}>{label}</Link>)}
       </nav>
       <p className="demo-notice">Development demo · Animal profiles and sample information are fictional. This is not the rescue’s live adoption catalog.</p>
     </footer>

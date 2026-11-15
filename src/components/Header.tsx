@@ -4,23 +4,24 @@ import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, type Ref } from 'react'
+import { siteLinks } from '@/lib/site-navigation'
 
 const navigation = [
-  { href: '/', label: 'Home' },
-  { href: '/animals', label: 'Adopt' },
+  siteLinks.home,
+  siteLinks.adopt,
   {
     label: 'Information',
     children: [
-      { href: '/info/adoption', label: 'About adoptions' },
-      { href: '/info/volunteering', label: 'Volunteer' },
-      { href: '/applications', label: 'Forms and applications' },
-      { href: '/tnr', label: 'Trap-Neuter-Return (TNR)' },
-      { href: '/medical', label: 'Medical assistance' },
-      { href: '/injured-feral-cats', label: 'Injured feral cats' },
+      siteLinks.adoption,
+      siteLinks.volunteer,
+      siteLinks.applications,
+      siteLinks.tnr,
+      siteLinks.medical,
+      siteLinks.injuredFeralCats,
     ],
   },
-  { href: '/about', label: 'About us' },
-  { href: '/contact', label: 'Contact' },
+  siteLinks.about,
+  siteLinks.contact,
 ] as const
 
 type NavigationVariant = 'desktop' | 'mobile'
@@ -201,7 +202,7 @@ export function Header() {
         <nav className="desktop-nav" aria-label="Main navigation">
           <NavigationItems variant="desktop" pathname={pathname} />
         </nav>
-        <Link className="button donate-button" href="/donate">Donate</Link>
+        <Link className="button donate-button" href={siteLinks.donate.href}>{siteLinks.donate.label}</Link>
         <button
           ref={menuButton}
           type="button"
