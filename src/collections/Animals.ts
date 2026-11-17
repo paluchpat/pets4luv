@@ -48,8 +48,12 @@ export const Animals: CollectionConfig = {
         { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { className: 'cms-animal-photos', description: 'The first photo is the main image on the website. Drag photos to change their order.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true, admin: { className: 'cms-animal-photo-upload', components: { beforeInput: ['./components/admin/PhotoUploadControls#PhotoUploadControls'] } } }] },
       ] },
       { label: 'Story', fields: [
-        { name: 'summary', type: 'textarea', required: true, maxLength: 220 },
         { name: 'description', type: 'textarea', required: true },
+        {
+          name: 'summary', label: 'Summary (optional)', type: 'textarea', maxLength: 220, defaultValue: '',
+          // Preserve compatibility with existing animal and draft storage.
+          hooks: { beforeValidate: [({ value }) => value ?? ''] },
+        },
         { name: 'careNeeds', type: 'textarea', label: 'Public care needs' },
       ] },
       { label: 'Friendly with', fields: [

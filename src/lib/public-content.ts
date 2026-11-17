@@ -23,7 +23,7 @@ export function animalDTO(doc: any, photoVariant: 'card' | 'uncropped' = 'card')
   return {
     id: doc.id, name: doc.name, slug: doc.slug, species: doc.species, sex: doc.sex,
     ageGroup: doc.ageGroup, size: doc.size, breed: doc.breed || '', ageLabel: ageLabel(doc),
-    summary: doc.summary || '', description: doc.description || '', careNeeds: doc.careNeeds || '', status: doc.status,
+    summary: doc.summary?.trim() || '', description: doc.description || '', careNeeds: doc.careNeeds || '', status: doc.status,
     photo: photo && typeof photo === 'object' && photo.url
       ? { url: photoVariant === 'card' ? photo.sizes?.card?.url || photo.url : photo.url, alt: photo.alt || doc.name }
       : null,
