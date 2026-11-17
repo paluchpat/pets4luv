@@ -9,6 +9,7 @@
   "packageManager": "npm@11.17.0",
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "predev": "node --env-file-if-exists=.env --import tsx scripts/prepare-dev.ts",
     "dev": "next dev --hostname 127.0.0.1",
     "build": "npm run prepare:cms && payload generate:types && next build",
     "prepare:cms": "node --env-file-if-exists=.env --import tsx scripts/prepare-cms.ts",
