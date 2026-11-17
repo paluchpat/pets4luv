@@ -81,7 +81,10 @@
   .cms-account a { color: var(--cms-ink); text-decoration: none; font-weight: 500; overflow-wrap: anywhere; font-size: 13px; }
   .cms-account small { display: block; color: var(--cms-muted); font-weight: 400; font-size: 12px; margin-top: 2px; }
   .app-header { background: var(--cms-surface); border-bottom: 1px solid var(--cms-line); min-height: 68px; }
+  .app-header__step-nav-wrapper, .app-header__step-nav { min-width: 0; }
   .doc-header h1, .collection-list__header h1, .global-edit h1 { letter-spacing: -1px; }
+  /* Keep create titles aligned with editors that include document tabs. */
+  .doc-header__header { min-height: 48px; }
   .doc-controls { background: var(--cms-surface); border-bottom: 1px solid var(--cms-line); }
   /* Keep the first editor section equally spaced below the publication controls. */
   .document-fields__edit { padding-top: var(--cms-editor-gap); }
@@ -323,6 +326,8 @@
   .cms-gallery-view-all:hover { text-decoration: underline; }
   .cms-gallery-view-all svg { width: 18px; height: 18px; }
   @media(max-width:1024px) {
+    .doc-header__header { min-height: 44px; }
+    .collection-list--users .list-header__title { align-self: flex-start; }
     .collection-list--users .list-header:not(.list-drawer__header) { padding-top: 5px; padding-bottom: calc(var(--base) / 1.5); }
     .collection-list--users .collection-list__sub-header { padding-top: 5px; }
     .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-and-actions { min-height: 44px; }
