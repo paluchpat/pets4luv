@@ -48,21 +48,21 @@
   transform: translateY(-50%);
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   color: var(--burgundy);
-  opacity: .55;
+  opacity: .3;
   transition: opacity .2s ease-in-out;
 }
 
-.arrow > svg { width: 32px; height: 32px; }
-.previous { left: 12px; }
-.next { right: 12px; }
-.arrow:focus-visible { opacity: 1; outline: 2px solid var(--logo-red); outline-offset: 3px; }
+.arrow > svg { width: 48px; height: 48px; }
+.previous { left: 0; }
+.next { right: 0; }
+.arrow:focus-visible { opacity: 1; outline: 2px solid var(--logo-red); outline-offset: -3px; }
 
 .thumbnails {
   display: flex;
@@ -111,7 +111,7 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .arrow:hover { opacity: 1; }
+  .main:hover .arrow { opacity: 1; }
   .thumbnail:hover { border-color: var(--burgundy); }
 }
 
