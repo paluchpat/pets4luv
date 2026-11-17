@@ -20,7 +20,7 @@ for (const { value } of animalColorOptions) aliases([value], { colors: { contain
 aliases(['grey'], { colors: { contains: 'gray' } })
 aliases(['available', 'adoptable'], exact('status', 'available'))
 aliases(['adopted'], exact('status', 'adopted'))
-aliases(['on-hold'], exact('status', 'on-hold'))
+aliases(['pending', 'on-hold'], exact('status', 'on-hold'))
 aliases(['published'], exact('_status', 'published'))
 aliases(['draft', 'drafts', 'unpublished'], exact('_status', 'draft'))
 const connectors = new Set(['a', 'an', 'the', 'and', 'show', 'me', 'find', 'looking', 'for', 'is', 'are', 'with', 'that', 'animal', 'animals', 'pet', 'pets'])

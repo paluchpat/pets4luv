@@ -110,7 +110,7 @@ export function AddAnimal({ onSaved }: { onSaved: (status?: string) => void }) {
 
 export function AnimalProfileCard({ card, onSaved, onDeleted, compact = false }: { card: AdminAnimalCard; onSaved: (status?: string) => void; onDeleted: () => void; compact?: boolean }) {
   const [Drawer, Toggler, { closeDrawer }] = useDocumentDrawer({ collectionSlug: 'animals', id: card.id })
-  const status = card.status === 'on-hold' ? 'On hold' : card.status === 'adopted' ? 'Adopted' : card.status === 'available' ? 'Available' : 'Status not set'
+  const status = card.status === 'on-hold' ? 'Pending' : card.status === 'adopted' ? 'Adopted' : card.status === 'available' ? 'Available' : 'Status not set'
   const publication = card.publication === 'changed' ? 'Draft changes' : card.publication === 'draft' ? 'Draft' : 'Published'
   const featuredLabel = card.featured ? <span className="cms-featured-badge"><Star aria-hidden="true" />Featured</span> : null
   return <><Toggler className="cms-animal-card" aria-label={`Edit ${card.name}`}>

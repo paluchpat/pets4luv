@@ -16,7 +16,7 @@ type AnimalFilter = {
 
 export const adminAnimalFilters: AnimalFilter[] = [
   { field: 'status', label: 'Adoption status', empty: 'Any status', options: [
-    { value: 'available', label: 'Available' }, { value: 'on-hold', label: 'On hold' }, { value: 'adopted', label: 'Adopted' },
+    { value: 'available', label: 'Available' }, { value: 'on-hold', label: 'Pending' }, { value: 'adopted', label: 'Adopted' },
   ] },
   { field: '_status', label: 'Publication', empty: 'Any publication status', options: [
     { value: 'published', label: 'Published' }, { value: 'draft', label: 'Drafts & unpublished changes' },

@@ -810,6 +810,9 @@ test('admin animal gallery protects drafts and projects only the selected staff 
   assert.deepEqual(await searchIDs('Harbor quiet'), [harbor.id])
   assert.deepEqual(await searchIDs('quiet Harbor'), [harbor.id])
   assert.deepEqual(await searchIDs('good with dogs'), [harbor.id])
+  await payload.update({ collection: 'animals', id: harbor.id, overrideAccess: false, user: editor, draft: true, data: { status: 'on-hold' } })
+  assert.deepEqual(await searchIDs('pending male dog'), [harbor.id])
+  assert.deepEqual(await searchIDs('available male dog'), [])
   assert.deepEqual(new Set(await searchIDs('male or female')), new Set([harbor.id, willow.id]))
   assert.deepEqual(await searchIDs('\"female cats\"'), [harbor.id])
 

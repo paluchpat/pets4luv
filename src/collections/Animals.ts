@@ -34,7 +34,7 @@ export const Animals: CollectionConfig = {
       { label: 'Details', fields: [
         { name: 'name', type: 'text', required: true }, slugField,
         { name: 'species', type: 'select', required: true, options: ['cat', 'dog'] },
-        { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'On hold', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
+        { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'Pending', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
         { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
         { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
         { name: 'size', type: 'select', required: true, options: ['small', 'medium', 'large'] },
