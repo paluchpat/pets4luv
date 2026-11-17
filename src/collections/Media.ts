@@ -6,14 +6,28 @@ const uploadRoot = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), '
 
 export const Media: CollectionConfig = {
   slug: 'media', labels: { singular: 'Approved public photo', plural: 'Approved public photos' },
-  admin: { useAsTitle: 'alt', hidden: true, description: 'Only upload photographs approved for public display.' },
+  admin: {
+    useAsTitle: 'alt', hidden: true,
+    description: 'Choose a photo, or upload a new one. Only upload photographs approved for public display.',
+    defaultColumns: ['filename', 'alt', 'updatedAt'], listSearchableFields: ['alt', 'caption', 'filename'],
+    pagination: { defaultLimit: 20, limits: [10, 20, 40] },
+  },
+  defaultSort: '-updatedAt',
   access: { read: () => true, create: isStaff, update: isStaff, delete: isStaff },
   upload: {
     staticDir: path.resolve(uploadRoot, 'public'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+    // Use the original image so portrait and landscape previews remain uncropped.
+    adminThumbnail: ({ doc }) => typeof doc.url === 'string' && doc.url ? doc.url
+      : typeof doc.filename === 'string' ? `/api/media/file/${encodeURIComponent(doc.filename)}` : null,
     imageSizes: [{ name: 'card', width: 800, height: 800, position: 'centre', formatOptions: { format: 'webp' } }],
     formatOptions: { format: 'webp' }, resizeOptions: { width: 1800, withoutEnlargement: true },
   },
-  fields: [{ name: 'alt', type: 'text', required: true }, { name: 'caption', type: 'text' }],
+  fields: [
+    { name: 'alt', label: 'Photo description', type: 'text', required: true, admin: { description: 'Describe the animal and photo for people who use screen readers.' } },
+    { name: 'caption', type: 'text' },
+    // Payload merges this label into its existing read-only filename field.
+    { name: 'filename', label: 'Photo', type: 'text' },
+  ],
 }
 
 export const IntakeFiles: CollectionConfig = {
