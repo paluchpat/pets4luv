@@ -39,10 +39,10 @@ export const Animals: CollectionConfig = {
         { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
         { name: 'size', type: 'select', required: true, options: ['small', 'medium', 'large'] },
         { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
-        { name: 'breed', label: 'Reported breed (optional)', type: 'text' },
+        { name: 'breed', label: 'Reported breed', type: 'text' },
         { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },
         { name: 'estimatedBirthDate', type: 'date', admin: { description: 'An estimate, not a confirmed birth date. Age display advances from this date.' } },
-        { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Optional. Accepts decimals and appears on the animal’s website profile only when provided.' } },
+        { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Accepts decimals and appears on the animal’s website profile only when provided.' } },
       ] },
       { label: 'Photos', fields: [
         { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { className: 'cms-animal-photos', description: 'The first photo is the main image on the website. Drag photos to change their order.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true, admin: { className: 'cms-animal-photo-upload', components: { beforeInput: ['./components/admin/PhotoUploadControls#PhotoUploadControls'] } } }] },
@@ -50,7 +50,7 @@ export const Animals: CollectionConfig = {
       { label: 'Story', fields: [
         { name: 'description', type: 'textarea', required: true },
         {
-          name: 'summary', label: 'Summary (optional)', type: 'textarea', maxLength: 220, defaultValue: '',
+          name: 'summary', label: 'Summary', type: 'textarea', maxLength: 220, defaultValue: '',
           // Preserve compatibility with existing animal and draft storage.
           hooks: { beforeValidate: [({ value }) => value ?? ''] },
         },

@@ -25,7 +25,7 @@ export const Media: CollectionConfig = {
   },
   fields: [
     {
-      name: 'alt', label: 'Photo description (optional)', type: 'text', defaultValue: '',
+      name: 'alt', label: 'Photo description', type: 'text', defaultValue: '',
       // Existing photo databases require a string; an empty description stays valid.
       hooks: { beforeValidate: [({ value }) => value ?? ''] },
       admin: { description: 'Alt text is a short description of the photo for people who use screen readers. Example: Poppy resting in a basket.' },
