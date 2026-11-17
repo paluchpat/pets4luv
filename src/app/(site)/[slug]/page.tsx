@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { getPage } from '@/lib/content'
 import { pets4LuvAddress } from '@/lib/site-address'
 import { Icon } from '@/components/Icons'
@@ -11,13 +11,20 @@ export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
 const mapsDestination = encodeURIComponent(pets4LuvAddress)
 
+function redirectInformationPage(slug: string) {
+  if (slug === 'adoption' || slug === 'volunteering') permanentRedirect(`/info/${slug}`)
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const page = await getPage((await params).slug)
+  const { slug } = await params
+  redirectInformationPage(slug)
+  const page = await getPage(slug)
   return { title: page?.title || 'Page not found' }
 }
 
 export default async function ContentPage({ params }: Props) {
   const { slug } = await params
+  redirectInformationPage(slug)
   const page = await getPage(slug)
   if (!page) notFound()
   const isDonate = slug === 'donate'

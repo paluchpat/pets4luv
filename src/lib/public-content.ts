@@ -1,5 +1,6 @@
 import type { Where } from 'payload'
 import { isAnimalColor } from './animal-colors'
+import { defaultHomepageIntro } from './homepage-intro'
 
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
 export type RichText = { root: { children: unknown[]; [key: string]: unknown }; [key: string]: unknown }
@@ -10,7 +11,8 @@ export type AnimalDTO = {
   photo: { url: string; alt: string } | null;
   compatibility: { dogs: Assessment; cats: Assessment; children: Assessment }; compatibilityNotes: string;
 }
-export type HomepageDTO = { heading: string; intro: RichText | null; introText: string; featuredAnimals: AnimalDTO[] }
+export type HomepageIntroDTO = { heading: string; body: RichText; bodyText: string }
+export type HomepageDTO = { foundationIntro: HomepageIntroDTO; heading: string; intro: RichText | null; introText: string; featuredAnimals: AnimalDTO[] }
 export type AnimalFilters = { q?: string; species?: string; ageGroup?: string; size?: string; sex?: string; color?: string; goodWithDogs?: string | boolean; goodWithCats?: string | boolean; goodWithChildren?: string | boolean; page?: string | number }
 
 // Deliberately reconstruct DTOs. Never return raw CMS documents to visitor routes or future AI tools.
@@ -58,4 +60,11 @@ export function buildAnimalWhere(filters: AnimalFilters = {}): Where {
   const q = filters.q?.trim().slice(0, 100)
   if (q) and.push({ or: [{ name: { like: q } }, { breed: { like: q } }, { summary: { like: q } }] })
   return { and }
+}
+
+/** Drafts are only eligible after the server has authenticated a staff preview. */
+export function homepageIntroDTO(doc: { heading?: string | null; body?: RichText | null; _status?: string | null } | null | undefined, staffPreview = false): HomepageIntroDTO {
+  const intro = doc && (staffPreview || doc._status === 'published') ? doc : defaultHomepageIntro
+  const body = intro.body || defaultHomepageIntro.body
+  return { heading: intro.heading || defaultHomepageIntro.heading, body, bodyText: richTextToText(body) }
 }

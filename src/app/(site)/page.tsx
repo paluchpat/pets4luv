@@ -15,12 +15,8 @@ export default async function HomePage() {
     <section className="hero" aria-labelledby="hero-title"><picture><source media="(max-width: 680px)" srcSet="/images/hero-mobile.png" /><img src="/images/hero-desktop.png" alt="A golden dog and tabby cat resting together on a soft blanket" fetchPriority="high" /></picture><div className="hero-copy"><h1 id="hero-title">Bringing families together</h1><p>One rescue at a time</p></div></section>
     <div className="home-content">
       <section className={styles.intro} aria-labelledby="foundation-title">
-        <h2 id="foundation-title">Pets4Luv Foundation</h2>
-        <p>
-          We are a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs. We give them a safe place to rest and recover at their own pace.<br />
-          <br />
-          We rely on <Link href="/donate">your donations</Link> to give animals the care they need and the chance to find a loving home.
-        </p>
+        <h2 id="foundation-title">{homepage.foundationIntro.heading}</h2>
+        <RichContent value={homepage.foundationIntro.body} text={homepage.foundationIntro.bodyText} />
       </section>
       <SearchPanel />
       <section className="weekly" aria-labelledby="weekly-title"><div className="weekly-intro"><p className="section-label">Featured animals of the week</p><h2 id="weekly-title">{homepage.heading}</h2><RichContent value={homepage.intro} text={homepage.introText} /></div>

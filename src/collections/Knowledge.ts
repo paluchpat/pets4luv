@@ -3,7 +3,7 @@ import { isStaff, publishedOrStaff, slugField } from '../access'
 
 export const Knowledge: CollectionConfig = {
   slug: 'knowledge', labels: { singular: 'Information article', plural: 'Adoption & volunteering' },
-  admin: { useAsTitle: 'title', group: 'Content' },
+  admin: { useAsTitle: 'title', group: 'Content', hidden: true },
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   fields: [

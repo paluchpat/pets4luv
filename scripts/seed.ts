@@ -1,9 +1,12 @@
 import path from 'node:path'
+import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { getPayload } from 'payload'
 import config from '../src/payload.config'
 import { seedAdoption } from './adoption-seed'
 import { seedPages } from './page-seeds'
 import { seedVolunteering } from './volunteering-seed'
+import { seedHomepageIntro } from './homepage-intro-seed'
+import { prepareInformationPages } from './information-pages-schema'
 
 const payload = await getPayload({ config })
 function richText(text: string) {
@@ -51,8 +54,10 @@ for (const animal of demo) {
 }
 const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as any
 if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['poppy', 'fern', 'cleo'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
+await seedHomepageIntro(payload)
 await seedAdoption(payload)
 await seedVolunteering(payload)
 await seedPages(payload)
+await prepareInformationPages((payload.db as unknown as SQLiteAdapter).client)
 console.log('Starter content is ready. Existing edits were preserved. Create your own administrator at /admin. The seed creates no staff accounts.')
 await payload.destroy()

@@ -2,10 +2,10 @@ import type { GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 
 export const Homepage: GlobalConfig = {
-  slug: 'homepage', label: 'Homepage highlights',
+  slug: 'homepage', label: 'Homepage Highlights',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
-  admin: { group: 'Content', description: 'Edit the introduction, choose available animals, drag rows to arrange them, save a draft and preview before publishing.', preview: () => '/api/preview?path=/', livePreview: { url: '/api/preview?path=/' } },
+  admin: { group: 'Homepage', description: 'Edit the introduction, choose available animals, drag rows to arrange them, save a draft and preview before publishing.', preview: () => '/api/preview?path=/', livePreview: { url: '/api/preview?path=/' } },
   fields: [
     { name: 'heading', type: 'text', required: true, defaultValue: 'The best part of their story is still ahead.' },
     { name: 'intro', type: 'richText', required: true },

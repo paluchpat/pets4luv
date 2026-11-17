@@ -10,7 +10,8 @@
   "scripts": {
     "setup": "node scripts/setup.mjs",
     "dev": "next dev --hostname 127.0.0.1",
-    "build": "payload generate:types && next build",
+    "build": "npm run prepare:cms && payload generate:types && next build",
+    "prepare:cms": "node --env-file-if-exists=.env --import tsx scripts/prepare-cms.ts",
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "seed": "node --env-file=.env --import tsx scripts/seed.ts",

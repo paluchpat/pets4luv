@@ -11,12 +11,18 @@ export function validatePageSlug(value: unknown): true | string {
 
 export const Pages: CollectionConfig = {
   slug: 'pages',
-  admin: { useAsTitle: 'title', group: 'Content', description: 'Edit standalone public pages such as Donate and Contact. Save a draft before publishing changes.' },
+  labels: { singular: 'Page', plural: 'Pages' },
+  admin: { useAsTitle: 'title', group: false, description: 'Edit public pages, including adoption and volunteering information. Save a draft before publishing changes.' },
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   fields: [
     { name: 'title', type: 'text', required: true },
     { ...slugField, validate: validatePageSlug, admin: { description: 'A single lowercase address, for example donate. Website route names such as animals and info are reserved.' } },
     { name: 'body', type: 'richText', required: true },
+    // Preserve imported article metadata without an obsolete editor control.
+    { name: 'category', type: 'select', options: ['adoption', 'volunteering'], admin: { hidden: true } },
+    { name: 'source', type: 'text' },
+    { name: 'reviewer', type: 'text' },
+    { name: 'reviewedAt', type: 'date' },
   ],
 }

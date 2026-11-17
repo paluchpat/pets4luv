@@ -12,6 +12,7 @@ import { Knowledge } from './collections/Knowledge'
 import { Pages } from './collections/Pages'
 import { Intakes } from './collections/Intakes'
 import { Homepage } from './globals/Homepage'
+import { HomepageIntro } from './globals/HomepageIntro'
 import { privateBlobAdapter } from './lib/private-blob-storage'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -44,9 +45,9 @@ const storageAdapter = tursoURL && blobToken ? privateBlobAdapter(blobToken) : n
 export default buildConfig({
   secret,
   serverURL,
-  admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname } },
-  collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [Homepage],
-  editor: lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'knowledge'] }), UnorderedListFeature(), OrderedListFeature()] }),
+  admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { afterNavLinks: ['./components/admin/PagesNav#PagesNav'] } },
+  collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage],
+  editor: lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'] }), UnorderedListFeature(), OrderedListFeature()] }),
   db: sqliteAdapter({
     client: tursoURL
       ? { url: tursoURL, authToken: tursoAuthToken }

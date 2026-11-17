@@ -11,12 +11,20 @@
   text-wrap: balance;
 }
 
-.intro p {
+.intro :global(.rich-content) {
   max-width: 68ch;
   margin: 0 auto;
   font-size: clamp(17px, 2vw, 20px);
   text-align: left;
   text-wrap: pretty;
+}
+
+.intro p {
+  margin: 0;
+}
+
+.intro p + p {
+  margin-top: 1lh;
 }
 
 @media (max-width: 680px) {
