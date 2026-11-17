@@ -21,7 +21,7 @@ export const Pages: CollectionConfig = {
     { name: 'body', type: 'richText', required: true },
     // Preserve imported article metadata without an obsolete editor control.
     { name: 'category', type: 'select', options: ['adoption', 'volunteering'], admin: { hidden: true } },
-    { name: 'source', type: 'text' },
+    { name: 'source', type: 'text', admin: { hidden: true } },
     { name: 'reviewer', type: 'text' },
     { name: 'reviewedAt', type: 'date' },
   ],
