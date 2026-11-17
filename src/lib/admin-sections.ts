@@ -2,7 +2,7 @@
 export const websiteAdminSections = [
   { label: 'Animals', entities: [{ type: 'collection', slug: 'animals', label: 'Animals', singular: 'animal' }] },
   { label: 'Homepage', entities: [
-    { type: 'global', slug: 'homepage-intro', label: 'Homepage Intro' },
+    { type: 'global', slug: 'homepage-intro', label: 'Intro' },
     { type: 'global', slug: 'homepage', label: 'Featured Animals' },
   ] },
   { label: 'Pages', entities: [{ type: 'collection', slug: 'pages', label: 'Pages', singular: 'page' }] },

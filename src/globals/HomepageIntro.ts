@@ -4,7 +4,7 @@ import { defaultHomepageIntro } from '../lib/homepage-intro'
 
 export const HomepageIntro: GlobalConfig = {
   slug: 'homepage-intro',
-  label: 'Homepage Intro',
+  label: 'Intro',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {
