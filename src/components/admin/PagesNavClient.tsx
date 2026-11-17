@@ -3,6 +3,7 @@
 import { Link, NavGroup, useDocumentEvents } from '@payloadcms/ui'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { Icon } from '../Icons'
 
 type Props = {
   adminRoute: string
@@ -47,6 +48,6 @@ export function AnimalsNavClient({ adminRoute }: { adminRoute: string }) {
   const pathname = usePathname()
   const href = `${adminRoute}/collections/animals`
   return <Link className="nav__link nav__link--standalone" href={href} id="nav-animals" prefetch={false} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined}>
-    <span className="nav__link-label">Animals</span>
+    <Icon kind="paw" className="cms-nav-icon" /><span className="nav__link-label">Animals</span>
   </Link>
 }

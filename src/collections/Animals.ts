@@ -14,7 +14,8 @@ const compatibility = (name: string, label: string): Field => ({
 })
 
 export const Animals: CollectionConfig = {
-  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'] },
+  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'], pagination: { defaultLimit: 12, limits: [12, 24, 48] }, listSearchableFields: ['name', 'breed', 'summary', 'description', 'rescueIntakeID'], components: { views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } } } },
+  defaultSort: '-updatedAt',
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   hooks: { beforeOperation: [({ args }) => {
@@ -25,28 +26,36 @@ export const Animals: CollectionConfig = {
     return args
   }] },
   fields: [
-    // Required profile fields first. Compatibility’s required assessments stay together.
-    { name: 'name', type: 'text', required: true }, slugField,
-    { name: 'species', type: 'select', required: true, options: ['cat', 'dog'] },
-    { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'On hold', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
-    { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
-    { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
-    { name: 'size', type: 'select', required: true, options: ['small', 'medium', 'large'] },
-    { name: 'summary', type: 'textarea', required: true, maxLength: 220 },
-    { name: 'description', type: 'textarea', required: true },
-    { name: 'photos', type: 'array', required: true, minRows: 1, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true }] },
-    { name: 'compatibility', type: 'group', fields: [compatibility('dogs', 'With dogs'), compatibility('cats', 'With cats'), compatibility('children', 'With children')] },
-
-    // Optional website details and private editor notes.
-    { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
-    { name: 'breed', label: 'Reported breed (optional)', type: 'text' },
-    { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },
-    { name: 'estimatedBirthDate', type: 'date', admin: { description: 'An estimate, not a confirmed birth date. Age display advances from this date.' } },
-    { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Optional. Accepts decimals and appears on the animal’s website profile only when provided.' } },
-    { name: 'careNeeds', type: 'textarea', label: 'Public care needs' },
-    { name: 'compatibilityNotes', type: 'textarea' },
-    { name: 'internalNotes', type: 'textarea', access: { read: ({ req }) => Boolean(req.user) }, admin: { description: 'Private; excluded from all public content.' } },
-
+    { type: 'tabs', tabs: [
+      { label: 'Details', fields: [
+        { name: 'name', type: 'text', required: true }, slugField,
+        { name: 'species', type: 'select', required: true, options: ['cat', 'dog'] },
+        { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'On hold', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
+        { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
+        { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
+        { name: 'size', type: 'select', required: true, options: ['small', 'medium', 'large'] },
+        { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
+        { name: 'breed', label: 'Reported breed (optional)', type: 'text' },
+        { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },
+        { name: 'estimatedBirthDate', type: 'date', admin: { description: 'An estimate, not a confirmed birth date. Age display advances from this date.' } },
+        { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Optional. Accepts decimals and appears on the animal’s website profile only when provided.' } },
+      ] },
+      { label: 'Photos', fields: [
+        { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { description: 'The first photo is the main image on the website. Drag rows to reorder them; upload or select a photo in each row.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true }] },
+      ] },
+      { label: 'Story', fields: [
+        { name: 'summary', type: 'textarea', required: true, maxLength: 220 },
+        { name: 'description', type: 'textarea', required: true },
+        { name: 'careNeeds', type: 'textarea', label: 'Public care needs' },
+      ] },
+      { label: 'Friendly with', fields: [
+        { name: 'compatibility', type: 'group', fields: [compatibility('dogs', 'With dogs'), compatibility('cats', 'With cats'), compatibility('children', 'With children')] },
+        { name: 'compatibilityNotes', type: 'textarea' },
+      ] },
+      { label: 'Editor notes', fields: [
+        { name: 'internalNotes', type: 'textarea', access: { read: ({ req }) => Boolean(req.user) }, admin: { description: 'Private; excluded from all public content.' } },
+      ] },
+    ] },
     // Retired controls: preserve legacy values without exposing them in the editor.
     { name: 'ageEstimateReferenceDate', type: 'date', admin: { hidden: true } },
     { name: 'energyLevel', type: 'select', defaultValue: 'unknown', options: ['low', 'moderate', 'high', 'unknown'], admin: { hidden: true } },

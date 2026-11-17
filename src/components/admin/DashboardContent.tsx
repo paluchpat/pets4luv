@@ -2,13 +2,15 @@ import { Button, Card, Locked } from '@payloadcms/ui'
 import { createLocalReq, type ServerProps } from 'payload'
 import { getGlobalData } from '@payloadcms/ui/shared'
 import { formatAdminURL } from 'payload/shared'
+import { AnimalGalleryOverview } from './AnimalGalleryOverview'
+import { loadAdminGalleryCards } from './gallery-data'
 import { websiteAdminSections } from '../../lib/admin-sections'
 
 /** Administration keeps its native dashboard cards, followed by website editing sections. */
 export async function DashboardContent({ payload, permissions, user }: ServerProps) {
   if (!user || !['admin', 'editor'].includes(String(user.role))) return null
   const adminRoute = payload.config.routes.admin
-  const globalData = await getGlobalData(await createLocalReq({ user }, payload))
+  const [globalData, animals] = await Promise.all([getGlobalData(await createLocalReq({ user }, payload)), permissions?.collections?.animals?.read ? loadAdminGalleryCards(payload, user) : Promise.resolve([])])
   return <div className="collections dashboard-content">
     <div className="collections__wrap">
       {websiteAdminSections.map(section => {
@@ -16,6 +18,7 @@ export async function DashboardContent({ payload, permissions, user }: ServerPro
           ? permissions?.collections?.[entity.slug]?.read
           : permissions?.globals?.[entity.slug]?.read)
         if (!entities.length) return null
+        if (section.label === 'Animals') return <AnimalGalleryOverview key="animals" cards={animals} canCreate={Boolean(permissions?.collections?.animals?.create)} adminRoute={adminRoute} />
         return <section className="collections__group" key={section.label} aria-labelledby={`dashboard-${section.label.toLowerCase()}-heading`}>
           <h2 className="collections__label" id={`dashboard-${section.label.toLowerCase()}-heading`}>{section.label}</h2>
           <ul className="collections__card-list">

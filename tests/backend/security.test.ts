@@ -19,6 +19,7 @@ import { defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/websit
 import { prepareMainMenuSchema } from '../../scripts/main-menu-schema'
 import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
+import { loadAdminGalleryCards } from '../../src/components/admin/gallery-data'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -699,4 +700,42 @@ test('Main Menu bootstrap adds only its storage, seeds relationships once and pr
   const empty = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: false })
   assert.deepEqual(mainMenuDTO(empty), { items: [], button: null, footerLinks: [] })
   assert.deepEqual(await unrelated(), before)
+})
+
+
+test('admin animal gallery protects drafts and projects only the selected staff cards', async () => {
+  assert.deepEqual(await loadAdminGalleryCards(payload, undefined, [publishedID, draftID]), [])
+  assert.deepEqual(await loadAdminGalleryCards(payload, null, [publishedID, draftID]), [])
+  assert.deepEqual(await loadAdminGalleryCards(payload, editor, []), [])
+  await payload.updateGlobal({ slug: 'homepage', overrideAccess: false, user: editor, data: { heading: 'Gallery fixture', intro: pageBody('Published gallery fixture'), featuredAnimals: [{ animal: publishedID }], _status: 'published' } })
+  await payload.updateGlobal({ slug: 'homepage', overrideAccess: false, user: editor, draft: true, data: { featuredAnimals: [{ animal: draftID }], _status: 'draft' } })
+  await payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, draft: true, data: { name: 'PRIVATE GALLERY CHANGE', _status: 'draft' } })
+  const cards = await loadAdminGalleryCards(payload, editor, [draftID, publishedID])
+  assert.deepEqual(cards.map(card => card.id), [draftID, publishedID])
+  assert.equal(cards[0].publication, 'draft')
+  assert.equal(cards[1].publication, 'changed')
+  assert.equal(cards[1].name, 'PRIVATE GALLERY CHANGE')
+  assert.ok(cards[1].photo?.url)
+  assert.equal(cards[1].photos, 1)
+  assert.equal(cards[1].featured, true)
+  assert.equal(cards[0].featured, false)
+  const encoded = JSON.stringify(cards)
+  assert.ok(!encoded.includes('PRIVATE SENTINEL'))
+  assert.ok(!encoded.includes('PRIVATE-1'))
+  assert.ok(!encoded.includes('internalNotes'))
+  assert.ok(!encoded.includes('rescueIntakeID'))
+  const publicRecord = await payload.findByID({ collection: 'animals', id: publishedID, overrideAccess: false, draft: false })
+  assert.equal(publicRecord.name, 'Fixture')
+
+  // A previously published profile that is now unpublished is a draft, not a live profile with changes.
+  await payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, data: { _status: 'draft' } })
+  assert.equal((await loadAdminGalleryCards(payload, editor, [publishedID]))[0].publication, 'draft')
+  const incomplete = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, draft: true, data: { name: 'Incomplete profile', _status: 'draft' } as any })
+  const partial = (await loadAdminGalleryCards(payload, editor, [incomplete.id]))[0]
+  assert.equal(partial.name, 'Incomplete profile')
+  assert.equal(partial.species, null)
+  assert.equal(partial.gender, 'Gender not listed')
+  assert.equal(partial.age, 'Age unknown')
+  assert.equal(partial.photos, 0)
+  assert.equal(partial.publication, 'draft')
 })
