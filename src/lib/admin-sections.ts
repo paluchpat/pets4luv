@@ -9,5 +9,6 @@ export const websiteAdminSections = [
   { label: 'Settings', entities: [
     { type: 'global', slug: 'website-settings', label: 'Website Settings' },
     { type: 'global', slug: 'main-menu', label: 'Main Menu' },
+    { type: 'collection', slug: 'users', label: 'Users', singular: 'user' },
   ] },
 ] as const

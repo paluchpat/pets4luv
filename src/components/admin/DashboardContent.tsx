@@ -6,7 +6,7 @@ import { AnimalGalleryOverview } from './AnimalGalleryOverview'
 import { loadAdminGalleryCards } from './gallery-data'
 import { websiteAdminSections } from '../../lib/admin-sections'
 
-/** Administration keeps its native dashboard cards, followed by website editing sections. */
+/** Website editing sections share their order with the sidebar, including Users under Settings. */
 export async function DashboardContent({ payload, permissions, user }: ServerProps) {
   if (!user || !['admin', 'editor'].includes(String(user.role))) return null
   const adminRoute = payload.config.routes.admin

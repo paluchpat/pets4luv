@@ -63,8 +63,10 @@ export async function WebsiteNav(props: ServerProps) {
       if (section.label === 'Animals') return <AnimalsNav {...props} key={section.label} />
       if (section.label === 'Pages') return <PagesNav {...props} navPreferences={navPreferences} key={section.label} />
       const links = section.entities.flatMap(entity => {
-        if (entity.type !== 'global' || !permissions?.globals?.[entity.slug]?.read) return []
-        return [{ id: `nav-global-${entity.slug}`, label: entity.label, href: formatAdminURL({ adminRoute, path: `/globals/${entity.slug}` }) }]
+        const canRead = entity.type === 'collection' ? permissions?.collections?.[entity.slug]?.read : permissions?.globals?.[entity.slug]?.read
+        if (!canRead) return []
+        const path: `/${string}` = entity.type === 'collection' ? `/collections/${entity.slug}` : `/globals/${entity.slug}`
+        return [{ id: entity.type === 'collection' ? `nav-${entity.slug}` : `nav-global-${entity.slug}`, label: entity.label, href: formatAdminURL({ adminRoute, path }) }]
       })
       return links.length ? <AdminNavGroup key={section.label} label={section.label} links={links} isOpen={navPreferences.groups?.[section.label]?.open} /> : null
     })}
