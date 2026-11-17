@@ -53,8 +53,8 @@ export const MainMenu: GlobalConfig = {
         },
       ],
     },
-    { name: 'highlightedButton', label: 'Highlighted header button', type: 'group', fields: [
-      { name: 'enabled', label: 'Show the highlighted button', type: 'checkbox', defaultValue: true },
+    { name: 'highlightedButton', label: 'Call-to-action menu button', type: 'group', fields: [
+      { name: 'enabled', label: 'Show the call-to-action menu button', type: 'checkbox', defaultValue: true },
       { type: 'collapsible', label: 'Button details', admin: { condition: (_, siblingData) => siblingData?.enabled !== false }, fields: linkFields() },
     ] },
   ],
