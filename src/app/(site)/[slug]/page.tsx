@@ -1,15 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
-import { getPage } from '@/lib/content'
-import { pets4LuvAddress } from '@/lib/site-address'
+import { getPage, getWebsiteSettings } from '@/lib/content'
+import { phoneHref } from '@/lib/website-settings'
 import { Icon } from '@/components/Icons'
 import { RichContent } from '@/components/RichContent'
 import { SocialLinks } from '@/components/SocialLinks'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
-const mapsDestination = encodeURIComponent(pets4LuvAddress)
 
 function redirectInformationPage(slug: string) {
   if (slug === 'adoption' || slug === 'volunteering') permanentRedirect(`/info/${slug}`)
@@ -25,10 +24,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ContentPage({ params }: Props) {
   const { slug } = await params
   redirectInformationPage(slug)
-  const page = await getPage(slug)
+  const [page, settings] = await Promise.all([getPage(slug), getWebsiteSettings()])
   if (!page) notFound()
   const isDonate = slug === 'donate'
   const isContact = slug === 'contact'
+  const mapsDestination = encodeURIComponent(settings.address)
+  const hasSocialLinks = Boolean(settings.instagramUrl || settings.facebookUrl || settings.tiktokUrl)
+  const donationLinks = [
+    { url: settings.zeffyUrl, label: 'Donate with Zeffy', primary: true },
+    { url: settings.paypalUrl, label: 'PayPal', primary: false },
+    { url: settings.venmoUrl, label: 'Venmo' + (settings.venmoHandle ? ' @' + settings.venmoHandle : ''), primary: false },
+  ].filter(link => link.url)
 
   return <main id="main" className={`page-shell information-page content-page${isDonate ? ' donation-page' : ''}`}>
     <p className="section-label">{isDonate ? 'Every bit of kindness matters' : isContact ? 'Let’s connect' : 'Pets4Luv information'}</p>
@@ -36,20 +42,14 @@ export default async function ContentPage({ params }: Props) {
     {isDonate && <section className="donation-options" aria-labelledby="donation-options-title">
       <h2 id="donation-options-title">Help bring families together.</h2>
       <p>Your generosity helps us continue to <strong>“bring families together one rescue at a time.”</strong></p>
-      <div className="donation-actions">
-        <a className="button" href="https://www.zeffy.com/en-US/donation-form/help-needed-for-medical-costs" target="_blank" rel="noopener noreferrer">
-          Donate with Zeffy <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
-        </a>
-        <a className="button secondary" href="https://www.paypal.com/paypalme/pets4luvfoundation" target="_blank" rel="noopener noreferrer">
-          PayPal <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
-        </a>
-        <a className="button secondary" href="https://venmo.com/pets4luv" target="_blank" rel="noopener noreferrer">
-          Venmo @pets4luv <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
-        </a>
-      </div>
+      {donationLinks.length > 0 && <div className="donation-actions">
+        {donationLinks.map(({ url, label, primary }) => <a key={label} className={primary ? 'button' : 'button secondary'} href={url} target="_blank" rel="noopener noreferrer">
+          {label} <Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
+        </a>)}
+      </div>}
       <div className="donation-mail">
         <h3>Mail a check</h3>
-        <address>{pets4LuvAddress}</address>
+        <address>{settings.address}</address>
       </div>
     </section>}
     <RichContent value={page.body} text={page.bodyText} />
@@ -57,12 +57,12 @@ export default async function ContentPage({ params }: Props) {
       <div>
         <h2 id="contact-details-title">Contact details</h2>
         <dl className="contact-methods">
-          <div><dt>Email</dt><dd><a href="mailto:info@pets4luv.org">info@pets4luv.org</a></dd></div>
-          <div><dt>Phone</dt><dd><a href="tel:+15168607057">(516) 860-7057</a></dd></div>
-          <div><dt>Social media</dt><dd><SocialLinks /></dd></div>
+          <div><dt>Email</dt><dd><a href={"mailto:" + settings.emailAddress}>{settings.emailAddress}</a></dd></div>
+          <div><dt>Phone</dt><dd><a href={phoneHref(settings.phone)}>{settings.phone}</a></dd></div>
+          {hasSocialLinks && <div><dt>Social media</dt><dd><SocialLinks settings={settings} /></dd></div>}
         </dl>
         <h3>Visiting Pets4Luv</h3>
-        <address>{pets4LuvAddress}</address>
+        <address>{settings.address}</address>
         <a className="text-link" href={`https://www.google.com/maps/dir/?api=1&destination=${mapsDestination}`} target="_blank" rel="noopener noreferrer">
           Google Maps directions&nbsp;<Icon kind="external" /><span className="sr-only"> (opens in a new tab)</span>
         </a>
@@ -70,7 +70,7 @@ export default async function ContentPage({ params }: Props) {
       <iframe
         className="contact-map"
         src={`https://www.google.com/maps?q=${mapsDestination}&output=embed`}
-        title={`Google Map of ${pets4LuvAddress}`}
+        title={`Google Map of ${settings.address}`}
         loading="lazy"
       />
     </section>}

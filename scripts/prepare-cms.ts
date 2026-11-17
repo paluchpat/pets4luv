@@ -7,6 +7,7 @@ process.env.DISABLE_PAYLOAD_HMR = 'true'
 const { getPayload } = await import('payload')
 const { default: config } = await import('../src/payload.config')
 const { prepareHomepageIntro } = await import('./homepage-intro-schema')
+const { prepareWebsiteSettings } = await import('./website-settings-schema')
 const { prepareInformationPages } = await import('./information-pages-schema')
 const { seedPoppyPhotos } = await import('./poppy-photos-seed')
 const resolvedConfig = await config
@@ -18,6 +19,7 @@ const payload = await getPayload({
 })
 const client = (payload.db as unknown as SQLiteAdapter).client
 try {
+  await prepareWebsiteSettings(client)
   await prepareHomepageIntro(client)
   await prepareInformationPages(client)
   const addedPhotos = await seedPoppyPhotos(payload)
@@ -30,6 +32,6 @@ try {
     client.close()
   }
 }
-console.log('Homepage and Pages storage is ready. Existing content and drafts were preserved.')
+console.log('Homepage, Pages, and Website Settings storage is ready. Existing content and drafts were preserved.')
 // CLI preparation is complete; errors above remain uncaught and exit nonzero.
 process.exit(0)

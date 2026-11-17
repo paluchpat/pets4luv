@@ -18,7 +18,7 @@ export const Pages: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true },
     { ...slugField, validate: validatePageSlug, admin: { description: 'A single lowercase address, for example donate. Website route names such as animals and info are reserved.' } },
-    { name: 'body', type: 'richText', required: true },
+    { name: 'body', type: 'richText', required: true, admin: { description: 'Shared contact details follow Website Settings. New text can use {{address}}, {{emailAddress}}, or {{phone}} to keep those values connected.' } },
     // Preserve imported article metadata without an obsolete editor control.
     { name: 'category', type: 'select', options: ['adoption', 'volunteering'], admin: { hidden: true } },
     { name: 'source', type: 'text', admin: { hidden: true } },

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { cache } from 'react'
 import { RichContent } from '@/components/RichContent'
-import { getKnowledge, richTextToText } from '@/lib/content'
+import { getKnowledge, getWebsiteSettings, richTextToText } from '@/lib/content'
 
 export const dynamic = 'force-dynamic'
 const fallbackTitle = 'How adoption works'
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdoptionPage() {
-  const adoption = await getAdoption()
+  const [adoption, settings] = await Promise.all([getAdoption(), getWebsiteSettings()])
   const nodes = adoption?.body?.root?.children ?? []
   const sections = await Promise.all(adoptionTopics.map(async topic => {
     const headingIndex = nodes.findIndex(node => matchesHeading(node, topic.label))
@@ -49,7 +49,7 @@ export default async function AdoptionPage() {
     </> : <div className="unpublished-notice">
       <h2>Adoption steps have not been published here yet.</h2>
       <p>Contact Pets4Luv for its current application and adoption requirements.</p>
-      <a className="button" href="mailto:info@pets4luv.org">Email Pets4Luv <span aria-hidden="true">→</span></a>
+      <a className="button" href={"mailto:" + settings.emailAddress}>Email Pets4Luv <span aria-hidden="true">→</span></a>
     </div>}
     {sections.map(({ id, article }) => article && <section key={id} id={id} className="rich-content" tabIndex={-1} aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`}>{article.title}</h2>

@@ -6,6 +6,7 @@ import { seedAdoption } from './adoption-seed'
 import { seedPages } from './page-seeds'
 import { seedVolunteering } from './volunteering-seed'
 import { seedHomepageIntro } from './homepage-intro-seed'
+import { seedWebsiteSettings } from './website-settings-seed'
 import { seedPoppyPhotos } from './poppy-photos-seed'
 import { prepareInformationPages } from './information-pages-schema'
 
@@ -57,6 +58,7 @@ const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as 
 if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['poppy', 'fern', 'cleo'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
 await seedPoppyPhotos(payload)
 await seedHomepageIntro(payload)
+await seedWebsiteSettings(payload)
 await seedAdoption(payload)
 await seedVolunteering(payload)
 await seedPages(payload)

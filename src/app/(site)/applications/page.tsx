@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
-import { pets4LuvAddress } from '@/lib/site-address'
+import { getWebsiteSettings } from '@/lib/content'
+import { phoneHref as contactPhoneHref } from '@/lib/website-settings'
 
 export const metadata: Metadata = { title: 'Applications' }
 
 const formDirectory = 'https://irp.cdn-website.com/664b757c/files/uploaded/'
-const email = 'info@pets4luv.org'
-const phone = '(516) 860-7057'
-const phoneHref = 'tel:+15168607057'
 
 type Application = { title: string; description?: string } & (
   | { file: string }
@@ -49,12 +47,16 @@ const groups: ApplicationGroup[] = [
   },
 ]
 
-export default function ApplicationsPage() {
+export default async function ApplicationsPage() {
+  const settings = await getWebsiteSettings()
+  const email = settings.emailAddress
+  const phone = settings.phone
+  const phoneHref = contactPhoneHref(phone)
   return <main id="main" className="page-shell information-page applications-page">
     <p className="section-label">Pets4Luv information</p>
     <div className="page-intro">
       <h1>Applications</h1>
-      <p>Download and print the available form you need. Bring your completed application to {pets4LuvAddress}. If you have questions, call <a href={phoneHref}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a>.</p>
+      <p>Download and print the available form you need. Bring your completed application to {settings.address}. If you have questions, call <a href={phoneHref}>{phone}</a> or email <a href={`mailto:${email}`}>{email}</a>.</p>
     </div>
     <nav className="application-jump-links" aria-label="Application categories">
       {groups.map(({ id, title }) => <a key={id} className="button secondary" href={`#${id}`}>{title}</a>)}

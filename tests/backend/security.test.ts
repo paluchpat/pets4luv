@@ -13,6 +13,9 @@ import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { prepareHomepageIntro } from '../../scripts/homepage-intro-schema'
 import { prepareInformationPages } from '../../scripts/information-pages-schema'
 import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
+import { prepareWebsiteSettings } from '../../scripts/website-settings-schema'
+import { seedWebsiteSettings } from '../../scripts/website-settings-seed'
+import { defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/website-settings'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -567,4 +570,50 @@ test('Poppy photo addition preserves existing content and runs once without publ
   await payload.update({ collection: 'animals', id: poppy.id, data: { photos: [updated.photos![0]], _status: 'published' } })
   assert.equal(await seedPoppyPhotos(payload), 0)
   assert.equal((await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })).photos?.length, 1)
+})
+
+
+test('Website Settings schema initializes current details once and preserves published edits and drafts', async () => {
+  const client = (payload.db as unknown as SQLiteAdapter).client
+  const unrelated = async () => [
+    (await client.execute('SELECT * FROM homepage ORDER BY id')).rows,
+    (await client.execute('SELECT * FROM pages ORDER BY id')).rows,
+    (await client.execute('SELECT * FROM animals ORDER BY id')).rows,
+  ]
+  const before = await unrelated()
+  await client.batch(['DROP TABLE _website_settings_v', 'DROP TABLE website_settings'], 'write')
+  await prepareWebsiteSettings(client)
+  const initial = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft: false })
+  assert.equal(initial._status, 'published')
+  assert.deepEqual(websiteSettingsDTO(initial), defaultWebsiteSettings)
+  assert.equal((await payload.findGlobalVersions({ slug: 'website-settings' })).totalDocs, 1)
+
+  await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, data: { phone: '212-555-0100' } }))
+  await assert.rejects(() => payload.findGlobalVersions({ slug: 'website-settings', overrideAccess: false }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { instagramUrl: 'javascript:alert(1)', _status: 'published' } }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { emailAddress: 'not an email', _status: 'published' } }))
+
+  await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { address: '10 Example Road, Freeport, NY 11520', phone: '212-555-0100', emailAddress: 'hello@example.invalid', tiktokUrl: 'https://www.tiktok.com/@example', instagramUrl: '', venmoHandle: '@rescue-example', _status: 'published' } })
+  await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { phone: '212-555-0111', _status: 'published' } })
+  const published = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft: false })
+  assert.equal(published.venmoHandle, 'rescue-example')
+  assert.equal(websiteSettingsDTO(published).instagramUrl, '')
+  await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, draft: true, data: { emailAddress: 'PRIVATE-DRAFT@example.invalid', _status: 'draft' } })
+  for (const draft of [false, true]) {
+    const visitor = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft })
+    assert.equal(visitor.emailAddress, published.emailAddress)
+    assert.ok(!JSON.stringify(visitor).includes('PRIVATE-DRAFT'))
+  }
+  const pending = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, draft: true })
+  assert.equal(pending.emailAddress, 'PRIVATE-DRAFT@example.invalid')
+
+  const rows = async () => [
+    (await client.execute('SELECT * FROM website_settings ORDER BY id')).rows,
+    (await client.execute('SELECT * FROM _website_settings_v ORDER BY id')).rows,
+  ]
+  const snapshot = await rows()
+  await prepareWebsiteSettings(client)
+  assert.equal(await seedWebsiteSettings(payload), false)
+  assert.deepEqual(await rows(), snapshot)
+  assert.deepEqual(await unrelated(), before)
 })

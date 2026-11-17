@@ -48,11 +48,12 @@ function scrollToGalleryResults(title: HTMLHeadingElement | null) {
   document.getElementById(galleryResultsHeadingId)?.scrollIntoView()
 }
 
-export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, children }: {
+export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, directoryLinks, children }: {
   filters: GalleryFilters
   totalDocs: number
   page: number
   totalPages: number
+  directoryLinks: ReactNode
   children: ReactNode
 }) {
   const router = useRouter()
@@ -194,26 +195,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, child
         </div>
         <GalleryStatus variant="filters" loadingMode={loadingMode === 'search' ? loadingMode : null} />
       </div>
-      <p className="gallery-listing-links">
-        You can also find our adoptable animals on{' '}
-        <a
-          href="https://www.petfinder.com/search/cats-for-adoption/?shelterRescue=521e2d23-2a7e-4a1d-8a22-b6c7e0acf003&includeOutOfTown=true"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Petfinder
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-        {' and '}
-        <a
-          href="https://www.adoptapet.com/shelter/89959-pets4luv-foundation-hicksville-new-york"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Adopt a pet
-          <span className="sr-only"> (opens in a new tab)</span>
-        </a>
-      </p>
+      {directoryLinks}
       <div id={galleryResultsHeadingId} className="results-heading">
         <h2 ref={resultsTitle} tabIndex={-1} aria-live="polite">{totalDocs} {totalDocs === 1 ? 'friend' : 'friends'} waiting to meet you</h2>
         <FilterSelect

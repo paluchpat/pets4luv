@@ -5,7 +5,7 @@ import { draftMode } from 'next/headers'
 import { Header } from '@/components/Header'
 import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
-import { pets4LuvAddress } from '@/lib/site-address'
+import { getWebsiteSettings } from '@/lib/content'
 import { siteLinks } from '@/lib/site-navigation'
 import './site.css'
 
@@ -22,7 +22,8 @@ const footerLinks = [
 ]
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const preview = (await draftMode()).isEnabled
+  const [mode, settings] = await Promise.all([draftMode(), getWebsiteSettings()])
+  const preview = mode.isEnabled
   return <html lang="en" data-scroll-behavior="smooth"><body>
     {!preview && <Script id="google-tag-manager" strategy="afterInteractive">{`
       (() => {
@@ -35,13 +36,13 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         document.head.appendChild(script);
       })();
     `}</Script>}
-    <a className="skip-link" href="#main">Skip to content</a>{preview && <><PreviewRefresh /><div className="preview-banner" role="status"><strong>Draft preview</strong><span>You are viewing unpublished homepage changes.</span><a href="/api/exit-preview">Exit preview</a></div></>}<Header />{children}
+    <a className="skip-link" href="#main">Skip to content</a>{preview && <><PreviewRefresh /><div className="preview-banner" role="status"><strong>Draft preview</strong><span>You are viewing unpublished website changes.</span><a href="/api/exit-preview">Exit preview</a></div></>}<Header />{children}
     <footer className="site-footer">
       <div>
         <Link href="/" className="footer-name">Pets4Luv Foundation</Link>
         <p>Bringing families together. One rescue at a time.</p>
-        <address>{pets4LuvAddress}</address>
-        <SocialLinks />
+        <address>{settings.address}</address>
+        <SocialLinks settings={settings} />
       </div>
       <nav aria-label="Footer navigation">
         {footerLinks.map(({ href, label }) => <Link key={href} href={href}>{label}</Link>)}

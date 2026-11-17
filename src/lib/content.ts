@@ -2,6 +2,8 @@ import 'server-only'
 import { getPayload } from 'payload'
 import config from '@payload-config'
 import { draftMode, headers } from 'next/headers'
+import { cache } from 'react'
+import { applyWebsiteSettings, websiteSettingsDTO, type WebsiteSettings } from './website-settings'
 
 import { defaultGallerySort, type GallerySort } from './gallery-filters'
 import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalDTO, type AnimalProfileDTO, type AnimalFilters, type HomepageDTO, type RichText } from './public-content'
@@ -73,17 +75,28 @@ async function previewActor(payload: Awaited<ReturnType<typeof getPayload>>) {
   } catch { return null }
 }
 
+export const getWebsiteSettings = cache(async (): Promise<WebsiteSettings> => {
+  const payload = await getPayload({ config })
+  const user = await previewActor(payload)
+  const settings = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 })
+  return websiteSettingsDTO(settings, Boolean(user))
+})
+
 export async function getHomepage(): Promise<HomepageDTO> {
   const payload = await getPayload({ config })
   const user = await previewActor(payload)
-  const [homepage, foundationIntro] = await Promise.all([
+  const [homepage, foundationIntro, settings] = await Promise.all([
     payload.findGlobal({ slug: 'homepage', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }),
     payload.findGlobal({ slug: 'homepage-intro', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }),
+    getWebsiteSettings(),
   ])
   const ids = (homepage.featuredAnimals || []).map((row: any) => typeof row.animal === 'object' ? row.animal?.id : row.animal).filter(Boolean)
   const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: 6, where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }, { status: { equals: 'available' } }] } }) : { docs: [] }
   const byID = new Map(result.docs.map((doc: any) => [String(doc.id), animalDTO(doc, 'uncropped')]))
-  return { foundationIntro: homepageIntroDTO(foundationIntro, Boolean(user)), heading: homepage.heading || 'A few faces to fall for', intro: homepage.intro || null, introText: richTextToText(homepage.intro), featuredAnimals: ids.map((id: any) => byID.get(String(id))).filter(Boolean) as AnimalDTO[] }
+  const foundation = homepageIntroDTO(foundationIntro, Boolean(user))
+  const body = applyWebsiteSettings(foundation.body, settings)
+  const intro = applyWebsiteSettings(homepage.intro || null, settings)
+  return { foundationIntro: { ...foundation, body, bodyText: richTextToText(body) }, heading: homepage.heading || 'A few faces to fall for', intro, introText: richTextToText(intro), featuredAnimals: ids.map((id: any) => byID.get(String(id))).filter(Boolean) as AnimalDTO[] }
 }
 
 export async function getKnowledge(slug: string) {
@@ -91,7 +104,9 @@ export async function getKnowledge(slug: string) {
   const payload = await getPayload({ config })
   const result = await payload.find({ collection: 'pages', overrideAccess: false, draft: false, depth: 0, where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] }, limit: 1 })
   const doc = result.docs[0]
-  return doc ? { title: doc.title as string, slug: doc.slug as string, category: doc.category || slug, body: doc.body as RichText, bodyText: richTextToText(doc.body), reviewedAt: doc.reviewedAt as string | null } : null
+  if (!doc) return null
+  const body = applyWebsiteSettings(doc.body as RichText, await getWebsiteSettings())
+  return { title: doc.title as string, slug: doc.slug as string, category: doc.category || slug, body, bodyText: richTextToText(body), reviewedAt: doc.reviewedAt as string | null }
 }
 
 export async function getPage(slug: string) {
@@ -99,5 +114,7 @@ export async function getPage(slug: string) {
   const payload = await getPayload({ config })
   const result = await payload.find({ collection: 'pages', overrideAccess: false, draft: false, depth: 0, where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] }, limit: 1 })
   const doc = result.docs[0]
-  return doc ? { title: doc.title, slug: doc.slug, body: doc.body as RichText, bodyText: richTextToText(doc.body) } : null
+  if (!doc) return null
+  const body = applyWebsiteSettings(doc.body as RichText, await getWebsiteSettings())
+  return { title: doc.title, slug: doc.slug, body, bodyText: richTextToText(body) }
 }

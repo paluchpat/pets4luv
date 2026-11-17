@@ -28,9 +28,11 @@ NODE_ENV=development TURSO_PUSH_SCHEMA=true node --env-file=/absolute/path/to/pr
 
 Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/admin` to create the first administrator. Both photo collections use the private Blob store. Payload serves approved media through its regular file routes and requires staff login for intake files. Browser uploads on Vercel are limited to 4 MiB per file.
 
-The build runs `prepare:cms` using the configured database credentials. It adds the Homepage Intro tables and initializes the current introduction when absent. It also moves adoption and volunteering into Pages with their drafts and revision history. A migration record for each article keeps later builds from repeating the move or replacing edits. The build also adds Poppy’s two extra demo photos once, retaining the main photo and skipping real listings or pending drafts.
+The build runs `prepare:cms` using the configured database credentials. It initializes Website Settings with the current public contact and donation details, preserving existing edits and drafts. It adds the Homepage Intro tables and initializes the current introduction when absent. It also moves adoption and volunteering into Pages with their drafts and revision history. A migration record for each article keeps later builds from repeating the move or replacing edits. The build also adds Poppy’s two extra demo photos once, retaining the main photo and skipping real listings or pending drafts.
 
 ## Content editing
+
+- **Settings → Website Settings:** edit the shared address, email, phone, social profiles, adoption directories, and donation links. Save a draft to preview, then publish to update the website. Existing contact references in page text also follow these settings. Leave optional URLs blank to hide those links; TikTok starts blank. In new rich text, shared values can be inserted as {{address}}, {{emailAddress}}, {{phone}}, or any of the other settings field names.
 
 - **Animals:** open this top-level sidebar item and add approved public photos directly in each animal’s Photos field, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
 - **Homepage → Homepage Intro:** edit the foundation heading and rich-text introduction, including the donation link. Save a draft and use the authenticated preview before publishing.
