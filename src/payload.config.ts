@@ -14,6 +14,7 @@ import { Intakes } from './collections/Intakes'
 import { Homepage } from './globals/Homepage'
 import { HomepageIntro } from './globals/HomepageIntro'
 import { WebsiteSettings } from './globals/WebsiteSettings'
+import { MainMenu } from './globals/MainMenu'
 import { privateBlobAdapter } from './lib/private-blob-storage'
 
 const dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -47,7 +48,7 @@ export default buildConfig({
   secret,
   serverURL,
   admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNavLinks: ['./components/admin/PagesNav#AnimalsNav'], afterNavLinks: ['./components/admin/PagesNav#PagesNav'] } },
-  collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage, WebsiteSettings],
+  collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
   editor: lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'] }), UnorderedListFeature(), OrderedListFeature()] }),
   db: sqliteAdapter({
     client: tursoURL

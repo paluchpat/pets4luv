@@ -16,6 +16,9 @@ import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
 import { prepareWebsiteSettings } from '../../scripts/website-settings-schema'
 import { seedWebsiteSettings } from '../../scripts/website-settings-seed'
 import { defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/website-settings'
+import { prepareMainMenuSchema } from '../../scripts/main-menu-schema'
+import { seedMainMenu } from '../../scripts/main-menu-seed'
+import { mainMenuDTO } from '../../src/lib/main-menu'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -615,5 +618,64 @@ test('Website Settings schema initializes current details once and preserves pub
   await prepareWebsiteSettings(client)
   assert.equal(await seedWebsiteSettings(payload), false)
   assert.deepEqual(await rows(), snapshot)
+  assert.deepEqual(await unrelated(), before)
+})
+
+
+test('Main Menu bootstrap adds only its storage, seeds relationships once and preserves published edits and drafts', async () => {
+  const client = (payload.db as unknown as SQLiteAdapter).client
+  const snapshot = async (table: string) => (await client.execute(`SELECT * FROM ${table} ORDER BY id`)).rows
+  const tableNames = async () => (await client.execute("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).rows.map(row => row.name)
+  const unrelated = async () => Promise.all(['pages', '_pages_v', 'homepage', '_homepage_v', 'website_settings', '_website_settings_v', 'animals'].map(snapshot))
+  const before = await unrelated()
+  const menuTables = ['main_menu_items_children', 'main_menu_items', 'main_menu', '_main_menu_v_version_items_children', '_main_menu_v_version_items', '_main_menu_v']
+  // This database is the disposable mkdtemp fixture created in the suite's before hook.
+  await client.batch(menuTables.map(table => 'DROP TABLE ' + table), 'write')
+  const oldTables = await tableNames()
+  await prepareMainMenuSchema(client)
+  assert.deepEqual(await tableNames(), [...oldTables, ...menuTables].sort())
+  assert.equal(await seedMainMenu(payload), true)
+  const initial = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: false, depth: 0 })
+  assert.equal(initial._status, 'published')
+  assert.equal(initial.items?.length, 5)
+  assert.equal(initial.items?.[0].builtIn, 'home')
+  assert.equal(initial.items?.find(item => item.label === 'About us')?.linkType, 'page')
+  assert.equal((await payload.findGlobalVersions({ slug: 'main-menu' })).totalDocs, 1)
+  const initialRows = await Promise.all(menuTables.map(snapshot))
+  await prepareMainMenuSchema(client)
+  assert.equal(await seedMainMenu(payload), false)
+  assert.deepEqual(await Promise.all(menuTables.map(snapshot)), initialRows)
+
+  await assert.rejects(() => payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, data: { items: [] } }))
+  await assert.rejects(() => payload.findGlobalVersions({ slug: 'main-menu', overrideAccess: false }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, data: { items: [{ label: 'Unsafe', linkType: 'custom', url: 'javascript:alert(1)' }], _status: 'published' } }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, data: { items: [{ label: 'Missing page', linkType: 'page' }], _status: 'published' } }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, data: { items: [{ label: 'Empty submenu', linkType: 'submenu', children: [] }], _status: 'published' } }))
+  const about = initial.items!.find(item => item.label === 'About us')!
+  await payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, data: { items: [
+    { label: 'Visit our partner', linkType: 'custom', url: 'https://example.org', newTab: true, showInFooter: true },
+    { ...about, label: 'Our rescue' },
+    { label: 'More', linkType: 'submenu', children: [{ label: 'Gallery', linkType: 'builtIn', builtIn: 'animals' }] },
+  ], highlightedButton: { enabled: false }, _status: 'published' } })
+  const published = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: false, depth: 0 })
+  assert.deepEqual(published.items?.map(item => item.label), ['Visit our partner', 'Our rescue', 'More'])
+  assert.equal(published.highlightedButton?.enabled, false)
+  await payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, draft: true, data: { items: [{ label: 'PRIVATE MENU DRAFT', linkType: 'custom', url: '/private-draft' }], _status: 'draft' } })
+  for (const draft of [false, true]) {
+    const visitor = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft, depth: 0 })
+    assert.deepEqual(visitor.items, published.items)
+    assert.ok(!JSON.stringify(visitor).includes('PRIVATE'))
+  }
+  const pending = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, draft: true, depth: 0 })
+  assert.equal(mainMenuDTO(pending, [], true).items[0].label, 'PRIVATE MENU DRAFT')
+  const editorialRows = await Promise.all(menuTables.map(snapshot))
+  await prepareMainMenuSchema(client)
+  assert.equal(await seedMainMenu(payload), false)
+  assert.deepEqual(await Promise.all(menuTables.map(snapshot)), editorialRows)
+
+  await payload.updateGlobal({ slug: 'main-menu', overrideAccess: false, user: editor, data: { items: [], highlightedButton: { enabled: false }, _status: 'published' } })
+  assert.equal(await seedMainMenu(payload), false)
+  const empty = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: false })
+  assert.deepEqual(mainMenuDTO(empty), { items: [], button: null, footerLinks: [] })
   assert.deepEqual(await unrelated(), before)
 })

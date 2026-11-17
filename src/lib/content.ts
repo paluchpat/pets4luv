@@ -3,6 +3,7 @@ import { getPayload } from 'payload'
 import config from '@payload-config'
 import { draftMode, headers } from 'next/headers'
 import { cache } from 'react'
+import { mainMenuDTO, menuPageIDs, type MainMenuDTO } from './main-menu'
 import { applyWebsiteSettings, websiteSettingsDTO, type WebsiteSettings } from './website-settings'
 
 import { defaultGallerySort, type GallerySort } from './gallery-filters'
@@ -74,6 +75,19 @@ async function previewActor(payload: Awaited<ReturnType<typeof getPayload>>) {
     return user && ['admin', 'editor'].includes(String(user.role)) ? user : null
   } catch { return null }
 }
+
+export const getMainMenu = cache(async (): Promise<MainMenuDTO> => {
+  const payload = await getPayload({ config })
+  const user = await previewActor(payload)
+  const menu = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 })
+  const ids = menuPageIDs(menu)
+  const pages = ids.length ? await payload.find({
+    collection: 'pages', overrideAccess: false, draft: false, depth: 0, pagination: false,
+    where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }] },
+    select: { slug: true, _status: true },
+  }) : { docs: [] }
+  return mainMenuDTO(menu, pages.docs, Boolean(user))
+})
 
 export const getWebsiteSettings = cache(async (): Promise<WebsiteSettings> => {
   const payload = await getPayload({ config })

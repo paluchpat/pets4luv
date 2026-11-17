@@ -1045,3 +1045,65 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
     width: 64%;
   }
 }
+
+/* A custom menu switches to the accessible compact navigation when its labels no longer fit. */
+.navigation-measure-wrap {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.desktop-nav.navigation-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  width: max-content;
+  display: flex;
+  flex: none;
+}
+.header-inner > .donate-button {
+  margin-left: auto;
+  max-width: 40%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.site-header[data-menu-overflow] .desktop-nav:not(.navigation-measure) { display: none; }
+.site-header[data-menu-overflow] .brand { margin-right: auto; }
+.site-header[data-menu-overflow] .menu-toggle {
+  display: grid; justify-items: center; align-items: center; gap: 5px; flex: none;
+  background: none; border: 0; font-size: 14px; font-weight: 700; color: var(--ink);
+}
+.site-header[data-menu-overflow] .menu-lines { display: grid; gap: 5px; width: 33px; }
+.site-header[data-menu-overflow] .menu-lines i { display: block; height: 4px; background: var(--burgundy); border-radius: 3px; }
+.site-header[data-menu-overflow] .mobile-nav:not([hidden]) {
+  display: grid; gap: 0; position: absolute; background: #fff; top: 100%; left: 0; right: 0;
+  border-top: 1px solid #e3d2d5; border-bottom: 1px solid var(--line); padding: 8px 24px 16px;
+  max-height: calc(100dvh - var(--site-header-height, 100px)); overflow-y: auto; overscroll-behavior: contain;
+}
+.site-header[data-menu-overflow] .mobile-nav a,
+.site-header[data-menu-overflow] .mobile-nav .information-nav button {
+  display: flex; align-items: center; justify-content: space-between; color: var(--ink); font-weight: 600;
+  text-decoration: none; padding: 14px 3px; border-bottom: 1px solid #eee5e3;
+}
+.site-header[data-menu-overflow] .mobile-nav .nav-item { font-size: 1.3125rem; white-space: normal; }
+.site-header[data-menu-overflow] .mobile-nav > a:last-child { border: 0; }
+.site-header[data-menu-overflow] .mobile-nav .information-nav button { width: 100%; text-align: left; }
+.site-header[data-menu-overflow] .mobile-nav .information-links { padding-inline-start: 16px; font-size: 1.125rem; }
+.site-header[data-menu-overflow] .mobile-nav a[aria-current=page],
+.site-header[data-menu-overflow] .mobile-nav .information-nav button[data-current] { color: var(--burgundy); }
+.site-footer nav { min-width: 0; }
+.site-footer nav a { overflow-wrap: anywhere; }
+
+.desktop-nav .information-links {
+  width: max-content;
+  min-width: min(16rem, calc(100vw - 32px));
+  max-width: min(24rem, calc(100vw - 32px));
+  max-height: min(70dvh, 36rem);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+.mobile-nav .nav-item, .mobile-nav .information-links a { overflow-wrap: anywhere; }
+.header-inner > .donate-button { min-width: 0; }

@@ -5,24 +5,13 @@ import { draftMode } from 'next/headers'
 import { Header } from '@/components/Header'
 import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
-import { getWebsiteSettings } from '@/lib/content'
-import { siteLinks } from '@/lib/site-navigation'
+import { getMainMenu, getWebsiteSettings } from '@/lib/content'
 import './site.css'
 
 export const metadata: Metadata = { title: { default: 'Pets4Luv · Bringing families together', template: '%s · Pets4Luv' }, description: 'Find your new companion. Explore adoptable cats and dogs and learn about Pets4Luv.' }
 
-const footerLinks = [
-  siteLinks.adopt,
-  siteLinks.adoption,
-  siteLinks.applications,
-  siteLinks.volunteer,
-  siteLinks.about,
-  siteLinks.donate,
-  siteLinks.contact,
-]
-
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [mode, settings] = await Promise.all([draftMode(), getWebsiteSettings()])
+  const [mode, settings, menu] = await Promise.all([draftMode(), getWebsiteSettings(), getMainMenu()])
   const preview = mode.isEnabled
   return <html lang="en" data-scroll-behavior="smooth"><body>
     {!preview && <Script id="google-tag-manager" strategy="afterInteractive">{`
@@ -36,7 +25,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         document.head.appendChild(script);
       })();
     `}</Script>}
-    <a className="skip-link" href="#main">Skip to content</a>{preview && <><PreviewRefresh /><div className="preview-banner" role="status"><strong>Draft preview</strong><span>You are viewing unpublished website changes.</span><a href="/api/exit-preview">Exit preview</a></div></>}<Header />{children}
+    <a className="skip-link" href="#main">Skip to content</a>{preview && <><PreviewRefresh /><div className="preview-banner" role="status"><strong>Draft preview</strong><span>You are viewing unpublished website changes.</span><a href="/api/exit-preview">Exit preview</a></div></>}<Header menu={menu} />{children}
     <footer className="site-footer">
       <div>
         <Link href="/" className="footer-name">Pets4Luv Foundation</Link>
@@ -45,7 +34,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <SocialLinks settings={settings} />
       </div>
       <nav aria-label="Footer navigation">
-        {footerLinks.map(({ href, label }) => <Link key={href} href={href}>{label}</Link>)}
+        {menu.footerLinks.map(({ id, href, label, newTab }) => <Link key={id} href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener noreferrer" : undefined}>{label}{newTab && <span className="sr-only"> (opens in a new tab)</span>}</Link>)}
       </nav>
       <p className="demo-notice">Development demo · Animal profiles and sample information are fictional. This is not the rescue’s live adoption catalog.</p>
     </footer>

@@ -1,6 +1,6 @@
 import type { ServerProps } from 'payload'
 import { PREFERENCE_KEYS } from 'payload/shared'
-import { siteLinks } from '../../lib/site-navigation'
+import { menuPageLabels, publicPageHref } from '../../lib/main-menu'
 import { AnimalsNavClient, PagesNavClient } from './PagesNavClient'
 
 type NavPreferences = { groups?: { Pages?: { open?: boolean } } }
@@ -8,7 +8,7 @@ type NavPreferences = { groups?: { Pages?: { open?: boolean } } }
 export async function PagesNav({ payload, permissions, user }: ServerProps) {
   if (!user || !['admin', 'editor'].includes(String(user.role)) || !permissions?.collections?.pages?.read) return null
 
-  const [pages, preferences] = await Promise.all([
+  const [pages, preferences, menu] = await Promise.all([
     payload.find({
       collection: 'pages', overrideAccess: false, user, draft: true, pagination: false, depth: 0,
       select: { title: true, slug: true }, sort: 'title',
@@ -22,11 +22,12 @@ export async function PagesNav({ payload, permissions, user }: ServerProps) {
         { 'user.value': { equals: user.id } },
       ] },
     }),
+    payload.findGlobal({ slug: 'main-menu', overrideAccess: false, user, draft: false, depth: 0 }),
   ])
+  const labels = menuPageLabels(menu)
   const navPreferences = preferences.docs[0]?.value as NavPreferences | undefined
   const links = pages.docs.map(page => {
-    const menuLink = Object.values(siteLinks).find(link => link.href === `/${page.slug}` || link.href === `/info/${page.slug}`)
-    return { id: page.id, label: menuLink?.label || page.title }
+    return { id: page.id, label: labels.get('page:' + page.id) || labels.get('url:' + publicPageHref(page.slug)) || page.title }
   })
 
   return <PagesNavClient

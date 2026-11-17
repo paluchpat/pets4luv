@@ -7,6 +7,7 @@ import { seedPages } from './page-seeds'
 import { seedVolunteering } from './volunteering-seed'
 import { seedHomepageIntro } from './homepage-intro-seed'
 import { seedWebsiteSettings } from './website-settings-seed'
+import { seedMainMenu } from './main-menu-seed'
 import { seedPoppyPhotos } from './poppy-photos-seed'
 import { prepareInformationPages } from './information-pages-schema'
 
@@ -63,5 +64,6 @@ await seedAdoption(payload)
 await seedVolunteering(payload)
 await seedPages(payload)
 await prepareInformationPages((payload.db as unknown as SQLiteAdapter).client)
+await seedMainMenu(payload)
 console.log('Starter content is ready. Existing edits were preserved. Create your own administrator at /admin. The seed creates no staff accounts.')
 await payload.destroy()

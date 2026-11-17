@@ -10,6 +10,8 @@ const { prepareHomepageIntro } = await import('./homepage-intro-schema')
 const { prepareWebsiteSettings } = await import('./website-settings-schema')
 const { prepareInformationPages } = await import('./information-pages-schema')
 const { seedPoppyPhotos } = await import('./poppy-photos-seed')
+const { prepareMainMenuSchema } = await import('./main-menu-schema')
+const { seedMainMenu } = await import('./main-menu-seed')
 const resolvedConfig = await config
 
 // The build generates types next; avoid Payload's unawaited development child process.
@@ -22,6 +24,8 @@ try {
   await prepareWebsiteSettings(client)
   await prepareHomepageIntro(client)
   await prepareInformationPages(client)
+  await prepareMainMenuSchema(client)
+  await seedMainMenu(payload)
   const addedPhotos = await seedPoppyPhotos(payload)
   if (addedPhotos) console.log(`Added ${addedPhotos} extra Poppy demo photos.`)
 } finally {
@@ -32,6 +36,6 @@ try {
     client.close()
   }
 }
-console.log('Homepage, Pages, and Website Settings storage is ready. Existing content and drafts were preserved.')
+console.log('Homepage, Pages, Website Settings, and Main Menu storage is ready. Existing content and drafts were preserved.')
 // CLI preparation is complete; errors above remain uncaught and exit nonzero.
 process.exit(0)
