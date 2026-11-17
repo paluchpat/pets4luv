@@ -6,6 +6,7 @@ import { Header } from '@/components/Header'
 import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
 import { getMainMenu, getWebsiteSettings } from '@/lib/content'
+import { phoneHref } from '@/lib/website-settings'
 import './site.css'
 
 export const metadata: Metadata = { title: { default: 'Pets4Luv · Bringing families together', template: '%s · Pets4Luv' }, description: 'Find your new companion. Explore adoptable cats and dogs and learn about Pets4Luv.' }
@@ -31,6 +32,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <Link href="/" className="footer-name">Pets4Luv Foundation</Link>
         <p>Bringing families together. One rescue at a time.</p>
         <address>{settings.address}</address>
+        <p><a href={phoneHref(settings.phone)} aria-label={`Call Pets4Luv at ${settings.phone}`}>{settings.phone}</a></p>
         <SocialLinks settings={settings} />
       </div>
       <nav aria-label="Footer navigation">
