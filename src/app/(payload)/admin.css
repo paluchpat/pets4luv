@@ -192,7 +192,7 @@
   .collection-edit--users .document-fields__fields > .render-fields > .field-type:last-child { margin-bottom: 0; }
 
   /* Animal photos prioritize the image over file metadata. */
-  .cms-animal-photos > .array-field__header .array-field__header-actions > li:has(> button.array-field__header-action) { display: none; }
+  .cms-animal-photos > .array-field__header .array-field__header-actions { display: none; }
   .cms-animal-photos > .array-field__draggable-rows { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); align-items: start; gap: 16px; }
   .cms-animal-photos .array-field__row .collapsible__content { padding: 12px; }
   .cms-animal-photos .array-field__fields > .field-type { margin-bottom: 0; }
