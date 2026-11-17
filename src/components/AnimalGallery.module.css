@@ -51,31 +51,18 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--burgundy);
-  border-radius: 50%;
-  background: var(--ivory);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   color: var(--burgundy);
-  box-shadow: 0 2px 8px #3114191a;
-  transition: background .2s ease-in-out, color .2s ease-in-out;
+  opacity: .55;
+  transition: opacity .2s ease-in-out;
 }
 
-.arrow > svg { width: 24px; height: 24px; }
+.arrow > svg { width: 32px; height: 32px; }
 .previous { left: 12px; }
 .next { right: 12px; }
-.arrow:focus-visible { outline: 2px solid var(--logo-red); outline-offset: 3px; }
-
-.counter {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  padding: 5px 10px;
-  border-radius: 20px;
-  background: var(--ivory);
-  color: var(--burgundy);
-  font-size: 13px;
-  font-weight: 600;
-  pointer-events: none;
-}
+.arrow:focus-visible { opacity: 1; outline: 2px solid var(--logo-red); outline-offset: 3px; }
 
 .thumbnails {
   display: flex;
@@ -124,8 +111,12 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .arrow:hover { background: var(--burgundy); color: #fff; }
+  .arrow:hover { opacity: 1; }
   .thumbnail:hover { border-color: var(--burgundy); }
+}
+
+@media (max-width: 680px), (hover: none) and (pointer: coarse) {
+  .arrow { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

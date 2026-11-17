@@ -78,7 +78,6 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
       {multiple && <>
         <button type="button" className={`${styles.arrow} ${styles.previous}`} aria-label={`Previous photo of ${name}`} aria-controls={id} onClick={() => show(active - 1)}><ChevronLeft aria-hidden="true" /></button>
         <button type="button" className={`${styles.arrow} ${styles.next}`} aria-label={`Next photo of ${name}`} aria-controls={id} onClick={() => show(active + 1)}><ChevronRight aria-hidden="true" /></button>
-        <span className={styles.counter} aria-hidden="true">{active + 1} / {photos.length}</span>
       </>}
     </div>
     {multiple && <>
