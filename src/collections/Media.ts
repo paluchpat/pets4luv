@@ -15,6 +15,7 @@ export const Media: CollectionConfig = {
   defaultSort: '-updatedAt',
   access: { read: () => true, create: isStaff, update: isStaff, delete: isStaff },
   upload: {
+    pasteURL: false,
     staticDir: path.resolve(uploadRoot, 'public'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
     // Use the original image so portrait and landscape previews remain uncropped.
     adminThumbnail: ({ doc }) => typeof doc.url === 'string' && doc.url ? doc.url

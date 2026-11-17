@@ -45,7 +45,7 @@ export const Animals: CollectionConfig = {
         { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Optional. Accepts decimals and appears on the animal’s website profile only when provided.' } },
       ] },
       { label: 'Photos', fields: [
-        { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { className: 'cms-animal-photos', description: 'The first photo is the main image on the website. Drag photos to change their order.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true }] },
+        { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { className: 'cms-animal-photos', description: 'The first photo is the main image on the website. Drag photos to change their order.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true, admin: { className: 'cms-animal-photo-upload', components: { beforeInput: ['./components/admin/PhotoUploadControls#PhotoUploadControls'] } } }] },
       ] },
       { label: 'Story', fields: [
         { name: 'summary', type: 'textarea', required: true, maxLength: 220 },
