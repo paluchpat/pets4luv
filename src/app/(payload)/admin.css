@@ -160,6 +160,17 @@
   .global-edit--main-menu .array-field__add-row.btn:not(:disabled):hover { --btn-color: var(--cms-accent-text); background: var(--cms-tint); }
   .global-edit--main-menu .array-field__header-wrap { gap: 12px; flex-wrap: wrap; }
 
+  /* Match document headers while retaining Payload's native user-list actions and access rules. */
+  .collection-list--users:not(.drawer *) { margin-top: 0; }
+  .collection-list--users .list-header:not(.list-drawer__header) { width: calc(100% + var(--gutter-h) * 2); margin: 0 calc(var(--gutter-h) * -1) 28px; padding: 8px var(--gutter-h) 24px; border-bottom: 1px solid var(--cms-line); }
+  .collection-list--users .list-header:not(.list-drawer__header) .list-header__content { display: flex; align-items: center; gap: 16px; }
+  .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-and-actions { flex: 1; min-width: 0; min-height: 48px; align-items: center; justify-content: space-between; gap: 16px; }
+  .collection-list--users .list-header__title { letter-spacing: -1px; }
+  .collection-list--users .list-header__actions:empty { display: none; }
+  .collection-list--users .list-header:not(.list-drawer__header) :is(.list-header__title-actions,.list-header__actions) { margin: 0; flex-shrink: 0; }
+  .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-actions .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border: 1px solid var(--cms-accent); border-radius: 8px; background: var(--cms-accent); color: #fff; font-size: 14px; line-height: 20px; font-weight: 600; }
+  .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-actions .btn:not(:disabled):not([aria-disabled=true]):hover { border-color: var(--cms-accent-hover); background: var(--cms-accent-hover); color: #fff; }
+  .collection-list--users .collection-list__sub-header { padding-top: 16px; }
   .collection-list--users .table { width: 100%; max-width: 100%; left: auto; padding: 0; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); overscroll-behavior-x: contain; }
   .collection-list--users .table::after { display: none; }
   .collection-list--users .table th { background: var(--cms-bg); color: var(--cms-ink); font-weight: 600; }
@@ -285,6 +296,14 @@
   .cms-gallery-view-all { display: inline-flex; align-items: center; gap: 8px; color: var(--cms-accent-text); font-size: 14px; font-weight: 600; margin-top: 20px; text-decoration: none; }
   .cms-gallery-view-all:hover { text-decoration: underline; }
   .cms-gallery-view-all svg { width: 18px; height: 18px; }
+  @media(max-width:1024px) {
+    .collection-list--users .list-header:not(.list-drawer__header) { padding-top: 5px; padding-bottom: calc(var(--base) / 1.5); }
+    .collection-list--users .collection-list__sub-header { padding-top: 5px; }
+    .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-and-actions { min-height: 44px; }
+  }
+  @media(max-width:768px) {
+    .collection-list--users .list-header:not(.list-drawer__header) { padding-top: 0; }
+  }
   @media(max-width:1100px) {
     .cms-animal-grid { gap: 15px; }
     .cms-animal-card-body { padding: 15px 12px; }

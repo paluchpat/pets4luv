@@ -6,7 +6,7 @@ export const Users: CollectionConfig = {
     tokenExpiration: 7200, maxLoginAttempts: 5, lockTime: 600000,
     cookies: { secure: process.env.VERCEL === '1' && process.env.VERCEL_ENV !== 'development' },
   },
-  admin: { useAsTitle: 'email', group: false, defaultColumns: ['name', 'email', 'role', 'updatedAt'] },
+  admin: { useAsTitle: 'email', group: false, defaultColumns: ['name', 'email', 'role', 'updatedAt'], description: 'Manage website accounts and access. Administrators can add users and assign roles.' },
   access: {
     admin: ({ req }) => Boolean(req.user && ['admin', 'editor'].includes(String(req.user.role))),
     create: isAdmin,
