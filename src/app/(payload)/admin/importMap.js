@@ -15,9 +15,9 @@ import { MenuRowLabel as MenuRowLabel_668d8c2abe8684f4a655aafbcea4edb8 } from '.
 import { AdminIcon as AdminIcon_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
 import { AdminLogo as AdminLogo_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
 import { ViewWebsite as ViewWebsite_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
-import { DashboardContent as DashboardContent_7a38f363ee668985fd1c65e26d8165d4 } from '../../../components/admin/DashboardContent'
 import { WebsiteNav as WebsiteNav_0f0a221f9d9b10196275a93e50223b3c } from '../../../components/admin/PagesNav'
 import { AdminBrand as AdminBrand_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
+import { DashboardContent as DashboardContent_7a38f363ee668985fd1c65e26d8165d4 } from '../../../components/admin/DashboardContent'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -39,8 +39,8 @@ export const importMap = {
   "./components/admin/AdminBrand#AdminIcon": AdminIcon_eaac1db5e91cdf60fe2252784a702d30,
   "./components/admin/AdminBrand#AdminLogo": AdminLogo_eaac1db5e91cdf60fe2252784a702d30,
   "./components/admin/AdminBrand#ViewWebsite": ViewWebsite_eaac1db5e91cdf60fe2252784a702d30,
-  "./components/admin/DashboardContent#DashboardContent": DashboardContent_7a38f363ee668985fd1c65e26d8165d4,
   "./components/admin/PagesNav#WebsiteNav": WebsiteNav_0f0a221f9d9b10196275a93e50223b3c,
   "./components/admin/AdminBrand#AdminBrand": AdminBrand_eaac1db5e91cdf60fe2252784a702d30,
+  "./components/admin/DashboardContent#DashboardContent": DashboardContent_7a38f363ee668985fd1c65e26d8165d4,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }
