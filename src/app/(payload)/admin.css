@@ -101,6 +101,22 @@
   .tabs-field__tab-button--active { color: var(--cms-accent-text); border-bottom-color: var(--cms-accent-text); font-weight: 600; }
   .tabs-field__tab-button--active::after { background: var(--cms-accent-text); }
   .tabs-field__tab-content { padding: 24px; }
+  /* Website Settings uses a single inset instead of Payload's full-bleed tab gutters. */
+  .cms-settings-tabs { --settings-inset: 24px; margin: 24px 0 0; }
+  .cms-settings-tabs .tabs-field__tabs-wrap { padding: 0 calc(var(--settings-inset) - 12px); margin-bottom: 0; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .cms-settings-tabs .tabs-field__tabs-wrap::-webkit-scrollbar { display: none; }
+  .cms-settings-tabs .tabs-field__tabs { display: flex; width: max-content; min-width: 100%; gap: 4px; border-bottom: 1px solid var(--cms-line); }
+  .cms-settings-tabs .tabs-field__tabs::before, .cms-settings-tabs .tabs-field__tabs::after { display: none; }
+  .cms-settings-tabs .tabs-field__tab-button { display: flex; align-items: center; justify-content: center; height: 48px; min-height: 48px; padding: 0 12px; margin: 0; font-size: 14px; line-height: 20px; opacity: 1; }
+  .cms-settings-tabs .tabs-field__tab-button:not(.tabs-field__tab-button--has-error) { color: var(--cms-muted); }
+  .cms-settings-tabs .tabs-field__tab-button:not(.tabs-field__tab-button--has-error):is(:hover,.tabs-field__tab-button--active) { color: var(--cms-accent-text); }
+  .cms-settings-tabs .tabs-field__tab-button::after { left: 12px; right: 12px; bottom: 0; height: 2px; background: var(--cms-accent-text); }
+  .cms-settings-tabs .tabs-field__tab-button--has-error { color: var(--theme-error-750); }
+  html[data-theme=dark] .cms-settings-tabs .tabs-field__tab-button--has-error { color: var(--theme-error-500); }
+  .cms-settings-tabs .tabs-field__tab-button--has-error::after { background: var(--theme-error-500); }
+  .cms-settings-tabs .tabs-field__tab-button:focus-visible { outline: var(--accessibility-outline); outline-offset: -5px; border-radius: 6px; }
+  .cms-settings-tabs .tabs-field__content-wrap { padding: var(--settings-inset); }
+  .cms-settings-tabs .render-fields > .field-type:last-child { margin-bottom: 0; }
   .array-field__row, .collapsible { border-color: var(--cms-line); border-radius: 10px; }
   .collapsible__header-wrap { background: var(--cms-bg); border-radius: 10px; }
   .collection-edit .document-fields__sidebar { background: var(--cms-surface); border-left-color: var(--cms-line); }
@@ -212,6 +228,7 @@
     .cms-brand { margin-top: 60px; }
   }
   @media(max-width:500px) {
+    .cms-settings-tabs { --settings-inset: 16px; }
     .cms-gallery-heading { flex-wrap: wrap; gap: 15px; }
     .cms-gallery-heading .cms-button-primary { width: 100%; }
     .cms-animal-grid { gap: 12px; }

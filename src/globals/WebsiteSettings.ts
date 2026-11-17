@@ -22,6 +22,7 @@ export const WebsiteSettings: GlobalConfig = {
   },
   fields: [{
     type: 'tabs',
+    admin: { className: 'cms-settings-tabs' },
     tabs: [
       { label: 'Contact', fields: [
         { name: 'address', label: 'Address', type: 'textarea', required: true, maxLength: 500, defaultValue: defaultWebsiteSettings.address, hooks: { beforeValidate: [trim] }, admin: { description: 'Used in the footer, contact page, application instructions, donation mailing address, and Google Maps.' } },
