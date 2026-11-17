@@ -1,6 +1,7 @@
 import { ValidationError, type CollectionConfig, type Field } from 'payload'
 import { isStaff, publishedOrStaff, slugField } from '../access'
 import { animalColorOptions } from '../lib/animal-colors'
+import { adminAnimalSearchFields, expandAdminAnimalSearch } from '../lib/admin-animal-search'
 
 const weightMessage = 'Enter a number of pounds, including decimals, or leave this blank.'
 function validWeightInput(value: unknown): boolean {
@@ -14,14 +15,17 @@ const compatibility = (name: string, label: string): Field => ({
 })
 
 export const Animals: CollectionConfig = {
-  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'], pagination: { defaultLimit: 12, limits: [12, 24, 48] }, listSearchableFields: ['name', 'breed', 'summary', 'description', 'rescueIntakeID'], components: { views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } } } },
+  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'], pagination: { defaultLimit: 12, limits: [12, 24, 48] }, listSearchableFields: adminAnimalSearchFields, components: { views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } } } },
   defaultSort: '-updatedAt',
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
-  hooks: { beforeOperation: [({ args }) => {
+  hooks: { beforeOperation: [({ args, operation, req }) => {
     // Validate before Payload's number coercion can turn a value such as "12lb" into 12.
     if ('data' in args && args.data && 'weight' in args.data && !validWeightInput(args.data.weight)) {
       throw new ValidationError({ collection: 'animals', errors: [{ path: 'weight', message: weightMessage }] })
+    }
+    if ((operation === 'read' || operation === 'count') && 'where' in args && req.user && ['admin', 'editor'].includes(String(req.user.role))) {
+      args.where = expandAdminAnimalSearch(args.where)
     }
     return args
   }] },

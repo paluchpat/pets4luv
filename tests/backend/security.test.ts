@@ -19,7 +19,7 @@ import { defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/websit
 import { prepareMainMenuSchema } from '../../scripts/main-menu-schema'
 import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
-import { loadAdminGalleryCards } from '../../src/components/admin/gallery-data'
+import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -626,11 +626,14 @@ test('Website Settings schema initializes current details once and preserves pub
   await assert.rejects(() => payload.findGlobalVersions({ slug: 'website-settings', overrideAccess: false }))
   await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { instagramUrl: 'javascript:alert(1)', _status: 'published' } }))
   await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { emailAddress: 'not an email', _status: 'published' } }))
+  await assert.rejects(() => payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { paypalHandle: 'https://paypal.me/example', _status: 'published' } }))
 
-  await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { address: '10 Example Road, Freeport, NY 11520', phone: '212-555-0100', emailAddress: 'hello@example.invalid', tiktokUrl: 'https://www.tiktok.com/@example', instagramUrl: '', venmoHandle: '@rescue-example', _status: 'published' } })
+  await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { address: '10 Example Road, Freeport, NY 11520', phone: '212-555-0100', emailAddress: 'hello@example.invalid', tiktokUrl: 'https://www.tiktok.com/@example', instagramUrl: '', venmoHandle: '@rescue-example', paypalHandle: '@RescueFoundation', _status: 'published' } })
   await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, data: { phone: '212-555-0111', _status: 'published' } })
   const published = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft: false })
   assert.equal(published.venmoHandle, 'rescue-example')
+  assert.equal(published.paypalHandle, 'RescueFoundation')
+  assert.equal(websiteSettingsDTO(published).paypalUrl, 'https://www.paypal.com/paypalme/RescueFoundation')
   assert.equal(websiteSettingsDTO(published).instagramUrl, '')
   await payload.updateGlobal({ slug: 'website-settings', overrideAccess: false, user: editor, draft: true, data: { emailAddress: 'PRIVATE-DRAFT@example.invalid', _status: 'draft' } })
   for (const draft of [false, true]) {
@@ -649,6 +652,26 @@ test('Website Settings schema initializes current details once and preserves pub
   await prepareWebsiteSettings(client)
   assert.equal(await seedWebsiteSettings(payload), false)
   assert.deepEqual(await rows(), snapshot)
+  assert.deepEqual(await unrelated(), before)
+
+  // Simulate the old URL-only schema, including a deliberately disabled draft link.
+  await client.batch([
+    "UPDATE website_settings SET paypal_url = 'https://paypal.me/CurrentRescue'",
+    "UPDATE _website_settings_v SET version_paypal_url = CASE WHEN version__status = 'draft' THEN '' ELSE 'https://www.paypal.com/paypalme/SavedRescue' END",
+    'ALTER TABLE website_settings DROP COLUMN paypal_handle',
+    'ALTER TABLE _website_settings_v DROP COLUMN version_paypal_handle',
+  ], 'write')
+  await prepareWebsiteSettings(client)
+  const converted = await client.execute('SELECT paypal_handle FROM website_settings')
+  assert.equal(converted.rows[0].paypal_handle, 'CurrentRescue')
+  const versions = await client.execute('SELECT version_paypal_handle, version__status FROM _website_settings_v')
+  assert.ok(versions.rows.some(row => row.version__status === 'draft'))
+  for (const row of versions.rows) assert.equal(row.version_paypal_handle, row.version__status === 'draft' ? '' : 'SavedRescue')
+  // Clearing a newly saved handle must never restore the archived URL on later builds.
+  await client.execute("UPDATE website_settings SET paypal_handle = ''")
+  const upgradedSnapshot = await rows()
+  await prepareWebsiteSettings(client)
+  assert.deepEqual(await rows(), upgradedSnapshot)
   assert.deepEqual(await unrelated(), before)
 })
 
@@ -735,6 +758,60 @@ test('admin animal gallery protects drafts and projects only the selected staff 
   assert.ok(!encoded.includes('rescueIntakeID'))
   const publicRecord = await payload.findByID({ collection: 'animals', id: publishedID, overrideAccess: false, draft: false })
   assert.equal(publicRecord.name, 'Fixture')
+
+  // More recent profiles must not push the featured animal off the first page or dashboard.
+  const recentIDs: number[] = []
+  for (let index = 0; index < 6; index++) {
+    const recent = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, draft: true,
+      data: { name: `Recent gallery fixture ${index}`, _status: 'draft' } as any,
+    })
+    recentIDs.push(recent.id)
+  }
+  const scope = { id: { in: [publishedID, draftID, ...recentIDs] } }
+  const first = await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 1, limit: 3 })
+  assert.equal(first[0].id, publishedID)
+  assert.equal(first[0].featured, true)
+  assert.deepEqual(first.slice(1).map(card => card.id), [...recentIDs].reverse().slice(0, 2))
+  const rest = [
+    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 2, limit: 3 }),
+    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 3, limit: 3 }),
+  ]
+  const allIDs = [...first, ...rest].map(card => card.id)
+  assert.equal(new Set(allIDs).size, 8)
+  assert.deepEqual([...allIDs].sort((a, b) => a - b), [publishedID, draftID, ...recentIDs].sort((a, b) => a - b))
+  assert.equal((await loadAdminGalleryCards(payload, editor))[0].id, publishedID)
+  const female = await loadAdminGalleryPageCards(payload, editor, { where: scope, search: 'female', page: 1, limit: 12 })
+  assert.deepEqual(new Set(female.map(card => card.id)), new Set([publishedID, draftID]))
+  const black = await loadAdminGalleryPageCards(payload, editor, { where: scope, search: 'black', page: 1, limit: 12 })
+  assert.deepEqual(black.map(card => card.id), [publishedID])
+  const filtered = await loadAdminGalleryPageCards(payload, editor, { where: { id: { in: recentIDs } }, search: 'Recent gallery fixture', page: 1, limit: 3 })
+  assert.equal(filtered.length, 3)
+  assert.ok(filtered.every(card => recentIDs.includes(card.id) && !card.featured))
+  assert.deepEqual(await loadAdminGalleryPageCards(payload, null, { page: 1, limit: 3 }), [])
+
+  // Attribute searches must not use substrings: male is not female, even in descriptions.
+  const harbor = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, draft: true, data: {
+    name: 'Harbor Search Fixture', species: 'dog', sex: 'male', ageGroup: 'adult', size: 'small', colors: ['black'], status: 'available',
+    summary: 'Lives with female cats.', internalNotes: 'Needs a quiet welcome.', compatibility: { dogs: 'yes', cats: 'unknown', children: 'unknown' }, _status: 'draft',
+  } })
+  const willow = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, draft: true, data: {
+    name: 'Willow Search Fixture', species: 'cat', sex: 'female', ageGroup: 'baby', size: 'small', colors: ['gray'], status: 'available',
+    summary: 'Has a male companion.', _status: 'draft',
+  } })
+  const searchScope = { id: { in: [harbor.id, willow.id] } }
+  const searchIDs = async (search: string, extra?: any) => (await loadAdminGalleryPageCards(payload, editor, { where: extra ? { and: [searchScope, extra] } : searchScope, search, page: 1, limit: 12 })).map(card => card.id)
+  assert.deepEqual(await searchIDs('male'), [harbor.id])
+  assert.deepEqual(await searchIDs('FEMALE'), [willow.id])
+  assert.deepEqual(await searchIDs('males'), [harbor.id])
+  assert.deepEqual(await searchIDs('small BLACK male dog'), [harbor.id])
+  assert.deepEqual(await searchIDs('show me grey female kittens'), [willow.id])
+  assert.deepEqual(await searchIDs('black cat'), [])
+  assert.deepEqual(await searchIDs('female', { species: { equals: 'dog' } }), [])
+  assert.deepEqual(await searchIDs('Harbor quiet'), [harbor.id])
+  assert.deepEqual(await searchIDs('quiet Harbor'), [harbor.id])
+  assert.deepEqual(await searchIDs('good with dogs'), [harbor.id])
+  assert.deepEqual(new Set(await searchIDs('male or female')), new Set([harbor.id, willow.id]))
+  assert.deepEqual(await searchIDs('\"female cats\"'), [harbor.id])
 
   // A previously published profile that is now unpublished is a draft, not a live profile with changes.
   await payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, data: { _status: 'draft' } })

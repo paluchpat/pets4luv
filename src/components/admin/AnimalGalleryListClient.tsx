@@ -1,11 +1,12 @@
 'use client'
 
 import { Gutter, useDocumentDrawer, useListDrawerContext, useListQuery, useStepNav } from '@payloadcms/ui'
-import { ArrowLeft, ArrowRight, CheckCircle2, ImagePlus, Info, Pencil, Plus, Search, Star } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, ChevronDown, ImagePlus, Info, Pencil, Plus, Search, SlidersHorizontal, Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, useTransition, type ReactNode } from 'react'
 import type { Where } from 'payload'
 import type { AdminAnimalCard } from '../../lib/admin-animal-gallery'
+import { adminAnimalFilters, adminAnimalFilterValue, updateAdminAnimalFilter } from '../../lib/admin-animal-filters'
 import { Icon } from '../Icons'
 
 export function AnimalGalleryListClient({ cards, canCreate, nativeList }: { cards: AdminAnimalCard[]; canCreate: boolean; nativeList: ReactNode }) {
@@ -22,12 +23,14 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const [pending, startTransition] = useTransition()
   const gallery = useRef<HTMLDivElement>(null)
   const previousPage = useRef(data?.page)
-  const species = (query.where as Where | undefined)?.species
-  const selected = species && typeof species === 'object' && 'equals' in species ? String(species.equals) : 'all'
+  const where = query.where as Where | undefined
+  const selected = adminAnimalFilterValue(where, 'species') || 'all'
+  const activeFilters = adminAnimalFilters.filter(filter => adminAnimalFilterValue(where, filter.field, filter.operator)).length
+  const hasCriteria = Boolean(search.trim() || Object.keys(where || {}).length)
   useEffect(() => { setStepNav([{ label: 'Animals' }]) }, [setStepNav])
   useEffect(() => { setSearch(String(query.search || '')) }, [query.search])
   useEffect(() => {
-    if (search === String(query.search || '')) return
+    if (search.trim() === String(query.search || '')) return
     const timer = window.setTimeout(() => {
       startTransition(() => { void refineListData({ search: search.trim() || undefined, page: 1 }) })
     }, 300)
@@ -42,11 +45,12 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
     setMessage(status === 'published' ? 'Profile published. Your website is up to date.' : 'Draft saved. Publish when you’re ready.')
     router.refresh()
   }
-  function filter(value: string) {
-    const where = { ...(query.where || {}) }
-    delete where.species
-    if (value !== 'all') where.species = { equals: value }
-    startTransition(() => { void refineListData({ where, search: search.trim() || undefined, page: 1 }) })
+  function filter(field: string, value: string, operator: 'equals' | 'contains' = 'equals') {
+    startTransition(() => { void refineListData({ where: updateAdminAnimalFilter(where, field, value, operator), search: search.trim() || undefined, page: 1 }) })
+  }
+  function clearFilters() {
+    setSearch('')
+    startTransition(() => { void refineListData({ where: {}, search: undefined, page: 1 }) })
   }
   const total = data?.totalDocs || 0
   const start = total ? data?.pagingCounter || 1 : 0
@@ -57,20 +61,38 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
       {canCreate && <AddAnimal onSaved={saved} />}
     </div>
     {message && <div className="cms-success" role="status"><CheckCircle2 aria-hidden="true" />{message}<button type="button" aria-label="Dismiss message" onClick={() => setMessage('')}>×</button></div>}
-    <div className="cms-gallery-toolbar">
-      <label className="cms-gallery-search"><Search aria-hidden="true" /><span className="cms-sr-only">Search animal profiles</span>
-        <input type="search" placeholder="Find an animal…" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
-      </label>
-      <div className="cms-species-filters" role="group" aria-label="Pet type">
-        {[{ value: 'all', label: 'All animals', icon: 'paw' }, { value: 'cat', label: 'Cats', icon: 'cat' }, { value: 'dog', label: 'Dogs', icon: 'dog' }].map(item => <button key={item.value} type="button" aria-pressed={selected === item.value} onClick={() => filter(item.value)}><Icon kind={item.icon as 'paw' | 'cat' | 'dog'} />{item.label}</button>)}
+    <div className="cms-gallery-toolbar-wrap">
+      <div className="cms-gallery-toolbar">
+        <label className="cms-gallery-search"><Search aria-hidden="true" /><span className="cms-sr-only">Search animal profiles</span>
+          <input type="search" placeholder="Search names, breeds, notes, intake IDs…" aria-describedby="cms-animal-search-help" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
+        </label>
+        <div className="cms-species-filters" role="group" aria-label="Pet type">
+          {[{ value: 'all', label: 'All animals', icon: 'paw' }, { value: 'cat', label: 'Cats', icon: 'cat' }, { value: 'dog', label: 'Dogs', icon: 'dog' }].map(item => <button key={item.value} type="button" aria-pressed={selected === item.value} onClick={() => filter('species', item.value === 'all' ? '' : item.value)}><Icon kind={item.icon as 'paw' | 'cat' | 'dog'} />{item.label}</button>)}
+        </div>
+      </div>
+      <p className="cms-gallery-search-help" id="cms-animal-search-help">Search names, notes, intake IDs, or combine details like “small black female cat”. Use quotes to search a name or phrase literally.</p>
+      <div className="cms-gallery-filter-bar">
+        <details className="cms-gallery-filters">
+          <summary><SlidersHorizontal aria-hidden="true" />Filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" /></summary>
+          <div className="cms-gallery-filter-grid">
+            {adminAnimalFilters.map(item => <label className="cms-gallery-filter" key={item.field}>
+              <span>{item.label}</span>
+              <span className="cms-filter-control"><select value={adminAnimalFilterValue(where, item.field, item.operator)} onChange={event => filter(item.field, event.target.value, item.operator)}>
+                <option value="">{item.empty}</option>
+                {item.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select><ChevronDown aria-hidden="true" /></span>
+            </label>)}
+          </div>
+        </details>
+        {hasCriteria && <button type="button" className="cms-clear-filters" onClick={clearFilters}>Clear search and filters</button>}
       </div>
     </div>
     <div className="cms-gallery-results" aria-busy={pending}>
-      {pending && <p className="cms-loading" role="status">Updating profiles…</p>}
+      {pending && <p className="cms-loading" role="status">Searching animals...</p>}
       <div className="cms-animal-grid">
         {cards.map(card => <AnimalProfileCard key={card.id} card={card} onSaved={saved} onDeleted={() => { setMessage('Profile removed from the catalog.'); router.refresh() }} />)}
       </div>
-      {!cards.length && <div className="cms-gallery-empty"><ImagePlus aria-hidden="true" /><h2>{search || selected !== 'all' ? 'No animals match your search.' : 'Ready for your first animal?'}</h2><p>{search || selected !== 'all' ? 'Try another name or choose All animals.' : 'Add a profile, upload their photos, and save a draft to get started.'}</p></div>}
+      {!cards.length && <div className="cms-gallery-empty"><ImagePlus aria-hidden="true" /><h2>{hasCriteria ? 'No animals match your search.' : 'Ready for your first animal?'}</h2><p>{hasCriteria ? 'Try different search terms or clear your filters.' : 'Add a profile, upload their photos, and save a draft to get started.'}</p>{hasCriteria && <button type="button" className="cms-button" onClick={clearFilters}>Clear search and filters</button>}</div>}
     </div>
     <div className="cms-gallery-pagination">
       <p aria-live="polite">{start}–{Math.max(0, end)} of {total} {total === 1 ? 'animal' : 'animals'}</p>
