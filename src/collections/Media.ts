@@ -24,7 +24,12 @@ export const Media: CollectionConfig = {
     formatOptions: { format: 'webp' }, resizeOptions: { width: 1800, withoutEnlargement: true },
   },
   fields: [
-    { name: 'alt', label: 'Photo description', type: 'text', required: true, admin: { description: 'Describe the animal and photo for people who use screen readers.' } },
+    {
+      name: 'alt', label: 'Photo description (optional)', type: 'text', defaultValue: '',
+      // Existing photo databases require a string; an empty description stays valid.
+      hooks: { beforeValidate: [({ value }) => value ?? ''] },
+      admin: { description: 'Alt text is a short description of the photo for people who use screen readers. Example: Poppy resting in a basket.' },
+    },
     { name: 'caption', type: 'text' },
     // Payload merges this label into its existing read-only filename field.
     { name: 'filename', label: 'Photo', type: 'text' },
