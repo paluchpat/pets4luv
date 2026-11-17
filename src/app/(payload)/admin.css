@@ -209,11 +209,13 @@
   .cms-animal-photos .array-field__add-row.btn:not(:disabled) { --btn-color: var(--cms-accent-text); min-height: 44px; padding: 8px 12px; border: 1px solid var(--cms-accent-text); border-radius: 8px; }
 
   /* File-first photo creation, with the existing library as a secondary choice. */
-  .cms-photo-upload__dropzone { display: flex; flex-direction: column; justify-content: center; gap: 10px; min-height: 204px; height: auto; padding: 22px 12px; border: 2px dashed var(--cms-line); border-radius: 8px; background: var(--cms-bg); text-align: center; }
+  .cms-animal-photo-upload:has(> .cms-photo-upload) { padding: 22px 12px; border: 2px dashed var(--cms-line); border-radius: 8px; background: var(--cms-bg); text-align: center; }
+  .cms-photo-upload__dropzone { display: flex; flex-direction: column; justify-content: center; gap: 10px; height: auto; padding: 0; border: 0; background: transparent; text-align: center; }
   .cms-photo-upload__dropzone > svg { color: var(--cms-accent-text); flex: none; }
   .cms-photo-upload__dropzone > strong { color: var(--cms-ink); font-size: 14px; line-height: 1.4; }
   .cms-photo-upload__hint { color: var(--cms-muted); font-size: 12px; }
-  .cms-photo-upload__dropzone:is(.dragging,:focus-within) { border-color: var(--cms-accent-text); background: var(--cms-tint); box-shadow: none; }
+  .cms-animal-photo-upload:has(> .cms-photo-upload):is(:focus-within,:has(.dropzone.dragging)) { border-color: var(--cms-accent-text); background: var(--cms-tint); }
+  .cms-photo-upload__dropzone:is(.dragging,:focus-within) { background: transparent; box-shadow: none; }
   .cms-photo-upload__select { min-height: 44px; padding: 10px 18px; border: 1px solid var(--cms-accent-text); border-radius: 8px; background: var(--cms-surface); color: var(--cms-accent-text); font: inherit; font-weight: 600; cursor: pointer; }
   .cms-photo-upload__select:hover { background: var(--cms-tint); }
   .cms-photo-upload__select:focus-visible { outline: 2px solid var(--cms-accent-text); outline-offset: 3px; }
@@ -225,6 +227,7 @@
   .cms-animal-photo-upload .upload__dropzoneAndUpload > .dropzone { height: auto; padding: 12px 0 0; border: 0; background: transparent; box-shadow: none; }
   .cms-animal-photo-upload .upload__dropzoneContent,
   .cms-animal-photo-upload .upload__dropzoneContent__buttons { width: 100%; justify-content: center; }
+  .cms-animal-photo-upload .upload__dropzoneContent__buttons { left: 0; }
   .cms-animal-photo-upload .upload__listToggler { min-height: 44px; padding: 10px 12px; border-radius: 8px; }
 
   /* Keep the photo picker visual while retaining native selection and upload controls. */
