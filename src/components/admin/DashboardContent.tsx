@@ -1,4 +1,4 @@
-import { Button, Card, Locked } from '@payloadcms/ui'
+import { Button, Card, Gutter, Locked } from '@payloadcms/ui'
 import { createLocalReq, type ServerProps } from 'payload'
 import { getGlobalData } from '@payloadcms/ui/shared'
 import { formatAdminURL } from 'payload/shared'
@@ -6,12 +6,12 @@ import { AnimalGalleryOverview } from './AnimalGalleryOverview'
 import { loadAdminGalleryCards } from './gallery-data'
 import { websiteAdminSections } from '../../lib/admin-sections'
 
-/** Website editing sections share their order with the sidebar, including Users under Settings. */
+/** Custom dashboard replaces the empty default navigation widget and follows the sidebar order. */
 export async function DashboardContent({ payload, permissions, user }: ServerProps) {
   if (!user || !['admin', 'editor'].includes(String(user.role))) return null
   const adminRoute = payload.config.routes.admin
   const [globalData, animals] = await Promise.all([getGlobalData(await createLocalReq({ user }, payload)), permissions?.collections?.animals?.read ? loadAdminGalleryCards(payload, user) : Promise.resolve([])])
-  return <div className="collections dashboard-content">
+  return <Gutter className="dashboard"><div className="collections dashboard-content">
     <div className="collections__wrap">
       {websiteAdminSections.map(section => {
         const entities = section.entities.filter(entity => entity.type === 'collection'
@@ -45,5 +45,5 @@ export async function DashboardContent({ payload, permissions, user }: ServerPro
         </section>
       })}
     </div>
-  </div>
+  </div></Gutter>
 }

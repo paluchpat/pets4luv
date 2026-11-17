@@ -47,7 +47,7 @@ const storageAdapter = tursoURL && blobToken ? privateBlobAdapter(blobToken) : n
 export default buildConfig({
   secret,
   serverURL,
-  admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNav: ['./components/admin/AdminBrand#AdminBrand'], graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' }, actions: ['./components/admin/AdminBrand#ViewWebsite'], afterDashboard: ['./components/admin/DashboardContent#DashboardContent'], afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'] } },
+  admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNav: ['./components/admin/AdminBrand#AdminBrand'], graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' }, actions: ['./components/admin/AdminBrand#ViewWebsite'], views: { dashboard: { Component: './components/admin/DashboardContent#DashboardContent' } }, afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'] } },
   collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
   editor: lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'] }), UnorderedListFeature(), OrderedListFeature()] }),
   db: sqliteAdapter({
