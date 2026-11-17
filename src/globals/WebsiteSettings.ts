@@ -15,7 +15,7 @@ export const WebsiteSettings: GlobalConfig = {
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {
-    group: 'Settings',
+    group: false,
     description: 'Shared contact details, social links, adoption listings, and donation links. Publish changes to update the website.',
     preview: () => '/api/preview?path=/contact',
     livePreview: { url: '/api/preview?path=/contact' },

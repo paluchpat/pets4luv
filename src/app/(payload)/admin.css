@@ -4,7 +4,7 @@
   .dashboard-content {
     /* Match the inset of Payload’s dashboard widgets. */
     padding: 6px;
-    margin-bottom: var(--base);
+    margin-block: var(--base);
   }
 
   .nav__link--standalone {

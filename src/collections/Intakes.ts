@@ -1,9 +1,10 @@
 import type { CollectionConfig } from 'payload'
-import { isStaff } from '../access'
+// Retired storage only: preserve existing records while disabling all CMS/API operations.
+const retired = () => false
 
 export const Intakes: CollectionConfig = {
-  slug: 'intakes', admin: { useAsTitle: 'intakeID', group: 'Intake', description: 'Manual workflow: upload both source photos, enter supplied facts, create an animal draft, review its public photos and fields, then publish from Animals. AI is disabled.' },
-  access: { read: isStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
+  slug: 'intakes', admin: { useAsTitle: 'intakeID', hidden: true, description: 'Retired intake records. The website catalog is edited directly in Animals.' },
+  access: { read: retired, create: retired, update: retired, delete: retired, readVersions: retired },
   versions: { maxPerDoc: 20 },
   fields: [
     { name: 'intakeID', type: 'text', required: true, unique: true, index: true, admin: { description: 'Use a stable rescue intake ID. Reuse the existing record for retries.' } },

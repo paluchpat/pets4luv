@@ -1,5 +1,11 @@
 # Cat and Dog Rescue Implementation Plan
 
+## Current scope — November 17, 2026
+
+This CMS manages the website; the rescue uses a separate system for animal operations. Intake and private intake-file tools are retired and inaccessible, with existing storage retained. Future administrator automation should create and update Animals directly, using its drafts, photos, and version history. Rescue intake ID and Internal notes remain; unused age-reference and energy-level controls are removed from the editor. Weight is optional and displayed on the public animal profile when provided.
+
+This scope supersedes the intake-processing roadmap below, which is retained as historical planning context.
+
 Prepared November 5, 2026. Updated November 7, 2026: the first local implementation is working.
 
 ## Current implementation status

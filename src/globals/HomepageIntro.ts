@@ -8,7 +8,7 @@ export const HomepageIntro: GlobalConfig = {
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {
-    group: 'Homepage',
+    group: false,
     description: 'Edit the foundation introduction, save a draft and preview before publishing.',
     preview: () => '/api/preview?path=/',
     livePreview: { url: '/api/preview?path=/' },

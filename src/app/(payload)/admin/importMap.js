@@ -1,3 +1,4 @@
+import { WeightField as WeightField_fb53697c6be8024df2e7e09cc61f71f2 } from '../../../components/admin/WeightField'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { LexicalDiffComponent as LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -10,13 +11,13 @@ import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1e
 import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { MenuRowLabel as MenuRowLabel_668d8c2abe8684f4a655aafbcea4edb8 } from '../../../components/admin/MenuRowLabel'
-import { PagesNav as PagesNav_0f0a221f9d9b10196275a93e50223b3c } from '../../../components/admin/PagesNav'
 import { DashboardContent as DashboardContent_7a38f363ee668985fd1c65e26d8165d4 } from '../../../components/admin/DashboardContent'
-import { AnimalsNav as AnimalsNav_0f0a221f9d9b10196275a93e50223b3c } from '../../../components/admin/PagesNav'
+import { WebsiteNav as WebsiteNav_0f0a221f9d9b10196275a93e50223b3c } from '../../../components/admin/PagesNav'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "./components/admin/WeightField#WeightField": WeightField_fb53697c6be8024df2e7e09cc61f71f2,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#LexicalDiffComponent": LexicalDiffComponent_44fe37237e0ebf4470c9990d8cb7b07e,
@@ -29,8 +30,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ParagraphFeatureClient": ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#FixedToolbarFeatureClient": FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "./components/admin/MenuRowLabel#MenuRowLabel": MenuRowLabel_668d8c2abe8684f4a655aafbcea4edb8,
-  "./components/admin/PagesNav#PagesNav": PagesNav_0f0a221f9d9b10196275a93e50223b3c,
   "./components/admin/DashboardContent#DashboardContent": DashboardContent_7a38f363ee668985fd1c65e26d8165d4,
-  "./components/admin/PagesNav#AnimalsNav": AnimalsNav_0f0a221f9d9b10196275a93e50223b3c,
+  "./components/admin/PagesNav#WebsiteNav": WebsiteNav_0f0a221f9d9b10196275a93e50223b3c,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

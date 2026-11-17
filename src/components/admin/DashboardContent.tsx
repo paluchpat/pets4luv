@@ -1,40 +1,46 @@
-import { Button, Card } from '@payloadcms/ui'
-import type { ServerProps } from 'payload'
+import { Button, Card, Locked } from '@payloadcms/ui'
+import { createLocalReq, type ServerProps } from 'payload'
+import { getGlobalData } from '@payloadcms/ui/shared'
 import { formatAdminURL } from 'payload/shared'
+import { websiteAdminSections } from '../../lib/admin-sections'
 
-const collections = [
-  { slug: 'animals', label: 'Animals', singular: 'animal' },
-  { slug: 'pages', label: 'Pages', singular: 'page' },
-] as const
-
-/** These collections use custom sidebar links, so Payload omits their default dashboard cards. */
-export function DashboardContent({ payload, permissions, user }: ServerProps) {
+/** Administration keeps its native dashboard cards, followed by website editing sections. */
+export async function DashboardContent({ payload, permissions, user }: ServerProps) {
   if (!user || !['admin', 'editor'].includes(String(user.role))) return null
-  const visible = collections.filter(({ slug }) => permissions?.collections?.[slug]?.read)
-  if (!visible.length) return null
   const adminRoute = payload.config.routes.admin
-
+  const globalData = await getGlobalData(await createLocalReq({ user }, payload))
   return <div className="collections dashboard-content">
     <div className="collections__wrap">
-      <section className="collections__group" aria-labelledby="dashboard-content-heading">
-        <h2 className="collections__label" id="dashboard-content-heading">Content</h2>
-        <ul className="collections__card-list">
-          {visible.map(({ slug, label, singular }) => <li key={slug}>
-            <Card
-              id={`card-${slug}`}
-              title={label}
-              titleAs="h3"
-              buttonAriaLabel={`Show all ${label.toLowerCase()}`}
-              href={formatAdminURL({ adminRoute, path: `/collections/${slug}` })}
-              actions={permissions?.collections?.[slug]?.create ? <Button
-                aria-label={`Create new ${singular}`}
-                buttonStyle="icon-label" el="link" icon="plus" iconStyle="with-border" round
-                to={formatAdminURL({ adminRoute, path: `/collections/${slug}/create` })}
-              /> : undefined}
-            />
-          </li>)}
-        </ul>
-      </section>
+      {websiteAdminSections.map(section => {
+        const entities = section.entities.filter(entity => entity.type === 'collection'
+          ? permissions?.collections?.[entity.slug]?.read
+          : permissions?.globals?.[entity.slug]?.read)
+        if (!entities.length) return null
+        return <section className="collections__group" key={section.label} aria-labelledby={`dashboard-${section.label.toLowerCase()}-heading`}>
+          <h2 className="collections__label" id={`dashboard-${section.label.toLowerCase()}-heading`}>{section.label}</h2>
+          <ul className="collections__card-list">
+            {entities.map(entity => {
+              const path: `/${string}` = entity.type === 'collection' ? `/collections/${entity.slug}` : `/globals/${entity.slug}`
+              const lock = entity.type === 'global' ? globalData.find(item => item.slug === entity.slug) : null
+              const owner = lock?.data._userEditing
+              const activeLock = lock?.data._isLocked && Date.now() < new Date(lock.data._lastEditedAt).getTime() + (lock.lockDuration ?? 300) * 1000
+              const lockedByOther = activeLock && owner && typeof owner === 'object' && owner.id !== user.id
+              return <li key={entity.slug}>
+                <Card
+                  id={`card-${entity.slug}`} title={entity.label} titleAs="h3"
+                  buttonAriaLabel={`${entity.type === 'collection' ? 'Show all' : 'Edit'} ${entity.label.toLowerCase()}`}
+                  href={formatAdminURL({ adminRoute, path })}
+                  actions={lockedByOther ? <Locked className="collections__locked" user={owner} /> : entity.type === 'collection' && permissions?.collections?.[entity.slug]?.create ? <Button
+                    aria-label={`Create new ${entity.singular}`}
+                    buttonStyle="icon-label" el="link" icon="plus" iconStyle="with-border" round
+                    to={formatAdminURL({ adminRoute, path: `${path}/create` })}
+                  /> : undefined}
+                />
+              </li>
+            })}
+          </ul>
+        </section>
+      })}
     </div>
   </div>
 }

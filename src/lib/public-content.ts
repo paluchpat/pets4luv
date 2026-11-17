@@ -5,7 +5,7 @@ import { defaultHomepageIntro } from './homepage-intro'
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
 export type RichText = { root: { children: unknown[]; [key: string]: unknown }; [key: string]: unknown }
 export type AnimalPhotoDTO = { url: string; alt: string }
-export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[] }
+export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[]; weight: number | null }
 export type AnimalDTO = {
   id: number | string; name: string; slug: string; species: 'cat' | 'dog'; sex: 'female' | 'male' | 'unknown';
   ageGroup: 'baby' | 'young' | 'adult' | 'senior'; size: 'small' | 'medium' | 'large'; breed: string;
@@ -40,7 +40,8 @@ export function animalProfileDTO(doc: any): AnimalProfileDTO {
       ? [{ url: photo.url, alt: photo.alt || doc.name }]
       : []
   })
-  return { ...animalDTO(doc, 'uncropped'), photos }
+  const weight = typeof doc.weight === 'number' && Number.isFinite(doc.weight) && doc.weight >= 0 ? doc.weight : null
+  return { ...animalDTO(doc, 'uncropped'), photos, weight }
 }
 
 function ageLabel(doc: any) {

@@ -52,7 +52,7 @@ for (const animal of demo) {
     animals[animal.slug] = existing.id
     continue
   }
-  const created = await payload.create({ collection: 'animals', data: { ...fields, colors: [...colors], status: 'available', _status: 'published', estimatedBirthDate: date, ageEstimateReferenceDate: '2026-11-07', compatibility: { dogs, cats, children }, compatibilityNotes: 'Fictional assessment for demonstration; confirm all compatibility with the rescue before adoption.', photos: [{ photo: media[photo] }], internalNotes: demoAnimalNote } })
+  const created = await payload.create({ collection: 'animals', data: { ...fields, colors: [...colors], status: 'available', _status: 'published', estimatedBirthDate: date, compatibility: { dogs, cats, children }, compatibilityNotes: 'Fictional assessment for demonstration; confirm all compatibility with the rescue before adoption.', photos: [{ photo: media[photo] }], internalNotes: demoAnimalNote } })
   animals[animal.slug] = created.id
 }
 const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as any

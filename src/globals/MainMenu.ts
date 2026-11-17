@@ -34,7 +34,7 @@ export const MainMenu: GlobalConfig = {
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {
-    group: 'Settings',
+    group: false,
     description: 'Add, remove, and drag menu items to reorder them. Submenus group related links. Save a draft to preview, then publish to update desktop and mobile navigation.',
     preview: () => '/api/preview?path=/',
     livePreview: { url: '/api/preview?path=/' },

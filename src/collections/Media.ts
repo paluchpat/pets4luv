@@ -6,7 +6,7 @@ const uploadRoot = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), '
 
 export const Media: CollectionConfig = {
   slug: 'media', labels: { singular: 'Approved public photo', plural: 'Approved public photos' },
-  admin: { useAsTitle: 'alt', hidden: true, description: 'Only upload photographs approved for public display. Keep cards and private notes in Intake files.' },
+  admin: { useAsTitle: 'alt', hidden: true, description: 'Only upload photographs approved for public display.' },
   access: { read: () => true, create: isStaff, update: isStaff, delete: isStaff },
   upload: {
     staticDir: path.resolve(uploadRoot, 'public'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
@@ -18,8 +18,9 @@ export const Media: CollectionConfig = {
 
 export const IntakeFiles: CollectionConfig = {
   slug: 'intake-files', labels: { singular: 'Private intake file', plural: 'Private intake files' },
-  admin: { useAsTitle: 'label', group: 'Intake', description: 'Private source photos and information cards. These files require a staff login.' },
-  access: { read: isStaff, create: isStaff, update: isStaff, delete: isStaff },
+  admin: { useAsTitle: 'label', hidden: true, description: 'Retired private-file storage. No longer used by the website editor.' },
+  // Keep archived files inaccessible; approved animal photos use the separate media collection.
+  access: { read: () => false, create: () => false, update: () => false, delete: () => false },
   upload: { staticDir: path.resolve(uploadRoot, 'private'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], },
   fields: [{ name: 'label', type: 'text', required: true }],
 }

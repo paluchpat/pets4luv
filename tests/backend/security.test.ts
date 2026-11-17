@@ -80,10 +80,19 @@ test('animal color matches any selected color on an available, published animal'
   assert.deepEqual(buildAnimalWhere({ color: 'not-a-color' }), buildAnimalWhere())
 })
 
-test('private files, intakes and write operations require staff', async () => {
-  await assert.rejects(() => payload.find({ collection: 'intake-files', overrideAccess: false }))
-  await assert.rejects(() => payload.findByID({ collection: 'intake-files', id: privateFileID, overrideAccess: false }))
-  await assert.rejects(() => payload.find({ collection: 'intakes', overrideAccess: false }))
+test('retired intake tools reject visitors and staff while animal edits still require staff', async () => {
+  for (const user of [undefined, editor, admin]) {
+    await assert.rejects(() => payload.find({ collection: 'intake-files', overrideAccess: false, user }))
+    await assert.rejects(() => payload.findByID({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user }))
+    await assert.rejects(() => payload.find({ collection: 'intakes', overrideAccess: false, user }))
+    await assert.rejects(() => payload.findVersions({ collection: 'intakes', overrideAccess: false, user }))
+    await assert.rejects(() => payload.create({ collection: 'intakes', overrideAccess: false, user, data: { intakeID: 'RETIRED-TEST', animalPhoto: privateFileID, informationCard: privateFileID, submittedFacts: 'Retired workflow', state: 'received' } }))
+    await assert.rejects(() => payload.update({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user, data: { label: 'Blocked edit' } }))
+    await assert.rejects(() => payload.delete({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user }))
+  }
+  assert.equal(payload.collections.intakes.config.admin.hidden, true)
+  assert.equal(payload.collections['intake-files'].config.admin.hidden, true)
+  assert.equal((await payload.findByID({ collection: 'intake-files', id: privateFileID })).label, 'Private test card')
   await assert.rejects(() => payload.update({ collection: 'animals', id: publishedID, data: { name: 'Anonymous edit' }, overrideAccess: false }))
 })
 
@@ -202,11 +211,8 @@ test('public DTO explicitly omits all internal fields and identifiers', () => {
   assert.ok(!JSON.stringify(dto).includes('SECRET'))
 })
 
-test('staff can complete manual photo-pair intake, draft, publication and adoption without AI', async () => {
-  const intake = await payload.create({ collection: 'intakes', overrideAccess: false, user: editor, data: { intakeID: 'MANUAL-TEST-1', animalPhoto: privateFileID, informationCard: privateFileID, submittedFacts: 'Test facts entered by a human. Two source slots remain separate.', state: 'manual-review' } })
-  await assert.rejects(() => payload.create({ collection: 'intakes', overrideAccess: false, user: editor, data: { intakeID: 'MANUAL-TEST-1', animalPhoto: privateFileID, informationCard: privateFileID, submittedFacts: 'Retry', state: 'received' } }))
+test('staff can create animal profiles directly, save drafts, publish and update adoption status', async () => {
   const draft = await payload.create({ collection: 'animals', user: editor, overrideAccess: false, draft: true, data: { name: 'Manual fixture', slug: 'manual-fixture', rescueIntakeID: 'MANUAL-TEST-1', species: 'dog', sex: 'unknown', ageGroup: 'adult', size: 'medium', summary: 'Human supplied', description: 'Human reviewed description.', photos: [{ photo: publicPhotoID }], status: 'available', _status: 'draft' } })
-  await payload.update({ collection: 'intakes', id: intake.id, user: editor, overrideAccess: false, data: { animal: draft.id, state: 'reviewed' } })
   await assert.rejects(() => payload.findByID({ collection: 'animals', id: draft.id, overrideAccess: false }))
   await payload.update({ collection: 'animals', id: draft.id, user: editor, overrideAccess: false, data: { _status: 'published' } })
   assert.equal((await payload.findByID({ collection: 'animals', id: draft.id, overrideAccess: false })).name, 'Manual fixture')
@@ -214,7 +220,22 @@ test('staff can complete manual photo-pair intake, draft, publication and adopti
   const available = await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ q: 'Manual fixture' }) })
   assert.equal(available.totalDocs, 0)
   assert.equal((await payload.findByID({ collection: 'animals', id: draft.id, overrideAccess: false })).status, 'adopted')
-  await payload.update({ collection: 'intakes', id: intake.id, user: editor, overrideAccess: false, data: { state: 'complete' } })
+})
+
+
+test('optional animal weight accepts decimal numbers, rejects invalid values, and can be cleared', async () => {
+  for (const weight of [12.75, 0.625, 0]) {
+    const updated = await payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, data: { weight } })
+    assert.equal(updated.weight, weight)
+    assert.equal(animalProfileDTO(updated).weight, weight)
+  }
+  for (const weight of ['heavy', '12lb', -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    await assert.rejects(() => payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, data: { weight: weight as any } }))
+  }
+  const cleared = await payload.update({ collection: 'animals', id: publishedID, overrideAccess: false, user: editor, data: { weight: null } })
+  assert.equal(cleared.weight, null)
+  assert.equal(animalProfileDTO(cleared).weight, null)
+  for (const weight of [undefined, null, '', '12lb', -1, Number.NaN, Number.POSITIVE_INFINITY]) assert.equal(animalProfileDTO({ photos: [], weight }).weight, null)
 })
 
 function pageBody(text: string) {
