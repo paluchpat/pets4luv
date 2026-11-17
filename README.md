@@ -95,4 +95,4 @@ Restore verifies SQLite integrity and writes into a new directory; it does not o
 
 Approved desktop: `12-editorial-hybrid-refined-v6.png`. Approved mobile: `15-mobile-search-refined-v7-final.png` and `16-mobile-highlights-refined-v7.png`.
 
-Demo animal images were created with the built-in image-generation tool; prompts are recorded in `design/implementation-assets-prompts.json`. The site logo is the original asset from pets4luv.org, retained at `public/images/logo.png`. These images are illustrative and must not be represented as real available animals.
+Demo animal images were created with the built-in image-generation tool; prompts are recorded in `design/implementation-assets-prompts.json`. The site logo at `public/images/logo.png` is the approved white-outline variation of the original pets4luv.org logo, optimized to 400 × 400 pixels for the header. The original logo is retained at `design/homepage-mockups/pets4luv-logo-original.png`. The animal images are illustrative and must not be represented as real available animals.
