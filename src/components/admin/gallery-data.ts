@@ -6,7 +6,7 @@ export async function loadAdminGalleryCards(payload: Payload, user: TypedUser | 
   if (!user || !['admin', 'editor'].includes(String(user.role)) || ids?.length === 0) return []
   const [animals, homepage] = await Promise.all([
     payload.find({ collection: 'animals', overrideAccess: false, user, draft: true, depth: 1,
-      ...(ids ? { where: { id: { in: ids } }, pagination: false } : { limit: 3, sort: '-updatedAt' }),
+      ...(ids ? { where: { id: { in: ids } }, pagination: false } : { limit: 5, sort: '-updatedAt' }),
       select: { name: true, species: true, sex: true, status: true, ageGroup: true, estimatedBirthDate: true, photos: true, updatedAt: true, _status: true },
     }),
     payload.findGlobal({ slug: 'homepage', overrideAccess: false, user, draft: false, depth: 0, select: { featuredAnimals: true, _status: true } }),

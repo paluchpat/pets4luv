@@ -135,12 +135,12 @@
   .cms-species-filters button svg { width: 21px; height: 21px; flex: none; }
   .cms-species-filters button[aria-pressed=true] { background: var(--cms-tint); color: var(--cms-accent-text); font-weight: 600; }
   .cms-species-filters button:hover { background: var(--cms-bg); }
-  .cms-gallery-results { position: relative; }
-  .cms-animal-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; }
-  .cms-animal-card { border: 1px solid var(--cms-line); border-radius: 15px; background: var(--cms-surface); padding: 0; text-align: left; overflow: hidden; color: var(--cms-ink); box-shadow: 0 4px 15px #422c300b; cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; min-width: 0; }
+  .cms-gallery-results { position: relative; container: cms-animals / inline-size; }
+  .cms-animal-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 16px; }
+  .cms-animal-card { display: flex; flex-direction: column; align-items: stretch; border: 1px solid var(--cms-line); border-radius: 15px; background: var(--cms-surface); padding: 0; text-align: left; overflow: hidden; color: var(--cms-ink); box-shadow: 0 4px 15px #422c300b; cursor: pointer; transition: box-shadow .2s ease, transform .2s ease; min-width: 0; }
   .cms-animal-card:hover { transform: translateY(-3px); box-shadow: 0 8px 22px #422c3018; }
   .cms-animal-card:focus-visible { outline: var(--accessibility-outline); outline-offset: 4px; }
-  .cms-animal-card-photo { position: relative; aspect-ratio: 3/4; background: var(--cms-bg); overflow: hidden; }
+  .cms-animal-card-photo { flex: none; position: relative; aspect-ratio: 3/4; background: var(--cms-bg); overflow: hidden; }
   .cms-animal-card-photo img { width: 100%; height: 100%; display: block; }
   .cms-animal-card-backdrop { position: absolute; inset: 0; object-fit: cover; filter: blur(18px); transform: scale(1.15); opacity: .5; }
   .cms-animal-card-image { position: relative; object-fit: contain; }
@@ -150,10 +150,10 @@
   .cms-featured-badge svg { width: 14px; height: 14px; }
   .cms-card-edit { position: absolute; right: 11px; bottom: 11px; display: grid; place-items: center; background: var(--cms-surface); color: var(--cms-accent-text); width: 31px; height: 31px; border-radius: 50%; box-shadow: 0 2px 7px #422c3014; }
   .cms-card-edit svg { width: 15px; height: 15px; }
-  .cms-animal-card-body { padding: 18px 16px 15px; }
-  .cms-animal-card h2 { font-size: 22px; line-height: 1.2; letter-spacing: -.5px; margin: 0 0 6px; font-weight: 700; }
+  .cms-animal-card-body { flex: 1; padding: 14px 12px; }
+  .cms-animal-card h2 { font-size: 20px; line-height: 1.2; letter-spacing: -.5px; margin: 0 0 6px; font-weight: 700; overflow-wrap: anywhere; }
   .cms-animal-card-meta { color: var(--cms-muted); font-size: 12px; line-height: 1.5; margin: 0 0 15px; }
-  .cms-card-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
+  .cms-card-status { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
   .cms-status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 20px; background: var(--cms-success-bg); color: var(--cms-success); font-weight: 600; line-height: 1.3; }
   .cms-status-badge svg { width: 13px; height: 13px; }
   .cms-status-badge[data-status=on-hold] { background: var(--cms-draft-bg); color: var(--cms-draft); }
@@ -176,7 +176,7 @@
   .cms-gallery-empty > svg { width: 36px; height: 36px; margin: 0 auto 15px; color: var(--cms-accent-text); }
   .cms-gallery-empty h2 { color: var(--cms-ink); font-size: 24px; }
   .cms-gallery-empty p { margin-bottom: 0; }
-  .cms-gallery-overview { padding: 8px 0 20px; }
+  .cms-gallery-overview { width: 100%; padding: 8px 0 20px; container: cms-animals / inline-size; }
   .cms-gallery-overview .cms-gallery-heading :is(h1,h2) { font-size: 32px; }
   .cms-gallery-view-all { display: inline-flex; align-items: center; gap: 8px; color: var(--cms-accent-text); font-size: 14px; font-weight: 600; margin-top: 20px; text-decoration: none; }
   .cms-gallery-view-all:hover { text-decoration: underline; }
@@ -192,7 +192,6 @@
     .cms-gallery-search { flex-basis: 100%; }
     .cms-species-filters { flex: 1; }
     .cms-species-filters button { flex: 1; }
-    .cms-animal-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
     .cms-brand { margin-top: 60px; }
   }
   @media(max-width:500px) {
@@ -213,6 +212,15 @@
     .tabs-field__tab-content { padding: 18px 14px; }
     .cms-view-website { font-size: 12px; }
     .cms-gallery-heading h1 { font-size: 32px; }
+  }
+  @container cms-animals (max-width:799px) {
+    .cms-animal-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  }
+  @container cms-animals (max-width:639px) {
+    .cms-animal-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  }
+  @container cms-animals (max-width:479px) {
+    .cms-animal-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   }
   @media(prefers-reduced-motion:reduce) {
     .cms-animal-card { transition: none; }
