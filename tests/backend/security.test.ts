@@ -579,9 +579,9 @@ test('Poppy photo addition preserves existing content and runs once without publ
 
   await payload.update({ collection: 'animals', id: poppy.id, data: { summary: data.summary, _status: 'published' } })
   const unrelated = await payload.findByID({ collection: 'animals', id: publishedID, depth: 0 })
-  assert.equal(await seedPoppyPhotos(payload), 2)
+  assert.equal(await seedPoppyPhotos(payload), 5)
   const updated = await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })
-  assert.equal(updated.photos?.length, 3)
+  assert.equal(updated.photos?.length, 6)
   assert.equal(updated.photos?.[0].photo, publicPhotoID)
   assert.equal(updated.summary, data.summary)
   assert.equal(updated.description, data.description)
@@ -595,6 +595,15 @@ test('Poppy photo addition preserves existing content and runs once without publ
   await payload.update({ collection: 'animals', id: poppy.id, data: { photos: [updated.photos![0]], _status: 'published' } })
   assert.equal(await seedPoppyPhotos(payload), 0)
   assert.equal((await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })).photos?.length, 1)
+
+  // Upgrading a site with the first photo batch completed only appends the three new photos.
+  // It must not restore older images an editor has removed, or upload duplicate media.
+  await (payload.db as unknown as SQLiteAdapter).client.execute({ sql: 'DELETE FROM payload_migrations WHERE name = ?', args: ['20261117_poppy_three_more_demo_photos'] })
+  assert.equal(await seedPoppyPhotos(payload), 3)
+  const upgraded = await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })
+  assert.deepEqual(upgraded.photos?.map(row => row.photo), [publicPhotoID, ...updated.photos!.slice(3).map(row => row.photo)])
+  assert.deepEqual(await payload.count({ collection: 'media' }), count)
+  assert.equal(await seedPoppyPhotos(payload), 0)
 })
 
 
