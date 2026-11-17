@@ -73,7 +73,7 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
       <p className="cms-gallery-search-help" id="cms-animal-search-help">Search names, notes, intake IDs, or combine details like “small black female cat”. Use quotes to search a name or phrase literally.</p>
       <div className="cms-gallery-filter-bar">
         <details className="cms-gallery-filters">
-          <summary><SlidersHorizontal aria-hidden="true" />Filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" /></summary>
+          <summary><SlidersHorizontal aria-hidden="true" />Additional filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" /></summary>
           <div className="cms-gallery-filter-grid">
             {adminAnimalFilters.map(item => <label className="cms-gallery-filter" key={item.field}>
               <span>{item.label}</span>
