@@ -138,9 +138,8 @@
   .collapsible__content { border-end-start-radius: 9px; border-end-end-radius: 9px; }
   .collapsible--style-default > .collapsible__toggle-wrap { background: var(--cms-bg); }
 
-  /* Limit the neutral Settings canvas to full pages, never a nested picker drawer. */
+  /* Keep stronger Settings contrast while inheriting the shared CMS background. */
   html:not([data-theme=dark]) .template-default:has(:is(.global-edit--main-menu,.collection-edit--users,.collection-list--users):not(.drawer *)) {
-    --cms-bg: #f5f6f8;
     --cms-line: #dce0e5;
     --cms-muted: #5c626b;
     --theme-bg: var(--cms-bg);
@@ -148,7 +147,6 @@
     --theme-text: var(--cms-ink);
     --theme-border-color: var(--cms-line);
   }
-  .template-default:has(:is(.global-edit--main-menu,.collection-edit--users,.collection-list--users):not(.drawer *)) .doc-header { background: var(--cms-surface); }
   .global-edit--main-menu :is(#field-items,#field-highlightedButton) { padding: 24px; margin: 0 0 24px; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); }
   .global-edit--main-menu .array-field__draggable-rows { gap: 12px; }
   .global-edit--main-menu .collapsible--style-default { border: 1px solid var(--cms-line); }
