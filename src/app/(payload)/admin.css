@@ -176,8 +176,25 @@
   .cms-gallery-empty > svg { width: 36px; height: 36px; margin: 0 auto 15px; color: var(--cms-accent-text); }
   .cms-gallery-empty h2 { color: var(--cms-ink); font-size: 24px; }
   .cms-gallery-empty p { margin-bottom: 0; }
-  .cms-gallery-overview { width: 100%; padding: 8px 0 20px; container: cms-animals / inline-size; }
-  .cms-gallery-overview .cms-gallery-heading :is(h1,h2) { font-size: 32px; }
+  .cms-gallery-overview { width: 100%; padding: 0 0 16px; }
+  .cms-gallery-overview .cms-gallery-heading { gap: 12px; margin-bottom: 12px; }
+  .cms-gallery-overview .cms-gallery-heading :is(h1,h2) { font-family: var(--font-body); font-size: 24px; letter-spacing: -.5px; }
+  .cms-overview-actions { display: flex; align-items: center; gap: 16px; }
+  .cms-overview-actions .cms-gallery-view-all { margin: 0; }
+  .cms-gallery-overview .cms-overview-actions .cms-button-primary { width: auto; }
+  .cms-gallery-overview .cms-animal-grid { display: flex; flex-wrap: nowrap; gap: 12px; overflow-x: auto; padding: 5px 4px 10px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: var(--cms-line) transparent; }
+  .cms-gallery-overview .cms-animal-card { display: grid; grid-template-columns: 64px minmax(0,1fr); align-items: center; flex: 1 0 190px; gap: 10px; min-height: 120px; padding: 10px; border-radius: 10px; scroll-snap-align: start; }
+  .cms-gallery-overview .cms-animal-card-body { min-width: 0; padding: 0; }
+  .cms-gallery-overview .cms-animal-card h2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 17px; line-height: 1.25; letter-spacing: -.2px; margin-bottom: 8px; }
+  .cms-gallery-overview .cms-animal-card-photo { width: 64px; height: 86px; aspect-ratio: auto; border-radius: 7px; }
+  .cms-gallery-overview :is(.cms-featured-badge,.cms-card-edit,.cms-animal-card-meta,.cms-updated) { display: none; }
+  .cms-gallery-overview .cms-card-status { flex-direction: column; align-items: start; gap: 6px; font-size: 11px; }
+  .cms-gallery-overview .cms-status-badge { font-size: 11px; padding: 4px 6px; }
+  .cms-gallery-overview .cms-status-badge svg { width: 12px; height: 12px; }
+  .cms-gallery-overview .cms-photo-placeholder { font-size: 0; gap: 0; }
+  .cms-gallery-overview .cms-photo-placeholder svg { width: 25px; height: 25px; }
+  .cms-gallery-overview .cms-gallery-empty { padding: 18px; }
+  .cms-gallery-overview .cms-gallery-empty > svg { width: 25px; height: 25px; margin-bottom: 8px; }
   .cms-gallery-view-all { display: inline-flex; align-items: center; gap: 8px; color: var(--cms-accent-text); font-size: 14px; font-weight: 600; margin-top: 20px; text-decoration: none; }
   .cms-gallery-view-all:hover { text-decoration: underline; }
   .cms-gallery-view-all svg { width: 18px; height: 18px; }
