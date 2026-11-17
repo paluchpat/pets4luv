@@ -14,7 +14,7 @@ export function AnimalGalleryOverview({ cards, canCreate, adminRoute }: { cards:
   return <section className="cms-gallery-overview" aria-labelledby="dashboard-animals-heading">
     <div className="cms-gallery-heading"><h2 id="dashboard-animals-heading">Animals</h2><div className="cms-overview-actions"><Link className="cms-gallery-view-all" href={`${adminRoute}/collections/animals`}>See all animals<ArrowRight aria-hidden="true" /></Link>{canCreate && <AddAnimal onSaved={saved} />}</div></div>
     {message && <p className="cms-success" role="status">{message}</p>}
-    <div className="cms-animal-grid">{cards.map(card => <AnimalProfileCard key={card.id} card={card} onSaved={saved} onDeleted={() => { setMessage('Profile removed.'); router.refresh() }} />)}</div>
+    <div className="cms-animal-grid">{cards.map(card => <AnimalProfileCard key={card.id} card={card} compact onSaved={saved} onDeleted={() => { setMessage('Profile removed.'); router.refresh() }} />)}</div>
     {!cards.length && <div className="cms-gallery-empty"><PawPrint aria-hidden="true" /><p>Add your first animal profile to get started.</p></div>}
   </section>
 }

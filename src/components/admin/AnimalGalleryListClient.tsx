@@ -108,17 +108,18 @@ export function AddAnimal({ onSaved }: { onSaved: (status?: string) => void }) {
   return <><Toggler className="cms-button cms-button-primary"><Plus aria-hidden="true" />Add an animal</Toggler><Drawer redirectAfterCreate={false} onSave={({ doc }) => { closeDrawer(); onSaved('_status' in doc ? String(doc._status) : undefined) }} /></>
 }
 
-export function AnimalProfileCard({ card, onSaved, onDeleted }: { card: AdminAnimalCard; onSaved: (status?: string) => void; onDeleted: () => void }) {
+export function AnimalProfileCard({ card, onSaved, onDeleted, compact = false }: { card: AdminAnimalCard; onSaved: (status?: string) => void; onDeleted: () => void; compact?: boolean }) {
   const [Drawer, Toggler, { closeDrawer }] = useDocumentDrawer({ collectionSlug: 'animals', id: card.id })
   const status = card.status === 'on-hold' ? 'On hold' : card.status === 'adopted' ? 'Adopted' : card.status === 'available' ? 'Available' : 'Status not set'
   const publication = card.publication === 'changed' ? 'Draft changes' : card.publication === 'draft' ? 'Draft' : 'Published'
+  const featuredLabel = card.featured ? <span className="cms-featured-badge"><Star aria-hidden="true" />Featured</span> : null
   return <><Toggler className="cms-animal-card" aria-label={`Edit ${card.name}`}>
     <div className="cms-animal-card-photo">
       {card.photo ? <><img className="cms-animal-card-backdrop" src={card.photo.url} alt="" aria-hidden="true" loading="lazy" /><img className="cms-animal-card-image" src={card.photo.url} alt={card.photo.alt || card.name} loading="lazy" /></> : <span className="cms-photo-placeholder"><ImagePlus aria-hidden="true" />Add a photo</span>}
-      {card.featured && <span className="cms-featured-badge"><Star aria-hidden="true" />Featured</span>}
+      {!compact && featuredLabel}
       <span className="cms-card-edit"><Pencil aria-hidden="true" /><span className="cms-sr-only">Edit profile</span></span>
     </div>
-    <div className="cms-animal-card-body"><h2>{card.name}</h2><p className="cms-animal-card-meta">{card.age} · {card.gender} · {card.photos} {card.photos === 1 ? 'photo' : 'photos'}</p>
+    <div className="cms-animal-card-body"><h2>{card.name}</h2>{compact && featuredLabel}<p className="cms-animal-card-meta">{card.age} · {card.gender} · {card.photos} {card.photos === 1 ? 'photo' : 'photos'}</p>
       <div className="cms-card-status"><span className="cms-status-badge" data-status={card.status || 'unknown'}><CheckCircle2 aria-hidden="true" />{status}</span><span className="cms-publication" data-publication={card.publication}>{publication}</span></div>
       {card.updated && <p className="cms-updated">Updated {card.updated}</p>}
     </div>

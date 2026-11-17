@@ -272,7 +272,9 @@
   .cms-gallery-overview .cms-animal-card-body { min-width: 0; padding: 0; }
   .cms-gallery-overview .cms-animal-card h2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 17px; line-height: 1.25; letter-spacing: -.2px; margin-bottom: 8px; }
   .cms-gallery-overview .cms-animal-card-photo { width: 64px; height: 86px; aspect-ratio: auto; border-radius: 7px; }
-  .cms-gallery-overview :is(.cms-featured-badge,.cms-card-edit,.cms-animal-card-meta,.cms-updated) { display: none; }
+  .cms-gallery-overview :is(.cms-card-edit,.cms-animal-card-meta,.cms-updated) { display: none; }
+  .cms-gallery-overview .cms-featured-badge { position: static; display: inline-flex; width: fit-content; gap: 4px; margin: 0 0 6px; padding: 2px 6px; background: var(--cms-tint); font-size: 11px; line-height: 16px; box-shadow: none; }
+  .cms-gallery-overview .cms-featured-badge svg { width: 12px; height: 12px; }
   .cms-gallery-overview .cms-card-status { flex-direction: column; align-items: start; gap: 6px; font-size: 11px; }
   .cms-gallery-overview .cms-status-badge { font-size: 11px; padding: 4px 6px; }
   .cms-gallery-overview .cms-status-badge svg { width: 12px; height: 12px; }
