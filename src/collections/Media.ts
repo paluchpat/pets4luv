@@ -6,7 +6,7 @@ const uploadRoot = process.env.LOCAL_UPLOAD_DIR || path.resolve(process.cwd(), '
 
 export const Media: CollectionConfig = {
   slug: 'media', labels: { singular: 'Approved public photo', plural: 'Approved public photos' },
-  admin: { useAsTitle: 'alt', group: 'Content', description: 'Only upload photographs approved for public display. Keep cards and private notes in Intake files.' },
+  admin: { useAsTitle: 'alt', hidden: true, description: 'Only upload photographs approved for public display. Keep cards and private notes in Intake files.' },
   access: { read: () => true, create: isStaff, update: isStaff, delete: isStaff },
   upload: {
     staticDir: path.resolve(uploadRoot, 'public'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'],

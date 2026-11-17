@@ -4,6 +4,8 @@ import { defaultHomepageIntro } from './homepage-intro'
 
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
 export type RichText = { root: { children: unknown[]; [key: string]: unknown }; [key: string]: unknown }
+export type AnimalPhotoDTO = { url: string; alt: string }
+export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[] }
 export type AnimalDTO = {
   id: number | string; name: string; slug: string; species: 'cat' | 'dog'; sex: 'female' | 'male' | 'unknown';
   ageGroup: 'baby' | 'young' | 'adult' | 'senior'; size: 'small' | 'medium' | 'large'; breed: string;
@@ -28,6 +30,17 @@ export function animalDTO(doc: any, photoVariant: 'card' | 'uncropped' = 'card')
     compatibility: { dogs: doc.compatibility?.dogs || 'unknown', cats: doc.compatibility?.cats || 'unknown', children: doc.compatibility?.children || 'unknown' },
     compatibilityNotes: doc.compatibilityNotes || '',
   }
+}
+
+/** Only approved public photo URLs and alt text reach the profile gallery. */
+export function animalProfileDTO(doc: any): AnimalProfileDTO {
+  const photos: AnimalPhotoDTO[] = (doc.photos || []).flatMap((row: any) => {
+    const photo = row.photo
+    return photo && typeof photo === 'object' && photo.url
+      ? [{ url: photo.url, alt: photo.alt || doc.name }]
+      : []
+  })
+  return { ...animalDTO(doc, 'uncropped'), photos }
 }
 
 function ageLabel(doc: any) {

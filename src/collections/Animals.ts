@@ -7,7 +7,7 @@ const compatibility = (name: string, label: string): Field => ({
 })
 
 export const Animals: CollectionConfig = {
-  slug: 'animals', admin: { useAsTitle: 'name', group: 'Content', defaultColumns: ['name', 'species', 'status', '_status'] },
+  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'] },
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   fields: [

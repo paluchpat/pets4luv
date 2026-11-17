@@ -34,3 +34,11 @@ export function PagesNavClient({ adminRoute, pages, canCreate, isOpen }: Props) 
     })}
   </NavGroup>
 }
+
+export function AnimalsNavClient({ adminRoute }: { adminRoute: string }) {
+  const pathname = usePathname()
+  const href = `${adminRoute}/collections/animals`
+  return <Link className="nav__link nav__link--standalone" href={href} id="nav-animals" prefetch={false} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined}>
+    <span className="nav__link-label">Animals</span>
+  </Link>
+}

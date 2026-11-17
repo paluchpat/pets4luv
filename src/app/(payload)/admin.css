@@ -1,6 +1,11 @@
 @layer payload-default, payload;
 
 @layer payload {
+  .nav__link--standalone {
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
   .nav .nav-group__toggle {
     color: var(--theme-text);
     font-weight: 600;

@@ -8,6 +8,7 @@ const { getPayload } = await import('payload')
 const { default: config } = await import('../src/payload.config')
 const { prepareHomepageIntro } = await import('./homepage-intro-schema')
 const { prepareInformationPages } = await import('./information-pages-schema')
+const { seedPoppyPhotos } = await import('./poppy-photos-seed')
 const resolvedConfig = await config
 
 // The build generates types next; avoid Payload's unawaited development child process.
@@ -19,6 +20,8 @@ const client = (payload.db as unknown as SQLiteAdapter).client
 try {
   await prepareHomepageIntro(client)
   await prepareInformationPages(client)
+  const addedPhotos = await seedPoppyPhotos(payload)
+  if (addedPhotos) console.log(`Added ${addedPhotos} extra Poppy demo photos.`)
 } finally {
   try {
     await payload.destroy()

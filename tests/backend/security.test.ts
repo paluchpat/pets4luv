@@ -6,12 +6,13 @@ import path from 'node:path'
 import { getPayload, type Payload } from 'payload'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { createClient } from '@libsql/client'
-import { animalDTO, buildAnimalWhere, homepageIntroDTO, richTextToText } from '../../src/lib/public-content'
+import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText } from '../../src/lib/public-content'
 import { consolidateAdoption, seedAdoption } from '../../scripts/adoption-seed'
 import { seedPages } from '../../scripts/page-seeds'
 import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { prepareHomepageIntro } from '../../scripts/homepage-intro-schema'
 import { prepareInformationPages } from '../../scripts/information-pages-schema'
+import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -519,4 +520,51 @@ test('information Pages migration copies published articles and all drafts once 
   assert.deepEqual((await snapshot('_pages_v')).filter(row => standaloneVersionIDs.has(row.id)), standaloneVersions)
   assert.deepEqual([await snapshot('knowledge'), await snapshot('_knowledge_v')], archive)
   assert.deepEqual([await snapshot('homepage'), await snapshot('_homepage_v')], highlights)
+})
+
+
+test('profile photos include all approved images without exposing media metadata', () => {
+  const profile = animalProfileDTO({ name: 'Poppy', photos: [
+    { photo: { url: '/api/media/file/original.webp', alt: 'Original', sizes: { card: { url: '/cropped.webp' } }, private: 'PRIVATE PHOTO FIELD' } },
+    { photo: { url: '/api/media/file/playing.webp', alt: 'Playing', private: 'PRIVATE PHOTO FIELD' } },
+    { photo: 42 }, { photo: null },
+  ] })
+  assert.deepEqual(profile.photos, [
+    { url: '/api/media/file/original.webp', alt: 'Original' },
+    { url: '/api/media/file/playing.webp', alt: 'Playing' },
+  ])
+  assert.equal(profile.photo?.url, profile.photos[0].url)
+  assert.ok(!JSON.stringify(profile).includes('PRIVATE PHOTO FIELD'))
+})
+
+test('Poppy photo addition preserves existing content and runs once without publishing drafts', async () => {
+  const data = { name: 'Poppy', slug: 'poppy', species: 'cat', sex: 'female', ageGroup: 'baby', size: 'small', status: 'available', summary: 'Rescue approved summary', description: 'Rescue approved description', compatibility: { dogs: 'unknown', cats: 'unknown', children: 'unknown' }, photos: [{ photo: publicPhotoID }], internalNotes: 'Real rescue listing', _status: 'published' } as const
+  const poppy = await payload.create({ collection: 'animals', data: { ...data, photos: [...data.photos] } })
+  const mediaBefore = await payload.count({ collection: 'media' })
+  assert.equal(await seedPoppyPhotos(payload), 0)
+  assert.deepEqual(await payload.count({ collection: 'media' }), mediaBefore)
+
+  await payload.update({ collection: 'animals', id: poppy.id, draft: true, data: { internalNotes: 'Fictional demonstration record. Never use this fixture as an actual adoption listing.', summary: 'Pending draft', _status: 'draft' } })
+  assert.equal(await seedPoppyPhotos(payload), 0)
+  assert.equal((await payload.findByID({ collection: 'animals', id: poppy.id, draft: true })).summary, 'Pending draft')
+  assert.deepEqual(await payload.count({ collection: 'media' }), mediaBefore)
+
+  await payload.update({ collection: 'animals', id: poppy.id, data: { summary: data.summary, _status: 'published' } })
+  const unrelated = await payload.findByID({ collection: 'animals', id: publishedID, depth: 0 })
+  assert.equal(await seedPoppyPhotos(payload), 2)
+  const updated = await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })
+  assert.equal(updated.photos?.length, 3)
+  assert.equal(updated.photos?.[0].photo, publicPhotoID)
+  assert.equal(updated.summary, data.summary)
+  assert.equal(updated.description, data.description)
+  assert.deepEqual(await payload.findByID({ collection: 'animals', id: publishedID, depth: 0 }), unrelated)
+  const count = await payload.count({ collection: 'media' })
+  assert.equal(await seedPoppyPhotos(payload), 0)
+  assert.deepEqual(await payload.count({ collection: 'media' }), count)
+  assert.deepEqual(await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 }), updated)
+
+  // A later editorial removal must not be reversed by the next deployment.
+  await payload.update({ collection: 'animals', id: poppy.id, data: { photos: [updated.photos![0]], _status: 'published' } })
+  assert.equal(await seedPoppyPhotos(payload), 0)
+  assert.equal((await payload.findByID({ collection: 'animals', id: poppy.id, depth: 0 })).photos?.length, 1)
 })

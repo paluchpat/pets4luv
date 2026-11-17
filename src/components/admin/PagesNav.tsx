@@ -1,7 +1,7 @@
 import type { ServerProps } from 'payload'
 import { PREFERENCE_KEYS } from 'payload/shared'
 import { siteLinks } from '../../lib/site-navigation'
-import { PagesNavClient } from './PagesNavClient'
+import { AnimalsNavClient, PagesNavClient } from './PagesNavClient'
 
 type NavPreferences = { groups?: { Pages?: { open?: boolean } } }
 
@@ -35,4 +35,10 @@ export async function PagesNav({ payload, permissions, user }: ServerProps) {
     canCreate={Boolean(permissions.collections.pages.create)}
     isOpen={navPreferences?.groups?.Pages?.open}
   />
+}
+
+/** Direct access to the animal catalog without a redundant Content group. */
+export function AnimalsNav({ payload, permissions, user }: ServerProps) {
+  if (!user || !['admin', 'editor'].includes(String(user.role)) || !permissions?.collections?.animals?.read) return null
+  return <AnimalsNavClient adminRoute={payload.config.routes.admin} />
 }

@@ -28,15 +28,15 @@ NODE_ENV=development TURSO_PUSH_SCHEMA=true node --env-file=/absolute/path/to/pr
 
 Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/admin` to create the first administrator. Both photo collections use the private Blob store. Payload serves approved media through its regular file routes and requires staff login for intake files. Browser uploads on Vercel are limited to 4 MiB per file.
 
-The build runs `prepare:cms` using the configured database credentials. It adds the Homepage Intro tables and initializes the current introduction when absent. It also moves adoption and volunteering into Pages with their drafts and revision history. A migration record for each article keeps later builds from repeating the move or replacing edits.
+The build runs `prepare:cms` using the configured database credentials. It adds the Homepage Intro tables and initializes the current introduction when absent. It also moves adoption and volunteering into Pages with their drafts and revision history. A migration record for each article keeps later builds from repeating the move or replacing edits. The build also adds Poppy’s two extra demo photos once, retaining the main photo and skipping real listings or pending drafts.
 
 ## Content editing
 
-- **Animals:** add approved public photos, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
+- **Animals:** open this top-level sidebar item and add approved public photos directly in each animal’s Photos field, enter animal details, save a draft, review, and publish. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights.
 - **Homepage → Homepage Intro:** edit the foundation heading and rich-text introduction, including the donation link. Save a draft and use the authenticated preview before publishing.
 - **Homepage → Homepage Highlights:** edit the featured-animal introduction, select available animals, and drag the rows to order them. Use the authenticated preview before publishing.
 - **Pages:** open a page directly from this sidebar group, or use **New page** to add one. Existing page links use the same labels as the public menu. Edit the body with the rich-text toolbar and save a draft before publishing. Adoption and volunteering keep their `/info/adoption` and `/info/volunteering` addresses; a published page with slug `donate` appears at `/donate`. Public navigation links are maintained in the site code.
-- **Private intake files / Intakes:** upload the animal source photo and information card privately, record supplied facts, and link an animal draft. Only approved animal photographs belong in the public photo library. AI extraction is not active.
+- **Private intake files / Intakes:** upload the animal source photo and information card privately, record supplied facts, and link an animal draft. The public photo library stays behind the scenes; add and select approved photos from each animal’s editor. AI extraction is not active.
 - **Staff:** the administrator can create an editor account for the content manager. Editors can maintain content but cannot assign administrative roles.
 
 Use **unknown** for unassessed compatibility. Public compatibility filters match explicit yes assessments, never unknown or conditional values.

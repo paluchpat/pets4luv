@@ -4,7 +4,7 @@ import config from '@payload-config'
 import { draftMode, headers } from 'next/headers'
 
 import { defaultGallerySort, type GallerySort } from './gallery-filters'
-import { animalDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalDTO, type AnimalFilters, type HomepageDTO, type RichText } from './public-content'
+import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalDTO, type AnimalProfileDTO, type AnimalFilters, type HomepageDTO, type RichText } from './public-content'
 export * from './public-content'
 
 const galleryPageSize = 12
@@ -59,10 +59,10 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
   return { docs: result.docs.map(doc => animalDTO(doc, 'uncropped')), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 
-export async function getAnimal(slug: string): Promise<AnimalDTO | null> {
+export async function getAnimal(slug: string): Promise<AnimalProfileDTO | null> {
   const payload = await getPayload({ config })
   const result = await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] }, limit: 1 })
-  return result.docs[0] ? animalDTO(result.docs[0]) : null
+  return result.docs[0] ? animalProfileDTO(result.docs[0]) : null
 }
 
 async function previewActor(payload: Awaited<ReturnType<typeof getPayload>>) {
