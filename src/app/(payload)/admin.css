@@ -98,7 +98,9 @@
   .field-type .field-label { font-weight: 600; font-size: 13px; color: var(--cms-ink); }
   .field-description { color: var(--cms-muted); line-height: 1.5; }
   .react-select .rs__control, .rs__control { border-color: var(--cms-line); border-radius: 8px; background: var(--cms-surface); min-height: 44px; }
-  .rs__control--is-focused { border-color: var(--cms-accent-text); box-shadow: 0 0 0 1px var(--cms-accent-text); }
+  .react-select .rs__control--is-focused { border-color: var(--cms-accent-text); box-shadow: 0 0 0 1px var(--cms-accent-text); }
+  /* Keep the focus ring on the dropdown, not its small internal search input. */
+  .react-select input, .react-select input:is(:focus,:focus-visible) { border: 0; border-radius: 0; background: transparent; outline: none; box-shadow: none; }
   /* Shared field tabs: align labels and content with one consistent inset. */
   .tabs-field { --cms-tabs-inset: 24px; margin: 24px 0 0; background: var(--cms-surface); border: 1px solid var(--cms-line); border-radius: 15px; overflow: visible; }
   .tabs-field__tabs-wrap { padding: 0 calc(var(--cms-tabs-inset) - 12px); margin-bottom: 0; border-radius: 15px 15px 0 0; overscroll-behavior-x: contain; scrollbar-width: none; }
