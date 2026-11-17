@@ -53,8 +53,8 @@ export function PhotoUploadControls({ field, path: initialPath, readOnly }: Uplo
       <ImagePlus size={28} aria-hidden="true" />
       <strong>Drag and drop a photo here</strong>
       <span className="cms-photo-upload__hint">JPG, PNG, or WebP</span>
-      <button type="button" className="cms-photo-upload__select" disabled={processing} onClick={() => input.current?.click()}>Select a file</button>
-      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={processing} aria-label="Select a photo file" onChange={(event) => {
+      <button type="button" className="cms-photo-upload__select" disabled={processing} onClick={() => input.current?.click()}>Upload a photo</button>
+      <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" hidden disabled={processing} aria-label="Upload a photo" onChange={(event) => {
         if (event.target.files) chooseFile(event.target.files)
         event.target.value = ''
       }} />
