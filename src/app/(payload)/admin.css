@@ -16,6 +16,7 @@
     --cms-ink: #292528;
     --cms-muted: #71676d;
     --cms-line: #e6dee0;
+    --cms-editor-gap: 32px;
     --cms-success: #32664a;
     --cms-success-bg: #edf5ee;
     --cms-draft: #805b24;
@@ -82,6 +83,9 @@
   .app-header { background: var(--cms-surface); border-bottom: 1px solid var(--cms-line); min-height: 68px; }
   .doc-header h1, .collection-list__header h1, .global-edit h1 { letter-spacing: -1px; }
   .doc-controls { background: var(--cms-surface); border-bottom: 1px solid var(--cms-line); }
+  /* Keep the first editor section equally spaced below the publication controls. */
+  .document-fields__edit { padding-top: var(--cms-editor-gap); }
+  .document-fields__fields > .tabs-field:first-child { margin-top: 0; }
   .btn { border-radius: 8px; font-weight: 600; }
   .btn--style-primary { background: var(--cms-accent); border-color: var(--cms-accent); color: #fff; }
   .btn--style-primary:not(:disabled):hover { background: var(--cms-accent-hover); border-color: var(--cms-accent-hover); color: #fff; }
@@ -186,7 +190,7 @@
   .doc-drawer .id-label, .doc-drawer .doc-controls__value-wrap { display: none; }
   .doc-drawer .doc-controls .btn { min-height: 40px; }
   .doc-drawer .doc-header, .doc-drawer .doc-controls { background: var(--cms-surface); }
-  .doc-drawer .document-fields { padding-top: 18px; }
+  .doc-drawer .document-fields { padding-top: 0; }
   .doc-drawer .tabs-field { margin-top: 0; border: 0; }
   .card { border: 1px solid var(--cms-line); border-radius: 13px; background: var(--cms-surface); box-shadow: 0 3px 12px #422c3005; }
   .card--has-onclick:hover { background: var(--cms-surface); border-color: var(--cms-accent-text); box-shadow: 0 5px 16px #422c3010; }
@@ -302,6 +306,7 @@
     .collection-list--users .list-header:not(.list-drawer__header) .list-header__title-and-actions { min-height: 44px; }
   }
   @media(max-width:768px) {
+    :root { --cms-editor-gap: 24px; }
     .collection-list--users .list-header:not(.list-drawer__header) { padding-top: 0; }
   }
   @media(max-width:1100px) {
