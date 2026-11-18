@@ -13,7 +13,7 @@ import { ageOptions, genderOptions, sizeOptions } from './filter-options'
 const colorSwatches: Record<AnimalColor, string> = {
   black: '#242023',
   brown: '#79503a',
-  calico: 'conic-gradient(#ffffff 0deg 120deg, #242023 120deg 240deg, #e47d37 240deg 360deg)',
+  calico: 'linear-gradient(90deg, #e47d37 0% 33.333%, #ffffff 33.333% 66.667%, #242023 66.667% 100%)',
   cream: '#f6e8cc',
   gold: '#c69833',
   gray: '#85838b',
