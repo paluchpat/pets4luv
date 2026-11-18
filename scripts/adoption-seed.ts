@@ -42,7 +42,7 @@ const adoption = {
   title: 'How adoption works',
   source: `${catSource}, ${dogSource}`,
   body: body(
-    paragraph('Adoption usually takes 3 to 7 days after Pets4Luv receives your signed application. Email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), ' or call ', link('(516) 860-7057', 'tel:+15168607057'), ' for the current application.'),
+    paragraph('Adoption usually takes 3 to 7 days after Pets4Luv receives your signed application. Email ', link('{{emailAddress}}', '{{emailHref}}'), ' or call ', link('{{phone}}', '{{phoneHref}}'), ' for the current application.'),
     orderedList([
       'Complete the application. Include any required addenda, three personal references who aren’t relatives, and one veterinary reference.',
       'Prepare for a home check. Pets must be allowed at your address. If you rent, provide your landlord’s contact information. Pets4Luv checks that the home is safe for the animal.',

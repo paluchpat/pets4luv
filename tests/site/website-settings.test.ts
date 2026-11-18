@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { RichContent } from '../../src/components/RichContent'
 import { SocialLinks } from '../../src/components/SocialLinks'
 import { AdoptionDirectoryLinks } from '../../src/components/AdoptionDirectoryLinks'
-import { applyWebsiteSettings, defaultWebsiteSettings, normalizePaymentHandle, phoneHref, validatePhone, validatePaypalHandle, validateVenmoHandle, validateWebsiteUrl, websiteSettingsDTO, websiteSettingKeys, paypalHandleFromUrl } from '../../src/lib/website-settings'
+import { applyWebsiteSettings, createWebsiteSettingsReferences, referenceWebsiteSettings, isSharedWebsiteUrl, defaultWebsiteSettings, normalizePaymentHandle, phoneHref, validatePhone, validatePaypalHandle, validateVenmoHandle, validateWebsiteUrl, websiteSettingsDTO, websiteSettingKeys, paypalHandleFromUrl } from '../../src/lib/website-settings'
 
 test('website setting defaults protect drafts and retain explicitly cleared optional links', () => {
   assert.deepEqual(websiteSettingsDTO(undefined), defaultWebsiteSettings)
@@ -93,4 +93,63 @@ test('optional social and adoption directory links appear only when configured',
   const both = renderToStaticMarkup(createElement(AdoptionDirectoryLinks, { settings: defaultWebsiteSettings }))
   assert.ok(both.includes('Petfinder') && both.includes(' and ') && both.includes('Adopt a pet'))
   assert.equal(renderToStaticMarkup(createElement(AdoptionDirectoryLinks, { settings: { petfinderUrl: '', adoptAPetUrl: '' } })), '')
+})
+
+
+test('current and historic rescue details become stable references across later settings changes', () => {
+  const previous = { ...defaultWebsiteSettings, address: '10 Former Road, Freeport, NY 11520', phone: '212-555-0100', emailAddress: 'previous@example.invalid', zeffyUrl: 'https://example.invalid/previous-donation', venmoHandle: 'previous-rescue', paypalHandle: 'PreviousRescue' }
+  const current = websiteSettingsDTO({ ...previous, address: '20 Current Road, Freeport, NY 11520', phone: '212-555-0200', emailAddress: 'current@example.invalid', zeffyUrl: 'https://example.invalid/current-donation', venmoHandle: 'current-rescue', paypalHandle: 'CurrentRescue', _status: 'published' })
+  const reference = createWebsiteSettingsReferences([previous])
+  const raw = { root: { children: [{ type: 'paragraph', children: [
+    { type: 'text', text: previous.address + '. Call ' + previous.phone + '.' },
+    { type: 'link', fields: { url: 'mailto:' + previous.emailAddress + '?subject=Adoption' }, children: [{ type: 'text', text: previous.emailAddress }] },
+    { type: 'link', fields: { url: 'tel:+12125550100' }, children: [{ type: 'text', text: '212.555.0100' }] },
+    { type: 'link', fields: { url: previous.zeffyUrl }, children: [{ type: 'text', text: 'Donate' }] },
+  ] }] } }
+  const template = reference(raw)
+  const json = JSON.stringify(template)
+  for (const key of ['address', 'phone', 'emailAddress', 'emailHref', 'phoneHref', 'zeffyUrl']) assert.ok(json.includes('{{' + key + '}}'), json)
+  assert.doesNotMatch(json, /Former Road|previous@example|555-0100|previous-donation/)
+  const output = renderToStaticMarkup(createElement(RichContent, { value: applyWebsiteSettings(template, current) }))
+  for (const value of [current.address, current.phone, current.emailAddress, current.zeffyUrl, phoneHref(current.phone)]) assert.ok(output.includes(value), output)
+  assert.ok(output.includes('mailto:current@example.invalid?subject=Adoption'))
+  assert.equal(JSON.stringify(reference(template)), json)
+})
+
+test('formatted and split contact text stays connected without losing surrounding content', () => {
+  const raw = { root: { children: [{ type: 'paragraph', children: [
+    { type: 'text', text: 'Call (516) ', format: 0 },
+    { type: 'text', text: '860-7057', format: 1 },
+    { type: 'text', text: ' or email info@', format: 0 },
+    { type: 'text', text: 'pets4luv.org.', format: 2 },
+  ] }] } }
+  const original = JSON.stringify(raw)
+  const template = referenceWebsiteSettings(raw)
+  assert.equal(template.root.children[0].children.map(node => node.text).join(''), 'Call {{phone}} or email {{emailAddress}}.')
+  const settings = { ...defaultWebsiteSettings, phone: '(212) 555-0300', emailAddress: 'new@example.invalid' }
+  const output = renderToStaticMarkup(createElement(RichContent, { value: applyWebsiteSettings(template, settings) }))
+  assert.ok(output.includes(settings.phone) && output.includes(settings.emailAddress), output)
+  assert.equal(JSON.stringify(raw), original)
+})
+
+test('unrelated phone numbers, email domains, and URLs are never rewritten', () => {
+  const text = 'Vet: (212) 555-9999. info@pets4luv.org.example.invalid. https://www.facebook.com/Pets4Luv/unrelated. 2 Rider Place, Freeport, NY 11520-TEST.'
+  assert.equal(referenceWebsiteSettings(text), text)
+  assert.equal(referenceWebsiteSettings('info@pets4luv.org.'), '{{emailAddress}}.')
+  assert.equal(referenceWebsiteSettings('(516) 860-7057'), '{{phone}}')
+})
+
+test('all shared social, listing, and donation URLs follow settings, including cleared links', () => {
+  const settings = websiteSettingsDTO({ ...defaultWebsiteSettings, instagramUrl: 'https://example.invalid/instagram', facebookUrl: 'https://example.invalid/facebook', tiktokUrl: 'https://example.invalid/tiktok', petfinderUrl: 'https://example.invalid/petfinder', adoptAPetUrl: 'https://example.invalid/adopt', zeffyUrl: 'https://example.invalid/donate', paypalHandle: 'NextRescue', venmoHandle: 'next-rescue', _status: 'published' })
+  const keys = ['instagramUrl', 'facebookUrl', 'tiktokUrl', 'petfinderUrl', 'adoptAPetUrl', 'zeffyUrl', 'paypalUrl', 'venmoUrl'] as const
+  for (const key of keys) {
+    assert.equal(applyWebsiteSettings('{{' + key + '}}', settings), settings[key])
+    assert.equal(isSharedWebsiteUrl('{{' + key + '}}'), true)
+  }
+  assert.equal(applyWebsiteSettings('tel:{{phone}}', settings), phoneHref(settings.phone))
+  assert.equal(applyWebsiteSettings('mailto:{{emailAddress}}', settings), 'mailto:' + settings.emailAddress)
+  assert.equal(applyWebsiteSettings('{{zeffyUrl}}', { ...settings, zeffyUrl: '' }), '')
+  assert.equal(isSharedWebsiteUrl('{{notASetting}}'), false)
+  assert.equal(applyWebsiteSettings('{{constructor}}', settings), '{{constructor}}')
+  assert.equal(isSharedWebsiteUrl('{{zeffyUrl}}?value=\u0000'), false)
 })

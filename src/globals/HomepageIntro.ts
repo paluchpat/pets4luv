@@ -1,3 +1,4 @@
+import { sharedContentHooks } from '../hooks/shared-content'
 import type { GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 import { defaultHomepageIntro } from '../lib/homepage-intro'
@@ -15,6 +16,6 @@ export const HomepageIntro: GlobalConfig = {
   },
   fields: [
     { name: 'heading', type: 'text', required: true, defaultValue: defaultHomepageIntro.heading },
-    { name: 'body', type: 'richText', required: true, defaultValue: defaultHomepageIntro.body },
+    { name: 'body', type: 'richText', required: true, hooks: sharedContentHooks, defaultValue: defaultHomepageIntro.body },
   ],
 }

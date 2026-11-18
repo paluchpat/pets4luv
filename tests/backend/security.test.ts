@@ -15,7 +15,7 @@ import { prepareInformationPages } from '../../scripts/information-pages-schema'
 import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
 import { prepareWebsiteSettings } from '../../scripts/website-settings-schema'
 import { seedWebsiteSettings } from '../../scripts/website-settings-seed'
-import { defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/website-settings'
+import { applyWebsiteSettings, defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/website-settings'
 import { prepareMainMenuSchema } from '../../scripts/main-menu-schema'
 import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
@@ -288,13 +288,14 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   const list = about.body.root.children.find(node => node.type === 'list')
   assert.equal(list?.tag, 'ul')
   assert.equal(Array.isArray(list?.children) && list.children.length, 6)
-  const aboutBody = JSON.stringify(about.body)
+  assert.ok(JSON.stringify(about.body).includes('{{phoneHref}}'))
+  const aboutBody = JSON.stringify(applyWebsiteSettings(about.body, defaultWebsiteSettings))
   for (const href of ['tel:+15168607057', 'mailto:info@pets4luv.org', '/animals']) assert.ok(aboutBody.includes(href))
   for (const [slug, title] of Object.entries({ tnr: 'Trap-Neuter-Return (TNR)', medical: 'Medical Assistance', 'injured-feral-cats': 'Injured Feral Cats' })) {
     const { docs: [page] } = await payload.find({ collection: 'pages', overrideAccess: false, where: { slug: { equals: slug } } })
     assert.equal(page?.title, title)
     assert.equal(page._status, 'published')
-    const content = JSON.stringify(page.body)
+    const content = JSON.stringify(applyWebsiteSettings(page.body, defaultWebsiteSettings))
     assert.ok(content.includes('tel:+15168607057'))
     assert.ok(content.includes('mailto:info@pets4luv.org'))
   }
@@ -365,7 +366,8 @@ test('volunteering seed creates official copy and only upgrades the exact demo w
   assert.equal(updated.reviewer, null)
   assert.equal(updated.reviewedAt, null)
   assert.equal(updated.body.root.children.length, 3)
-  const publishedBody = JSON.stringify(updated.body)
+  assert.ok(JSON.stringify(updated.body).includes('{{emailHref}}'))
+  const publishedBody = JSON.stringify(applyWebsiteSettings(updated.body, defaultWebsiteSettings))
   assert.ok(publishedBody.includes('mailto:info@pets4luv.org'))
   assert.ok(publishedBody.includes('tel:+15168607057'))
   assert.equal(await seedVolunteering(payload), 'preserved')
@@ -383,7 +385,7 @@ test('adoption seed writes a single article and preserves staff drafts', async (
   const steps = shared.body.root.children.find(node => node.type === 'list')
   assert.equal(steps?.tag, 'ol')
   assert.equal(Array.isArray(steps?.children) && steps.children.length, 3)
-  for (const href of ['mailto:info@pets4luv.org', 'tel:+15168607057']) assert.ok(JSON.stringify(shared.body).includes(href))
+  for (const href of ['mailto:info@pets4luv.org', 'tel:+15168607057']) assert.ok(JSON.stringify(applyWebsiteSettings(shared.body, defaultWebsiteSettings)).includes(href))
   assert.deepEqual(shared.body.root.children.filter(node => node.type === 'heading').map(node => [node.tag, richTextToText(node)]), [
     ['h2', 'Cat adoption'],
     ['h2', 'Dog adoption'],

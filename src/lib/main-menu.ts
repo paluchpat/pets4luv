@@ -1,4 +1,5 @@
 import { resolvePublicHref } from './site-links'
+import { isSharedWebsiteUrl } from './website-settings'
 import { siteLinks } from './site-navigation'
 
 export const builtInMenuPages = [
@@ -73,7 +74,7 @@ export function menuPageIDs(menu: MainMenuRecord): string[] {
 }
 
 export function validateMenuUrl(value: unknown): true | string {
-  return typeof value === 'string' && value.trim().length <= 2048 && resolvePublicHref(value)
+  return typeof value === 'string' && value.trim().length <= 2048 && (isSharedWebsiteUrl(value.trim()) || resolvePublicHref(value))
     ? true : 'Enter a website path such as /animals, a full https:// URL, an email link, or a phone link.'
 }
 

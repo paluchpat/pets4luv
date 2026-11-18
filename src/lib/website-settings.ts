@@ -104,35 +104,121 @@ export function websiteSettingsDTO(
 }
 
 function escapePattern(value: string) {
-  return value.replace(/[.*+?^$(){}|[\]\\]/g, '\\$&')
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-/** Keep existing articles in sync, and support explicit shared-value references in new copy. */
-export function applyWebsiteSettings<T>(value: T, settings: WebsiteSettings): T {
-  const substitutions = new Map<string, string>()
-  for (const key of publicSettingKeys) substitutions.set('{{' + key + '}}', settings[key])
-  substitutions.set('{{email}}', settings.emailAddress)
-  for (const key of publicSettingKeys) {
-    if (!key.endsWith('Handle') && defaultWebsiteSettings[key]) substitutions.set(defaultWebsiteSettings[key], settings[key])
+type SettingsSnapshot = Partial<Record<keyof WebsiteSettings, unknown>>
+
+/** Replace text across adjacent Lexical text nodes without losing their formatting. */
+function transformSharedStrings<T>(value: T, pattern: RegExp, replacement: (match: string) => string): T {
+  const replace = (text: string) => text.replace(pattern, replacement)
+  function textRun(nodes: any[]): any[] {
+    const joined = nodes.map(node => node.text).join('')
+    const matches = [...joined.matchAll(pattern)]
+    if (!matches.length) return nodes.map(visit)
+    let offset = 0
+    return nodes.map(node => {
+      const start = offset
+      const end = start + node.text.length
+      offset = end
+      let cursor = start
+      let text = ''
+      for (const match of matches) {
+        const matchStart = match.index!
+        const matchEnd = matchStart + match[0].length
+        if (matchEnd <= start || matchStart >= end) continue
+        text += joined.slice(cursor, Math.max(cursor, matchStart))
+        if (matchStart >= start) text += replacement(match[0])
+        cursor = Math.min(end, matchEnd)
+      }
+      text += joined.slice(cursor, end)
+      return { ...node, text }
+    })
   }
-  substitutions.set('@' + defaultWebsiteSettings.venmoHandle, settings.venmoHandle ? '@' + settings.venmoHandle : '')
-  substitutions.set(phoneHref(defaultWebsiteSettings.phone), phoneHref(settings.phone))
-  const patterns = [...substitutions.keys()].sort((a, b) => b.length - a.length).map(key =>
-    escapePattern(key) + (key === '@' + defaultWebsiteSettings.venmoHandle ? '(?![a-zA-Z0-9_-])' : '')
-  )
-  const pattern = new RegExp(patterns.join('|'), 'g')
-  // One pass avoids re-replacing text inside a newly inserted value.
-  const replace = (text: string) => text.replace(pattern, match => substitutions.get(match) ?? match)
   function visit(node: any): any {
+    if (typeof node === 'string') return replace(node)
     if (!node || typeof node !== 'object') return node
-    if (Array.isArray(node)) return node.map(visit)
-    const next = { ...node }
-    if (typeof next.text === 'string') next.text = replace(next.text)
-    if (typeof next.url === 'string') next.url = replace(next.url)
-    if (next.fields && typeof next.fields.url === 'string') next.fields = { ...next.fields, url: replace(next.fields.url) }
-    if (next.children) next.children = visit(next.children)
-    if (next.root) next.root = visit(next.root)
-    return next
+    if (Array.isArray(node)) {
+      const result: any[] = []
+      for (let index = 0; index < node.length;) {
+        if (node[index]?.type === 'text' && typeof node[index].text === 'string') {
+          const run = []
+          while (node[index]?.type === 'text' && typeof node[index].text === 'string') run.push(node[index++])
+          result.push(...textRun(run))
+        } else result.push(visit(node[index++]))
+      }
+      return result
+    }
+    return Object.fromEntries(Object.entries(node).map(([key, child]) => [key, visit(child)]))
   }
   return visit(value)
+}
+
+/** Recognize only this rescue's configured values, including earlier settings revisions. */
+export function createWebsiteSettingsReferences(snapshots: readonly SettingsSnapshot[] = []) {
+  const aliases = new Map<string, { token: string; boundary: string }>()
+  function add(value: unknown, token: string, boundary = '(?![a-z0-9_@/-]|\\.[a-z0-9])') {
+    if (typeof value === 'string' && value.trim()) aliases.set(value.trim().toLowerCase(), { token, boundary })
+  }
+  for (const source of [defaultWebsiteSettings, ...snapshots]) {
+    for (const key of publicSettingKeys) {
+      if (key === 'phone' || key.endsWith('Handle')) continue
+      const value = source[key]
+      if (key.endsWith('Url') && validateWebsiteUrl(value) !== true) continue
+      add(value, '{{' + key + '}}')
+      if (key.endsWith('Url') && typeof value === 'string' && value) add(value.replace(/\/$/, '') + '/', '{{' + key + '}}')
+    }
+    if (typeof source.emailAddress === 'string' && source.emailAddress) add('mailto:' + source.emailAddress, '{{emailHref}}')
+    if (typeof source.phone === 'string' && source.phone) {
+      const digits = source.phone.replace(/\D/g, '')
+      const local = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits
+      const formats = new Set([source.phone, digits, '+' + digits])
+      if (local.length === 10) {
+        const area = local.slice(0, 3), exchange = local.slice(3, 6), line = local.slice(6)
+        for (const separator of ['-', '.', ' ']) formats.add([area, exchange, line].join(separator))
+        formats.add(`(${area})${exchange}-${line}`)
+        formats.add(`(${area}) ${exchange} ${line}`)
+        formats.add('1-' + [area, exchange, line].join('-'))
+      }
+      for (const format of formats) {
+        add(format, '{{phone}}', '(?![0-9])')
+        add('tel:' + format.replace(/[ ()]/g, ''), '{{phoneHref}}', '(?![0-9])')
+      }
+      add(phoneHref(source.phone), '{{phoneHref}}', '(?![0-9])')
+    }
+    for (const key of ['venmoHandle', 'paypalHandle'] as const) {
+      const handle = normalizePaymentHandle(source[key])
+      if (handle) add('@' + handle, '@{{' + key + '}}')
+      add(key === 'venmoHandle' ? venmoProfileUrl(handle) : paypalProfileUrl(handle), '{{' + (key === 'venmoHandle' ? 'venmoUrl' : 'paypalUrl') + '}}')
+    }
+  }
+  add('tel:{{phone}}', '{{phoneHref}}')
+  add('mailto:{{emailAddress}}', '{{emailHref}}')
+  add('mailto:{{email}}', '{{emailHref}}')
+  const alternatives = [...aliases.keys()].sort((a, b) => b.length - a.length).map(alias =>
+    '(?<![a-z0-9_@])' + escapePattern(alias) + aliases.get(alias)!.boundary,
+  )
+  const pattern = new RegExp(alternatives.join('|'), 'gi')
+  return <T>(value: T): T => transformSharedStrings(value, pattern, match => aliases.get(match.toLowerCase())!.token)
+}
+
+export function referenceWebsiteSettings<T>(value: T, snapshots: readonly SettingsSnapshot[] = []): T {
+  return createWebsiteSettingsReferences(snapshots)(value)
+}
+
+export function isSharedWebsiteUrl(value: string): boolean {
+  if (/[\u0000-\u001f\u007f\\]/.test(value)) return false
+  const keys = [...publicSettingKeys.filter(key => key.endsWith('Url')), 'phoneHref', 'emailHref']
+  return new RegExp('^\\{\\{\\s*(?:' + keys.join('|') + ')\\s*\\}\\}(?:[?#][^\\s]*)?$').test(value)
+}
+
+/** Resolve references in one pass so inserted CMS values are never processed again. */
+export function applyWebsiteSettings<T>(value: T, settings: WebsiteSettings): T {
+  const references = referenceWebsiteSettings(value)
+  const values: Record<string, string> = { ...settings, email: settings.emailAddress, phoneHref: phoneHref(settings.phone), emailHref: 'mailto:' + settings.emailAddress }
+  const pattern = /\{\{\s*([a-zA-Z]+)\s*\}\}/g
+  return transformSharedStrings(references, pattern, match => {
+    const key = match.slice(2, -2).trim()
+    return Object.hasOwn(values, key) ? values[key] : match
+  })
 }

@@ -68,7 +68,7 @@ export const initialPages = [
         'Cleaning and office supplies: 13-gallon and 40-gallon or larger trash bags, paper towels, sponges, dog waste bags, printer paper, and can openers.',
       ]),
       paragraph('Pets4Luv is a member of BISSELL Pet Foundation’s Partners for Pets program.'),
-      paragraph('For our current wish list, to arrange a supply drop-off, or to request a donation receipt, email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+      paragraph('For our current wish list, to arrange a supply drop-off, or to request a donation receipt, email ', link('{{emailAddress}}', '{{emailHref}}'), '.'),
     ]),
   },
   contact,
@@ -90,7 +90,7 @@ export const initialPages = [
         'Use trap-neuter-return (TNR) to manage the size and health of community cat populations.',
       ]),
       heading('Contact us'),
-      paragraph('If you have questions about Pets4Luv, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+      paragraph('If you have questions about Pets4Luv, call ', link('{{phone}}', '{{phoneHref}}'), ' or email ', link('{{emailAddress}}', '{{emailHref}}'), '.'),
       paragraph('Looking for your next companion? ', link('Meet our available animals', '/animals'), '.'),
     ]),
   },
@@ -98,20 +98,20 @@ export const initialPages = [
     slug: 'tnr', title: 'Trap-Neuter-Return (TNR)',
     body: body([
       paragraph('Trap-neuter-return helps manage community cat populations. Cats are humanely trapped, spayed or neutered, and returned to the area where they were found.'),
-      paragraph('For help with TNR, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+      paragraph('For help with TNR, call ', link('{{phone}}', '{{phoneHref}}'), ' or email ', link('{{emailAddress}}', '{{emailHref}}'), '.'),
     ]),
   },
   {
     slug: 'medical', title: 'Medical Assistance',
     body: body([
       paragraph('If cost is a barrier to necessary, non-routine veterinary care for your pet, please ask us about medical assistance.'),
-      paragraph('To ask about an application, call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '. You can also find the request on our ', link('Applications page', '/applications#get-help'), '.'),
+      paragraph('To ask about an application, call ', link('{{phone}}', '{{phoneHref}}'), ' or email ', link('{{emailAddress}}', '{{emailHref}}'), '. You can also find the request on our ', link('Applications page', '/applications#get-help'), '.'),
     ]),
   },
   {
     slug: 'injured-feral-cats', title: 'Injured Feral Cats',
     body: body([
-      paragraph('If you’ve found an injured feral cat, please contact Pets4Luv for help. Call ', link('(516) 860-7057', 'tel:+15168607057'), ' or email ', link('info@pets4luv.org', 'mailto:info@pets4luv.org'), '.'),
+      paragraph('If you’ve found an injured feral cat, please contact Pets4Luv for help. Call ', link('{{phone}}', '{{phoneHref}}'), ' or email ', link('{{emailAddress}}', '{{emailHref}}'), '.'),
     ]),
   },
 ] as const

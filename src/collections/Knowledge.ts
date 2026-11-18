@@ -1,3 +1,4 @@
+import { sharedContentHooks } from '../hooks/shared-content'
 import type { CollectionConfig } from 'payload'
 import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 
@@ -9,7 +10,7 @@ export const Knowledge: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true, admin: slugSourceAdmin }, slugField,
     { name: 'category', type: 'select', required: true, options: ['adoption', 'volunteering'] },
-    { name: 'body', type: 'richText', required: true },
+    { name: 'body', type: 'richText', required: true, hooks: sharedContentHooks },
     { name: 'source', type: 'text' },
     { name: 'reviewer', type: 'text' },
     { name: 'reviewedAt', type: 'date' },

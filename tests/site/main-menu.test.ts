@@ -1,3 +1,4 @@
+import { applyWebsiteSettings, defaultWebsiteSettings } from '../../src/lib/website-settings'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { defaultMainMenu, mainMenuDTO, menuPageIDs, menuPageLabels, validateMenuUrl, type MainMenuRecord } from '../../src/lib/main-menu'
@@ -62,4 +63,20 @@ test('CMS page labels use the published menu, including relationship IDs after r
   assert.equal(labels.get('page:10'), 'Renamed about link')
   assert.equal(labels.get('url:/contact'), 'Contact us')
   assert.deepEqual(menuPageLabels({ ...defaultMainMenu, _status: 'draft' }), menuPageLabels(undefined))
+})
+
+
+test('menu contact and donation destinations resolve from shared CMS references', () => {
+  const settings = { ...defaultWebsiteSettings, phone: '(212) 555-0400', emailAddress: 'menu@example.invalid', zeffyUrl: 'https://example.invalid/menu-donation' }
+  const doc = { _status: 'published', items: [
+    { label: 'Call {{phone}}', linkType: 'custom', url: '{{phoneHref}}', showInFooter: true },
+    { label: 'Email', linkType: 'custom', url: '{{emailHref}}' },
+  ], highlightedButton: { enabled: true, label: 'Donate', linkType: 'custom', url: '{{zeffyUrl}}' } }
+  for (const url of ['{{phoneHref}}', '{{emailHref}}', '{{zeffyUrl}}']) assert.equal(validateMenuUrl(url), true)
+  const menu = mainMenuDTO(applyWebsiteSettings(doc, settings))
+  assert.equal(menu.items[0].kind === 'link' && menu.items[0].href, 'tel:+12125550400')
+  assert.equal(menu.items[0].label, 'Call (212) 555-0400')
+  assert.equal(menu.items[1].kind === 'link' && menu.items[1].href, 'mailto:menu@example.invalid')
+  assert.equal(menu.button?.href, settings.zeffyUrl)
+  assert.equal(mainMenuDTO(applyWebsiteSettings(doc, { ...settings, zeffyUrl: '' })).button, null)
 })

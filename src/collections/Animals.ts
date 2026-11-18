@@ -1,3 +1,4 @@
+import { sharedContentHooks } from '../hooks/shared-content'
 import { ValidationError, type CollectionConfig, type Field } from 'payload'
 import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 import { animalColorOptions } from '../lib/animal-colors'
@@ -48,17 +49,17 @@ export const Animals: CollectionConfig = {
         { name: 'photos', type: 'array', required: true, minRows: 1, labels: { singular: 'Photo', plural: 'Photos' }, admin: { className: 'cms-animal-photos', description: 'The first photo is the main image on the website. Drag photos to change their order.' }, fields: [{ name: 'photo', type: 'upload', relationTo: 'media', required: true, admin: { className: 'cms-animal-photo-upload', components: { beforeInput: ['./components/admin/PhotoUploadControls#PhotoUploadControls'] } } }] },
       ] },
       { label: 'Story', fields: [
-        { name: 'description', type: 'textarea', required: true },
+        { name: 'description', type: 'textarea', hooks: sharedContentHooks, required: true },
         {
           name: 'summary', label: 'Summary', type: 'textarea', maxLength: 220, defaultValue: '',
           // Preserve compatibility with existing animal and draft storage.
-          hooks: { beforeValidate: [({ value }) => value ?? ''] },
+          hooks: { ...sharedContentHooks, beforeValidate: [({ value }) => value ?? '', ...sharedContentHooks.beforeValidate] },
         },
-        { name: 'careNeeds', type: 'textarea', label: 'Public care needs' },
+        { name: 'careNeeds', type: 'textarea', hooks: sharedContentHooks, label: 'Public care needs' },
       ] },
       { label: 'Friendly with', fields: [
         { name: 'compatibility', type: 'group', fields: [compatibility('dogs', 'With dogs'), compatibility('cats', 'With cats'), compatibility('children', 'With children')] },
-        { name: 'compatibilityNotes', type: 'textarea' },
+        { name: 'compatibilityNotes', type: 'textarea', hooks: sharedContentHooks },
       ] },
       { label: 'Editor notes', fields: [
         { name: 'internalNotes', type: 'textarea', access: { read: ({ req }) => Boolean(req.user) }, admin: { description: 'Private; excluded from all public content.' } },

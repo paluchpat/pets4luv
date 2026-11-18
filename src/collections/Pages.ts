@@ -1,3 +1,4 @@
+import { sharedContentHooks } from '../hooks/shared-content'
 import type { CollectionConfig } from 'payload'
 import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 
@@ -18,7 +19,7 @@ export const Pages: CollectionConfig = {
   fields: [
     { name: 'title', type: 'text', required: true, admin: slugSourceAdmin },
     { ...slugField, validate: validatePageSlug, admin: { ...slugField.admin, description: 'Filled from the title when blank. Existing slugs stay unchanged. Website route names such as animals and info are reserved.' } },
-    { name: 'body', type: 'richText', required: true, admin: { description: 'Shared contact details follow Website Settings. New text can use {{address}}, {{emailAddress}}, or {{phone}} to keep those values connected.' } },
+    { name: 'body', type: 'richText', required: true, hooks: sharedContentHooks, admin: { description: 'Contact details and donation links follow Website Settings. Keep shared references such as {{phone}}, {{address}}, and {{emailAddress}} in place; the website displays their current values.' } },
     // Preserve imported article metadata without an obsolete editor control.
     { name: 'category', type: 'select', options: ['adoption', 'volunteering'], admin: { hidden: true } },
     { name: 'source', type: 'text', admin: { hidden: true } },

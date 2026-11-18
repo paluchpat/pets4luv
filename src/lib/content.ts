@@ -22,6 +22,7 @@ const gallerySortFields: Record<GallerySort, string[]> = {
 
 export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySort = defaultGallerySort) {
   const payload = await getPayload({ config })
+  const settings = await getWebsiteSettings()
   const page = Math.min(10000, Math.max(1, Math.floor(Number(filters.page) || 1)))
   const query = { collection: 'animals', overrideAccess: false, draft: false, where: buildAnimalWhere(filters) } as const
   const sortFields = gallerySortFields[sort]
@@ -53,19 +54,19 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
     const byID = new Map(result.docs.map(doc => [doc.id, doc]))
     const docs = ids.flatMap(id => {
       const doc = byID.get(id)
-      return doc ? [animalDTO(doc, 'uncropped')] : []
+      return doc ? [applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)] : []
     })
     return { ...pagination, docs }
   }
 
   const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: sortFields })
-  return { docs: result.docs.map(doc => animalDTO(doc, 'uncropped')), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
+  return { docs: result.docs.map(doc => applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 
 export async function getAnimal(slug: string): Promise<AnimalProfileDTO | null> {
   const payload = await getPayload({ config })
   const result = await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, where: { and: [{ slug: { equals: slug } }, { _status: { equals: 'published' } }] }, limit: 1 })
-  return result.docs[0] ? animalProfileDTO(result.docs[0]) : null
+  return result.docs[0] ? applyWebsiteSettings(animalProfileDTO(result.docs[0]), await getWebsiteSettings()) : null
 }
 
 async function previewActor(payload: Awaited<ReturnType<typeof getPayload>>) {
@@ -86,7 +87,7 @@ export const getMainMenu = cache(async (): Promise<MainMenuDTO> => {
     where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }] },
     select: { slug: true, _status: true },
   }) : { docs: [] }
-  return mainMenuDTO(menu, pages.docs, Boolean(user))
+  return mainMenuDTO(applyWebsiteSettings(menu, await getWebsiteSettings()), pages.docs, Boolean(user))
 })
 
 export const getWebsiteSettings = cache(async (): Promise<WebsiteSettings> => {
@@ -106,7 +107,7 @@ export async function getHomepage(): Promise<HomepageDTO> {
   ])
   const ids = (homepage.featuredAnimals || []).map((row: any) => typeof row.animal === 'object' ? row.animal?.id : row.animal).filter(Boolean)
   const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: 6, where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }, { status: { equals: 'available' } }] } }) : { docs: [] }
-  const byID = new Map(result.docs.map((doc: any) => [String(doc.id), animalDTO(doc, 'uncropped')]))
+  const byID = new Map(result.docs.map((doc: any) => [String(doc.id), applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)]))
   const foundation = homepageIntroDTO(foundationIntro, Boolean(user))
   const body = applyWebsiteSettings(foundation.body, settings)
   const intro = applyWebsiteSettings(homepage.intro || null, settings)

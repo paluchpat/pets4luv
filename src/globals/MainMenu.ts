@@ -1,3 +1,4 @@
+import { sharedContentHooks } from '../hooks/shared-content'
 import type { Field, GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 import type { MenuRecord } from '../lib/main-menu'
@@ -8,7 +9,7 @@ type ValidationContext = { siblingData?: Partial<MenuRecord & { enabled: boolean
 const trim = ({ value }: { value?: unknown }) => typeof value === 'string' ? value.trim() : value
 function linkFields(submenu = false): Field[] {
   return [
-    { name: 'label', label: 'Menu label', type: 'text', maxLength: 80, validate: (value: unknown, { siblingData }: ValidationContext) => siblingData?.enabled === false ? true : validateMenuLabel(value), hooks: { beforeValidate: [trim] } },
+    { name: 'label', label: 'Menu label', type: 'text', maxLength: 80, validate: (value: unknown, { siblingData }: ValidationContext) => siblingData?.enabled === false ? true : validateMenuLabel(value), hooks: { ...sharedContentHooks, beforeValidate: [trim, ...sharedContentHooks.beforeValidate] } },
     { name: 'linkType', label: 'Link to', type: 'select', required: true, defaultValue: 'page', options: [
       { label: 'Page from Pages', value: 'page' },
       { label: 'Built-in page', value: 'builtIn' },
@@ -23,7 +24,7 @@ function linkFields(submenu = false): Field[] {
       admin: { condition: (_, siblingData) => siblingData?.linkType === 'builtIn' } },
     { name: 'url', label: 'Link address', type: 'text', maxLength: 2048,
       validate: (value: unknown, { siblingData }: ValidationContext) => siblingData?.enabled === false || siblingData?.linkType !== 'custom' ? true : validateMenuUrl(value),
-      hooks: { beforeValidate: [trim] }, admin: { condition: (_, siblingData) => siblingData?.linkType === 'custom', description: 'For example /animals, https://example.org, mailto:name@example.org, or tel:+15165550100.' } },
+      hooks: { ...sharedContentHooks, beforeValidate: [trim, ...sharedContentHooks.beforeValidate] }, admin: { condition: (_, siblingData) => siblingData?.linkType === 'custom', description: 'Use a page path, an external URL, or a shared link such as {{emailHref}}, {{phoneHref}}, or {{zeffyUrl}}.' } },
     { name: 'newTab', label: 'Open in a new tab', type: 'checkbox', defaultValue: false, admin: { condition: (_, siblingData) => siblingData?.linkType !== 'submenu' } },
     { name: 'showInFooter', label: 'Also show in the footer', type: 'checkbox', defaultValue: false, admin: { condition: (_, siblingData) => siblingData?.linkType !== 'submenu', description: 'Uses the same label and destination in both places.' } },
   ]
