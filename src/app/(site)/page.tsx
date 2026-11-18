@@ -31,9 +31,44 @@ export default async function HomePage() {
       <section className={styles.intro} aria-label="About the foundation">
         <RichContent value={homepage.foundationIntro.body} text={homepage.foundationIntro.bodyText} />
       </section>
-      <section className="weekly" aria-labelledby="weekly-title"><div className="weekly-intro"><p className="section-label">Featured animals of the week</p><h2 id="weekly-title">{homepage.heading}</h2><RichContent value={homepage.intro} text={homepage.introText} /></div>
-        {spotlight ? <article className="spotlight"><Link className="portrait-photo spotlight-photo" href={`/animals/${spotlight.slug}`} aria-label={`Meet ${spotlight.name}`}><PortraitPhoto animal={spotlight} /></Link><div className="spotlight-caption"><div><strong>{spotlight.name}</strong><span>This week’s spotlight</span></div><Link className="animal-meet-link" href={`/animals/${spotlight.slug}`}><span className="animal-meet-link-label">Meet {spotlight.name}</span><span aria-hidden="true">→</span></Link></div></article> : <p className="empty-state">Our next featured friends are on their way. <Link href="/animals">Explore available animals.</Link></p>}
-        {companions.length > 0 && <div className="weekly-companions">{companions.map(animal => <article className="weekly-animal" key={animal.id}><Link href={`/animals/${animal.slug}`} className="portrait-photo weekly-animal-photo" aria-label={`Meet ${animal.name}`}><PortraitPhoto animal={animal} /></Link><div><h3><Link href={`/animals/${animal.slug}`}>{animal.name}</Link></h3>{animal.summary && <p>{animal.summary}</p>}<Link className="text-link animal-meet-link" href={`/animals/${animal.slug}`}><span className="animal-meet-link-label">Meet {animal.name}</span><span aria-hidden="true">→</span></Link></div></article>)}</div>}
+      <section className="weekly" aria-labelledby="weekly-title">
+        <div className="weekly-intro">
+          <p className="section-label">Featured animals of the week</p>
+          <h2 id="weekly-title">{homepage.heading}</h2>
+          <RichContent value={homepage.intro} text={homepage.introText} />
+        </div>
+        {spotlight ? (
+          <Link className="spotlight weekly-profile-link" href={`/animals/${spotlight.slug}`}
+            aria-label={`View ${spotlight.name}’s adoption profile`}
+            aria-describedby={spotlight.summary ? 'spotlight-summary' : undefined}>
+            <div className="portrait-photo spotlight-photo"><PortraitPhoto animal={spotlight} /></div>
+            <div className="spotlight-caption">
+              <div>
+                <h3>{spotlight.name}</h3>
+                {spotlight.summary && <p id="spotlight-summary">{spotlight.summary}</p>}
+              </div>
+              <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+            </div>
+          </Link>
+        ) : <p className="empty-state">Our next featured friends are on their way. <Link href="/animals">Explore available animals.</Link></p>}
+        {companions.length > 0 && (
+          <div className="weekly-companions">
+            {companions.map((animal, index) => (
+              <Link className="weekly-animal weekly-profile-link" key={animal.id} href={`/animals/${animal.slug}`}
+                aria-label={`View ${animal.name}’s adoption profile`}
+                aria-describedby={animal.summary ? `weekly-summary-${index}` : undefined}>
+                <div className="portrait-photo weekly-animal-photo"><PortraitPhoto animal={animal} /></div>
+                <div>
+                  <div className="weekly-animal-heading">
+                    <h3>{animal.name}</h3>
+                    <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+                  </div>
+                  {animal.summary && <p id={`weekly-summary-${index}`}>{animal.summary}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
       <SearchPanel />
       <ChatLauncher />
