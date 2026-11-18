@@ -7,9 +7,18 @@ import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
 import { getMainMenu, getWebsiteSettings } from '@/lib/content'
 import { phoneHref } from '@/lib/website-settings'
+import { homeDescription, homeTitle, metadataBase, noIndex, publicSiteOrigin } from '@/lib/seo'
 import './site.css'
 
-export const metadata: Metadata = { title: { default: 'Pets4Luv · Bringing families together', template: '%s · Pets4Luv' }, description: 'Find your new companion. Explore adoptable cats and dogs and learn about Pets4Luv.' }
+export async function generateMetadata(): Promise<Metadata> {
+  const preview = (await draftMode()).isEnabled
+  return {
+    metadataBase,
+    title: { default: homeTitle, template: '%s · Pets4Luv' },
+    description: homeDescription,
+    ...((!publicSiteOrigin || preview) && { robots: noIndex }),
+  }
+}
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const [mode, settings, menu] = await Promise.all([draftMode(), getWebsiteSettings(), getMainMenu()])

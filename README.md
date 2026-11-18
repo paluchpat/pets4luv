@@ -34,6 +34,12 @@ Public pages, including Applications, read shared CMS settings on each request. 
 
 Builds do not create demo animals, upload fixture photos, or change animal colors. Those actions belong to the explicit `seed` command.
 
+## Search and social sharing
+
+The protected demo and local development use `noindex`. At public launch, set `SITE_URL` to the site's final HTTPS origin in the production environment. This enables canonical URLs and the sitemap on production builds. Vercel previews keep `noindex` and omit sitemap entries.
+
+Public pages supply Open Graph and large-image X cards. Animal profiles share their first approved photo when available, and other pages use the default image at `public/images/pets4luv-share.jpg`. Homepage structured data uses the published social profiles and contact information in **Settings → Website settings**.
+
 ## Content editing
 
 The sidebar and dashboard follow this order: Animals, Homepage, Pages, Settings. Users is under Settings alongside Website settings and Main menu. Animal editing places required fields before optional details. Weight is optional, accepts decimals, and appears on the animal’s public profile only when entered. Rescue intake ID and Internal notes remain available; unused age-reference and energy-level fields are removed.

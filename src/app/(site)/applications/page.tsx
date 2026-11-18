@@ -1,8 +1,12 @@
-import type { Metadata } from 'next'
+import { pageMetadata } from '@/lib/seo'
 import { getWebsiteSettings } from '@/lib/content'
 import { phoneHref as contactPhoneHref } from '@/lib/website-settings'
 
-export const metadata: Metadata = { title: 'Applications' }
+export const metadata = pageMetadata({
+  title: 'Forms and applications',
+  description: 'Find Pets4Luv forms for adopting, fostering, volunteering, and requesting help for a pet.',
+  path: '/applications',
+})
 export const dynamic = 'force-dynamic'
 
 const formDirectory = 'https://irp.cdn-website.com/664b757c/files/uploaded/'

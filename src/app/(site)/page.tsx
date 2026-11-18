@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getHomepage } from '@/lib/content'
+import { getHomepage, getWebsiteSettings } from '@/lib/content'
+import { homeDescription, homeTitle, homepageStructuredData, pageMetadata } from '@/lib/seo'
 import { SearchPanel, ChatLauncher } from '@/components/SearchPanel'
 import { PortraitPhoto } from '@/components/AnimalCard'
 import { RichContent } from '@/components/RichContent'
@@ -8,10 +9,14 @@ import styles from './HomeIntro.module.css'
 
 export const dynamic = 'force-dynamic'
 
+export const metadata = pageMetadata({ title: homeTitle, description: homeDescription, path: '/' })
+
 export default async function HomePage() {
-  const homepage = await getHomepage()
+  const [homepage, settings] = await Promise.all([getHomepage(), getWebsiteSettings()])
+  const structuredData = JSON.stringify(homepageStructuredData(settings)).replace(/</g, '\\u003c')
   const [spotlight, ...companions] = homepage.featuredAnimals
   return <main id="main">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredData }} />
     <section className="hero" aria-labelledby="hero-title">
       <picture>
         <source media="(max-width: 680px)" srcSet="/images/hero-mobile.webp" />
@@ -20,7 +25,6 @@ export default async function HomePage() {
       <div className="hero-copy">
         <h1 id="hero-title">{homepage.foundationIntro.heading}</h1>
         <p className="hero-tagline">Bringing families together<br />one rescue at a time</p>
-        <p className="hero-description">A no-kill cat and dog rescue in Freeport, NY.</p>
       </div>
     </section>
     <div className="home-content">

@@ -1,9 +1,12 @@
+import type { Metadata } from 'next'
 import config from '@payload-config'
 import '@payloadcms/next/css'
 import './admin.css'
 import { RootLayout, handleServerFunctions } from '@payloadcms/next/layouts'
 import type { ServerFunctionClient } from 'payload'
 import { importMap } from './admin/importMap'
+
+export const metadata: Metadata = { robots: { index: false, follow: false } }
 
 const serverFunction: ServerFunctionClient = async (args) => {
   'use server'

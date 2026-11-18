@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getInformationPage } from '@/lib/content'
 import { RichContent } from '@/components/RichContent'
+import { noIndex, pageDescription, pageMetadata } from '@/lib/seo'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
@@ -17,7 +18,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   redirectMovedArticle(slug)
   const article = await getInformationPage(slug)
-  return { title: article?.title || topicTitles[slug] || 'Information' }
+  const title = article?.title || topicTitles[slug]
+  if (!title) return { title: 'Information not found', robots: noIndex }
+  return pageMetadata({
+    title,
+    description: pageDescription(article?.body, title),
+    path: `/info/${slug}`,
+    indexable: Boolean(article),
+  })
 }
 
 export default async function InformationPage({ params }: Props) {

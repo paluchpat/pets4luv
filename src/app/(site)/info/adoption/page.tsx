@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { RichContent } from '@/components/RichContent'
+import { pageDescription, pageMetadata } from '@/lib/seo'
 import { getInformationPage, getWebsiteSettings, richTextToText } from '@/lib/content'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +20,12 @@ function matchesHeading(node: unknown, label: string) {
 
 export async function generateMetadata(): Promise<Metadata> {
   const adoption = await getInformationPage('adoption')
-  return { title: adoption?.title || fallbackTitle }
+  return pageMetadata({
+    title: adoption?.title || fallbackTitle,
+    description: pageDescription(adoption?.body, 'Learn how to apply to adopt a cat or dog from Pets4Luv Foundation.'),
+    path: '/info/adoption',
+    indexable: Boolean(adoption),
+  })
 }
 
 export default async function AdoptionPage() {

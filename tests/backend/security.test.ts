@@ -163,7 +163,7 @@ test('homepage draft and draft relationships stay private', async () => {
 })
 
 test('homepage intro fallback retains the approved foundation copy and donation link', () => {
-  const expectedText = 'We are a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs. We give them a safe place to rest and recover at their own pace.\n\nWe rely on your donations to give animals the care they need and the chance to find a loving home.'
+  const expectedText = 'We are a registered 501(c)(3) nonprofit organization and a volunteer-run, no-kill cat and dog rescue in Freeport, New York. We rescue, rehabilitate, and rehome animals, with a focus on seniors and animals who are injured, ill, disabled, or have other special needs. We give them a safe place to rest and recover at their own pace.\n\nWe rely on your donations to give animals the care they need and the chance to find a loving home.'
   for (const source of [undefined, { heading: 'PRIVATE INTRO', body: pageBody('PRIVATE BODY'), _status: 'draft' }]) {
     const intro = homepageIntroDTO(source)
     assert.equal(intro.heading, 'Pets4Luv Foundation')

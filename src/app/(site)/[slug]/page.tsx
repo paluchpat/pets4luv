@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { getPage, getWebsiteSettings } from '@/lib/content'
 import { phoneHref } from '@/lib/website-settings'
+import { noIndex, pageDescription, pageMetadata } from '@/lib/seo'
 import { Icon } from '@/components/Icons'
 import { RichContent } from '@/components/RichContent'
 import { SocialLinks } from '@/components/SocialLinks'
@@ -18,7 +19,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   redirectInformationPage(slug)
   const page = await getPage(slug)
-  return { title: page?.title || 'Page not found' }
+  if (!page) return { title: 'Page not found', robots: noIndex }
+  return pageMetadata({
+    title: page.title,
+    description: pageDescription(page.body, page.title),
+    path: `/${page.slug}`,
+  })
 }
 
 export default async function ContentPage({ params }: Props) {
