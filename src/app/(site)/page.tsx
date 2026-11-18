@@ -12,7 +12,7 @@ export default async function HomePage() {
   const homepage = await getHomepage()
   const [spotlight, ...companions] = homepage.featuredAnimals
   return <main id="main">
-    <section className="hero" aria-labelledby="hero-title"><picture><source media="(max-width: 680px)" srcSet="/images/hero-mobile.png" /><img src="/images/hero-desktop.png" alt="A golden dog and tabby cat resting together on a soft blanket" fetchPriority="high" /></picture><div className="hero-copy"><h1 id="hero-title">Bringing families together</h1><p>One rescue at a time</p></div></section>
+    <section className="hero" aria-labelledby="hero-title"><picture><source media="(max-width: 680px)" srcSet="/images/hero-mobile.webp" /><img src="/images/hero-desktop.png" alt="A golden dog and tabby cat resting together on a soft blanket" fetchPriority="high" /></picture><div className="hero-copy"><h1 id="hero-title">Bringing families together</h1><p>One rescue at a time</p></div></section>
     <div className="home-content">
       <section className={styles.intro} aria-labelledby="foundation-title">
         <h2 id="foundation-title">{homepage.foundationIntro.heading}</h2>
