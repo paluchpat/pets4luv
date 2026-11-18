@@ -198,8 +198,8 @@
   .collection-list--users .table tbody tr:hover { background: var(--cms-bg); }
   .collection-list--users .search-bar { --search-bg: var(--cms-surface); }
   .collection-list--users .search-filter input { border: 1px solid var(--cms-line); border-radius: 8px; }
-  /* Match native sign-in fields and profile fields as one compact account form. */
-  .collection-edit--users :is(.auth-fields,.document-fields__fields) { width: 100%; max-width: 760px; padding: 24px; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); }
+  /* Match native sign-in fields and profile fields with the full editor width. */
+  .collection-edit--users :is(.auth-fields,.document-fields__fields) { width: 100%; max-width: none; padding: 24px; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); }
   .collection-edit--users .auth-fields { margin-bottom: 24px; gap: 24px; }
   .collection-edit--users .auth-fields__changing-password { gap: 24px; }
   .collection-edit--users .auth-fields .field-type { margin-bottom: 0; }
