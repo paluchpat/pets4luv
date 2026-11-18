@@ -1,5 +1,5 @@
 import { ValidationError, type CollectionConfig, type Field } from 'payload'
-import { isStaff, publishedOrStaff, slugField } from '../access'
+import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 import { animalColorOptions } from '../lib/animal-colors'
 import { adminAnimalSearchFields, expandAdminAnimalSearch } from '../lib/admin-animal-search'
 
@@ -32,7 +32,7 @@ export const Animals: CollectionConfig = {
   fields: [
     { type: 'tabs', tabs: [
       { label: 'Details', fields: [
-        { name: 'name', type: 'text', required: true }, slugField,
+        { name: 'name', type: 'text', required: true, admin: slugSourceAdmin }, slugField,
         { name: 'species', type: 'select', required: true, options: ['cat', 'dog'] },
         { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'Pending', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
         { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },

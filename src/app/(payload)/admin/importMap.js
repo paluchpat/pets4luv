@@ -1,3 +1,4 @@
+import { SlugSourceField as SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79 } from '../../../components/admin/SlugSourceField'
 import { WeightField as WeightField_fb53697c6be8024df2e7e09cc61f71f2 } from '../../../components/admin/WeightField'
 import { PhotoUploadControls as PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c } from '../../../components/admin/PhotoUploadControls'
 import { AnimalGalleryList as AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca } from '../../../components/admin/AnimalGalleryList'
@@ -23,6 +24,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "./components/admin/SlugSourceField#SlugSourceField": SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79,
   "./components/admin/WeightField#WeightField": WeightField_fb53697c6be8024df2e7e09cc61f71f2,
   "./components/admin/PhotoUploadControls#PhotoUploadControls": PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c,
   "./components/admin/AnimalGalleryList#AnimalGalleryList": AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca,

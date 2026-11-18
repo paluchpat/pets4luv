@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload'
-import { isStaff, publishedOrStaff, slugField } from '../access'
+import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 
 const reservedSlugs = new Set(['admin', 'api', 'animals', 'applications', 'info', 'pages', 'media', 'intake-files', 'intakes', 'users', 'knowledge', 'homepage', 'images', 'fonts', 'assets', 'public', 'favicon', 'robots', 'sitemap', 'manifest', 'health'])
 
@@ -16,8 +16,8 @@ export const Pages: CollectionConfig = {
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   fields: [
-    { name: 'title', type: 'text', required: true },
-    { ...slugField, validate: validatePageSlug, admin: { description: 'A single lowercase address, for example donate. Website route names such as animals and info are reserved.' } },
+    { name: 'title', type: 'text', required: true, admin: slugSourceAdmin },
+    { ...slugField, validate: validatePageSlug, admin: { ...slugField.admin, description: 'Filled from the title when blank. Existing slugs stay unchanged. Website route names such as animals and info are reserved.' } },
     { name: 'body', type: 'richText', required: true, admin: { description: 'Shared contact details follow Website Settings. New text can use {{address}}, {{emailAddress}}, or {{phone}} to keep those values connected.' } },
     // Preserve imported article metadata without an obsolete editor control.
     { name: 'category', type: 'select', options: ['adoption', 'volunteering'], admin: { hidden: true } },
