@@ -73,7 +73,7 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const end = Math.min(total, start + cards.length - 1)
   return <div ref={gallery}><Gutter className="cms-animal-gallery">
     <div className="cms-gallery-heading">
-      <div><p className="cms-eyebrow">Pets4Luv workspace</p><h1>Your animals</h1></div>
+      <h1>Your animals</h1>
       {canCreate && <AddAnimal onSaved={saved} />}
     </div>
     {message && <div className="cms-success" role="status"><CheckCircle2 aria-hidden="true" />{message}<button type="button" aria-label="Dismiss message" onClick={() => setMessage('')}>×</button></div>}
