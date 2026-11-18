@@ -31,7 +31,7 @@ function linkFields(submenu = false): Field[] {
 }
 
 export const MainMenu: GlobalConfig = {
-  slug: 'main-menu', label: 'Main Menu',
+  slug: 'main-menu', label: 'Main menu',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {

@@ -3,7 +3,7 @@ import type { GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 
 export const Homepage: GlobalConfig = {
-  slug: 'homepage', label: 'Featured Animals',
+  slug: 'homepage', label: 'Featured animals',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: { group: false, description: 'Edit the introduction, choose available animals, drag rows to arrange them, save a draft and preview before publishing.', preview: () => '/api/preview?path=/', livePreview: { url: '/api/preview?path=/' } },

@@ -11,7 +11,7 @@ const url = (name: keyof Settings, label: string): Field => ({
 
 export const WebsiteSettings: GlobalConfig = {
   slug: 'website-settings',
-  label: 'Website Settings',
+  label: 'Website settings',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
   admin: {

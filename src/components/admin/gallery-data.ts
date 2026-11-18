@@ -6,7 +6,7 @@ function isStaff(user: TypedUser | null | undefined): user is TypedUser {
   return Boolean(user && ['admin', 'editor'].includes(String(user.role)))
 }
 
-/** Use the live Featured Animals order; draft or unavailable selections are not featured. */
+/** Use the live Featured animals order; draft or unavailable selections are not featured. */
 async function featuredAnimalIDs(payload: Payload, user: TypedUser): Promise<number[]> {
   const homepage = await payload.findGlobal({ slug: 'homepage', overrideAccess: false, user, draft: false, depth: 0, select: { featuredAnimals: true, _status: true } })
   if (homepage._status !== 'published') return []
