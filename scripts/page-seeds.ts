@@ -48,7 +48,7 @@ export const initialPages = [
       ]),
       heading('Contact us'),
       paragraph('If you have questions about Pets4Luv, call ', link('{{phone}}', '{{phoneHref}}'), ' or email ', link('{{emailAddress}}', '{{emailHref}}'), '.'),
-      paragraph('Looking for your next companion? ', link('Meet our available animals', '/animals'), '.'),
+      paragraph('Looking for your next companion? ', link('Meet our adoptable animals', '/animals'), '.'),
     ),
   },
   {
