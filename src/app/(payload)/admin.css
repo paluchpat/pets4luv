@@ -100,6 +100,16 @@
   .field-type input[type=checkbox] { accent-color: var(--cms-accent); }
   .field-type .field-label { font-weight: 600; font-size: 13px; color: var(--cms-ink); }
   .field-description { color: var(--cms-muted); line-height: 1.5; }
+  /* Give rich-text editors the same surface and boundary as other inputs. */
+  .rich-text-lexical__wrap > .editor-container { background: var(--cms-surface); border: 1px solid var(--cms-line); border-radius: 8px; }
+  .rich-text-lexical__wrap > .fixed-toolbar { background: var(--cms-surface); border-color: var(--cms-line); border-radius: 8px 8px 0 0; transform: none; }
+  .rich-text-lexical__wrap > .fixed-toolbar + .editor-container { border-top: 0; border-radius: 0 0 8px 8px; }
+  .rich-text-lexical .ContentEditable__root { min-height: 160px; padding-block: 16px; padding-inline-end: 16px; }
+  .rich-text-lexical .LexicalEditorTheme__placeholder { top: 16px; }
+  .rich-text-lexical:not(.rich-text-lexical--show-gutter) .ContentEditable__root { padding-inline-start: 16px; }
+  .rich-text-lexical:not(.rich-text-lexical--show-gutter) .LexicalEditorTheme__placeholder { left: 16px; }
+  .rich-text-lexical:not(.error):focus-within > .rich-text-lexical__wrap > :is(.fixed-toolbar,.editor-container) { border-color: var(--cms-accent-text); }
+
   .react-select .rs__control, .rs__control { border-color: var(--cms-line); border-radius: 8px; background: var(--cms-surface); min-height: 44px; }
   .react-select .rs__control--is-focused { border-color: var(--cms-accent-text); box-shadow: 0 0 0 1px var(--cms-accent-text); }
   /* Keep the focus ring on the dropdown, not its small internal search input. */
