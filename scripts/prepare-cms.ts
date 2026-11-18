@@ -10,6 +10,7 @@ const { prepareHomepageIntro } = await import('./homepage-intro-schema')
 const { prepareWebsiteSettings } = await import('./website-settings-schema')
 const { prepareInformationPages } = await import('./information-pages-schema')
 const { seedPoppyPhotos } = await import('./poppy-photos-seed')
+const { seedDemoCalico } = await import('./demo-calico-seed')
 const { prepareMainMenuSchema } = await import('./main-menu-schema')
 const { seedMainMenu } = await import('./main-menu-seed')
 const resolvedConfig = await config
@@ -28,6 +29,7 @@ try {
   await seedMainMenu(payload)
   const addedPhotos = await seedPoppyPhotos(payload)
   if (addedPhotos) console.log(`Added ${addedPhotos} extra Poppy demo photos.`)
+  if (await seedDemoCalico(payload)) console.log('Added the Calico tag to Olive’s sample profile.')
 } finally {
   try {
     await payload.destroy()

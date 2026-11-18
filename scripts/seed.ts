@@ -9,6 +9,7 @@ import { seedHomepageIntro } from './homepage-intro-seed'
 import { seedWebsiteSettings } from './website-settings-seed'
 import { seedMainMenu } from './main-menu-seed'
 import { seedPoppyPhotos } from './poppy-photos-seed'
+import { seedDemoCalico } from './demo-calico-seed'
 import { prepareInformationPages } from './information-pages-schema'
 
 const payload = await getPayload({ config })
@@ -21,7 +22,7 @@ const demoAnimalNote = 'Fictional demonstration record. Never use this fixture a
 const demo = [
   { name: 'Luna', slug: 'luna', species: 'cat', sex: 'female', ageGroup: 'young', size: 'small', breed: 'Domestic shorthair', photo: 'luna', colors: ['brown', 'black', 'white'], summary: 'A little curious. A lot lovable.', description: 'Luna is a playful little explorer who loves a sunny windowsill and a gentle game. This fictional profile is here to demonstrate the adoption experience.', dogs: 'unknown', cats: 'yes', children: 'conditional', date: '2025-04-01' },
   { name: 'Milo', slug: 'milo', species: 'dog', sex: 'male', ageGroup: 'adult', size: 'medium', breed: 'Mixed breed', photo: 'milo', colors: ['black', 'white'], summary: 'Your next adventure buddy.', description: 'Milo is happiest on a walk with a kind companion. He would love room to explore and people to come home to. This is a fictional demonstration profile.', dogs: 'yes', cats: 'unknown', children: 'yes', date: '2022-05-01' },
-  { name: 'Olive', slug: 'olive', species: 'cat', sex: 'female', ageGroup: 'adult', size: 'small', breed: 'Domestic shorthair', photo: 'olive', colors: ['brown', 'orange', 'black', 'cream'], summary: 'A soft spot for the quiet life.', description: 'Olive enjoys slow mornings and a cozy spot beside someone she trusts. This fictional profile is for the local demonstration only.', dogs: 'no', cats: 'conditional', children: 'unknown', date: '2021-03-01' },
+  { name: 'Olive', slug: 'olive', species: 'cat', sex: 'female', ageGroup: 'adult', size: 'small', breed: 'Domestic shorthair', photo: 'olive', colors: ['brown', 'orange', 'black', 'cream', 'calico'], summary: 'A soft spot for the quiet life.', description: 'Olive enjoys slow mornings and a cozy spot beside someone she trusts. This fictional profile is for the local demonstration only.', dogs: 'no', cats: 'conditional', children: 'unknown', date: '2021-03-01' },
   { name: 'Jasper', slug: 'jasper', species: 'dog', sex: 'male', ageGroup: 'senior', size: 'large', breed: 'Mixed breed', photo: 'jasper', colors: ['gold', 'tan', 'gray'], summary: 'An old soul with plenty of love to give.', description: 'Jasper is a fictional senior dog fixture for trying gallery filters.', dogs: 'conditional', cats: 'unknown', children: 'yes', date: '2015-02-01' },
   { name: 'Poppy', slug: 'poppy', species: 'cat', sex: 'female', ageGroup: 'baby', size: 'small', breed: 'Domestic shorthair', photo: 'poppy', colors: ['gray', 'white'], summary: 'Tiny paws, big plans.', description: 'Poppy is a fictional kitten fixture for trying gallery filters.', dogs: 'unknown', cats: 'yes', children: 'unknown', date: '2026-07-01' },
   { name: 'Scout', slug: 'scout', species: 'dog', sex: 'female', ageGroup: 'young', size: 'small', breed: 'Mixed breed', photo: 'scout', colors: ['tan', 'gold'], summary: 'Ready to learn and ready to love.', description: 'Scout is a fictional young dog fixture for trying gallery filters.', dogs: 'yes', cats: 'no', children: 'conditional', date: '2025-08-01' },
@@ -58,6 +59,7 @@ for (const animal of demo) {
 const homepage = await payload.findGlobal({ slug: 'homepage', draft: true }) as any
 if (!homepage.intro) await payload.updateGlobal({ slug: 'homepage', data: { heading: 'The best part of their story is still ahead.', intro: richText('Each week, we highlight a few adoptable pets who are ready for their next chapter — and a home to call their own.'), featuredAnimals: ['poppy', 'fern', 'cleo'].map((slug) => ({ animal: animals[slug] })), _status: 'published' } })
 await seedPoppyPhotos(payload)
+await seedDemoCalico(payload)
 await seedHomepageIntro(payload)
 await seedWebsiteSettings(payload)
 await seedAdoption(payload)

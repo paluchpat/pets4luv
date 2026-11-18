@@ -13,6 +13,7 @@ import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { prepareHomepageIntro } from '../../scripts/homepage-intro-schema'
 import { prepareInformationPages } from '../../scripts/information-pages-schema'
 import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
+import { seedDemoCalico } from '../../scripts/demo-calico-seed'
 import { prepareWebsiteSettings } from '../../scripts/website-settings-schema'
 import { seedWebsiteSettings } from '../../scripts/website-settings-seed'
 import { applyWebsiteSettings, defaultWebsiteSettings, websiteSettingsDTO } from '../../src/lib/website-settings'
@@ -98,6 +99,40 @@ test('Calico can be saved and searched through public and CMS animal filters', a
     assert.equal((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ color: 'calico' }) })).totalDocs, 0)
   } finally {
     await payload.delete({ collection: 'animals', id: calico.id })
+  }
+})
+
+test('the reviewed Calico sample upgrade preserves drafts, real animals, and later editor changes', async () => {
+  const sample = await payload.create({ collection: 'animals', data: {
+    name: 'Olive', slug: 'olive', species: 'cat', sex: 'female', ageGroup: 'adult', size: 'small',
+    colors: ['brown', 'orange', 'black', 'cream'], description: 'Keep this description.', status: 'available',
+    photos: [{ photo: publicPhotoID }], compatibility: { dogs: 'unknown', cats: 'unknown', children: 'unknown' },
+    internalNotes: 'Real rescue record', _status: 'published',
+  } })
+  let reviewedPhoto: number | undefined
+  try {
+    assert.equal(await seedDemoCalico(payload), 0)
+    await payload.update({ collection: 'animals', id: sample.id, data: { internalNotes: 'Fictional demonstration record. Never use this fixture as an actual adoption listing.' } })
+    assert.equal(await seedDemoCalico(payload), 0, 'A different photo must not be classified from the name alone.')
+    reviewedPhoto = (await payload.create({ collection: 'media', data: { alt: 'Olive, fictional demo animal' }, filePath: path.resolve('public/images/olive.png') })).id
+    await payload.update({ collection: 'animals', id: sample.id, data: { photos: [{ photo: reviewedPhoto }] } })
+    await payload.update({ collection: 'animals', id: sample.id, draft: true, data: { summary: 'Pending editorial change', _status: 'draft' } })
+    assert.equal(await seedDemoCalico(payload), 0)
+    await payload.update({ collection: 'animals', id: sample.id, data: { _status: 'published' } })
+    assert.equal(await seedDemoCalico(payload), 1)
+    const updated = await payload.findByID({ collection: 'animals', id: sample.id, depth: 0 })
+    assert.deepEqual(updated.colors, ['brown', 'orange', 'black', 'cream', 'calico'])
+    assert.equal(updated.description, 'Keep this description.')
+    assert.equal(updated.summary, 'Pending editorial change')
+    assert.equal(updated.photos[0].photo, reviewedPhoto)
+    assert.equal(await seedDemoCalico(payload), 0)
+    await payload.update({ collection: 'animals', id: sample.id, data: { colors: ['orange'] } })
+    assert.equal(await seedDemoCalico(payload), 0)
+    assert.deepEqual((await payload.findByID({ collection: 'animals', id: sample.id })).colors, ['orange'])
+  } finally {
+    await payload.delete({ collection: 'animals', id: sample.id })
+    if (reviewedPhoto) await payload.delete({ collection: 'media', id: reviewedPhoto })
+    await (payload.db as unknown as SQLiteAdapter).client.execute({ sql: 'DELETE FROM payload_migrations WHERE name = ?', args: ['20261117_olive_demo_calico'] })
   }
 })
 
