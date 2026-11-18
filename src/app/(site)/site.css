@@ -256,9 +256,17 @@ body:has(.chat-launcher) > .site-footer {
   overflow-wrap: anywhere;
 }
 
+.weekly-profile-link h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  line-height: 1.12;
+}
+
 .weekly-profile-arrow {
   flex: none;
-  font-size: 22px;
+  font-size: .9em;
   line-height: 1;
 }
 
@@ -278,7 +286,6 @@ body:has(.chat-launcher) > .site-footer {
 
 .weekly-animal-photo {
   align-self: start;
-  aspect-ratio: 1;
   border-radius: 9px;
 }
 
@@ -304,29 +311,15 @@ body:has(.chat-launcher) > .site-footer {
   text-align: center;
 }
 
-.weekly-animal-photo > .portrait-photo-image {
-  object-fit: cover;
-}
-
 .spotlight-caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   padding: 12px 18px;
   border-radius: 0 0 var(--panel-radius) var(--panel-radius);
   background: var(--burgundy);
   color: white;
 }
 
-.spotlight-caption > div {
-  min-width: 0;
-}
-
 .spotlight-caption h3 {
-  margin: 0;
   font-size: clamp(20px, 2vw, 24px);
-  line-height: 1.12;
 }
 
 .spotlight-caption p {
@@ -354,20 +347,10 @@ body:has(.chat-launcher) > .site-footer {
   padding-top: 14px;
 }
 
-.weekly-animal-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--burgundy);
-}
-
 .weekly-animal h3 {
   font-size: 28px;
   color: var(--burgundy);
   letter-spacing: -.5px;
-  line-height: 1.12;
-  margin: 0;
 }
 
 .weekly-animal p {
@@ -377,7 +360,7 @@ body:has(.chat-launcher) > .site-footer {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .weekly-profile-link:hover h3 { text-decoration: underline; }
+  .weekly-profile-link:hover .weekly-profile-name { text-decoration: underline; }
 }
 
 @media (max-width: 1150px) {
@@ -407,8 +390,6 @@ body:has(.chat-launcher) > .site-footer {
   .weekly-intro .section-label { font-size: 15px; letter-spacing: .4px; margin-bottom: 24px; gap: 17px; }
   .weekly-intro h2 { font-size: clamp(30px, 6.1vw, 40px); line-height: 1.16; letter-spacing: -1.1px; margin-bottom: 17px; }
   .weekly-intro .rich-content { font-size: 20px; line-height: 1.25; }
-  .spotlight-photo { aspect-ratio: 8 / 7; }
-  .spotlight-photo > .portrait-photo-image { object-fit: cover; object-position: center 41%; }
   .spotlight-caption { padding-inline: 14px; }
   .spotlight-caption h3 { font-size: 23px; }
   .weekly-animal { grid-template-columns: clamp(68px, 22%, 96px) minmax(0, 1fr); }

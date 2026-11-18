@@ -43,11 +43,11 @@ export default async function HomePage() {
             aria-describedby={spotlight.summary ? 'spotlight-summary' : undefined}>
             <div className="portrait-photo spotlight-photo"><PortraitPhoto animal={spotlight} /></div>
             <div className="spotlight-caption">
-              <div>
-                <h3>{spotlight.name}</h3>
-                {spotlight.summary && <p id="spotlight-summary">{spotlight.summary}</p>}
-              </div>
-              <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+              <h3>
+                <span className="weekly-profile-name">{spotlight.name}</span>
+                <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+              </h3>
+              {spotlight.summary && <p id="spotlight-summary">{spotlight.summary}</p>}
             </div>
           </Link>
         ) : <p className="empty-state">Our next featured friends are on their way. <Link href="/animals">Explore available animals.</Link></p>}
@@ -59,10 +59,10 @@ export default async function HomePage() {
                 aria-describedby={animal.summary ? `weekly-summary-${index}` : undefined}>
                 <div className="portrait-photo weekly-animal-photo"><PortraitPhoto animal={animal} /></div>
                 <div>
-                  <div className="weekly-animal-heading">
-                    <h3>{animal.name}</h3>
+                  <h3>
+                    <span className="weekly-profile-name">{animal.name}</span>
                     <span className="weekly-profile-arrow" aria-hidden="true">→</span>
-                  </div>
+                  </h3>
                   {animal.summary && <p id={`weekly-summary-${index}`}>{animal.summary}</p>}
                 </div>
               </Link>
