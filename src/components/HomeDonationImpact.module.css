@@ -1,6 +1,6 @@
 .section {
-  border-top: 1px solid var(--line);
-  padding-block: clamp(36px, 6vw, 68px) clamp(26px, 4vw, 48px);
+  /* The search panel adds 48px of margin, making the total gap 96px. */
+  padding-block: 48px clamp(26px, 4vw, 48px);
   text-align: center;
 }
 
@@ -56,6 +56,13 @@
 @media (max-width: 850px) {
   .uses {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .section {
+    /* With the search panel’s 36px margin, the total mobile gap is 64px. */
+    padding-top: 28px;
   }
 }
 
