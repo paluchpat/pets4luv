@@ -21,5 +21,5 @@ export function SlugSourceField(props: TextFieldClientProps) {
     }
   }
 
-  return <div style={{ display: 'contents' }} onBlurCapture={fillSlug}><TextField {...props} /></div>
+  return <div className="field-type cms-slug-source" onBlurCapture={fillSlug}><TextField {...props} /></div>
 }
