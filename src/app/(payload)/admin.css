@@ -321,17 +321,17 @@
   .cms-button-primary:hover:not(:disabled) { background: var(--cms-accent-hover); color: #fff; border-color: var(--cms-accent-hover); }
   .cms-button:disabled { opacity: .45; cursor: default; }
   .cms-gallery-toolbar-wrap { margin-bottom: 24px; }
-  .cms-gallery-toolbar { display: flex; gap: 14px; align-items: center; }
-  .cms-gallery-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--cms-line); border-radius: 9px; background: var(--cms-surface); min-height: 46px; padding: 0 13px; flex: 1; min-width: 0; }
+  .cms-gallery-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "search species" "help help"; column-gap: 14px; align-items: center; }
+  .cms-gallery-search { grid-area: search; display: flex; align-items: center; gap: 10px; border: 1px solid var(--cms-line); border-radius: 9px; background: var(--cms-surface); min-height: 46px; padding: 0 13px; flex: 1; min-width: 0; }
   .cms-gallery-search > svg { width: 19px; height: 19px; color: var(--cms-muted); flex: none; }
   .cms-gallery-search:focus-within { border-color: var(--cms-accent-text); box-shadow: 0 0 0 1px var(--cms-accent-text); }
   .cms-gallery-search input { border: 0; border-radius: 9px; outline: none; box-shadow: none; background: transparent; color: var(--cms-ink); width: 100%; min-width: 0; padding: 11px 0; font: inherit; font-size: 15px; }
-  .cms-species-filters { display: flex; gap: 3px; border: 1px solid var(--cms-line); border-radius: 9px; padding: 3px; background: var(--cms-surface); flex: none; }
+  .cms-species-filters { grid-area: species; display: flex; gap: 3px; border: 1px solid var(--cms-line); border-radius: 9px; padding: 3px; background: var(--cms-surface); flex: none; }
   .cms-species-filters button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: transparent; color: var(--cms-ink); border: 0; border-radius: 6px; min-height: 38px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; }
   .cms-species-filters button svg { width: 21px; height: 21px; flex: none; }
   .cms-species-filters button[aria-pressed=true] { background: var(--cms-tint); color: var(--cms-accent-text); font-weight: 600; }
   .cms-species-filters button:hover { background: var(--cms-bg); }
-  .cms-gallery-search-help { margin: 8px 0 14px; font-size: 12px; line-height: 1.5; color: var(--cms-muted); }
+  .cms-gallery-search-help { grid-area: help; margin: 8px 0 14px; font-size: 12px; line-height: 1.5; color: var(--cms-muted); }
   .cms-gallery-filter-bar { position: relative; }
   .cms-gallery-filters { min-width: 0; }
   .cms-gallery-filters > summary { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 44px; padding: 8px 12px; border: 1px solid var(--cms-line); border-radius: 8px; background: var(--cms-surface); color: var(--cms-ink); font-weight: 600; list-style: none; cursor: pointer; }
@@ -432,10 +432,8 @@
     .cms-card-status { align-items: start; flex-direction: column; gap: 7px; }
   }
   @media(max-width:800px) {
-    .cms-gallery-toolbar { flex-wrap: wrap; }
+    .cms-gallery-toolbar { grid-template-columns: minmax(0,1fr); grid-template-areas: "search" "help" "species"; row-gap: 0; margin-bottom: 14px; }
     .cms-gallery-filter-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-    .cms-gallery-search { flex-basis: 100%; }
-    .cms-species-filters { flex: 1; }
     .cms-species-filters button { flex: 1; }
     .cms-brand { margin-top: 60px; }
   }

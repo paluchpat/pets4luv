@@ -82,11 +82,11 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
         <label className="cms-gallery-search"><Search aria-hidden="true" /><span className="cms-sr-only">Search animal profiles</span>
           <input type="search" placeholder="Search names, breeds, notes, intake IDs…" aria-describedby="cms-animal-search-help" value={search} maxLength={100} onChange={event => changeSearch(event.target.value)} />
         </label>
+        <p className="cms-gallery-search-help" id="cms-animal-search-help">Search names, notes, intake IDs, or combine details like “small black female cat”. Use quotes to search a name or phrase literally.</p>
         <div className="cms-species-filters" role="group" aria-label="Pet type">
           {[{ value: 'all', label: 'All animals', icon: 'paw' }, { value: 'cat', label: 'Cats', icon: 'cat' }, { value: 'dog', label: 'Dogs', icon: 'dog' }].map(item => <button key={item.value} type="button" aria-pressed={selected === item.value} onClick={() => filter('species', item.value === 'all' ? '' : item.value)}><Icon kind={item.icon as 'paw' | 'cat' | 'dog'} />{item.label}</button>)}
         </div>
       </div>
-      <p className="cms-gallery-search-help" id="cms-animal-search-help">Search names, notes, intake IDs, or combine details like “small black female cat”. Use quotes to search a name or phrase literally.</p>
       <div className="cms-gallery-filter-bar">
         <details className="cms-gallery-filters">
           <summary><SlidersHorizontal aria-hidden="true" />Additional filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" /></summary>
