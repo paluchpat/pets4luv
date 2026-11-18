@@ -33,6 +33,8 @@ test('development startup upgrades old settings and revisions before the CMS rea
   try {
     await prepareWebsiteSettings(client)
     await client.batch([
+      'ALTER TABLE website_settings ADD COLUMN paypal_url text',
+      'ALTER TABLE _website_settings_v ADD COLUMN version_paypal_url text',
       "UPDATE website_settings SET paypal_url = 'https://paypal.me/CurrentRescue', phone = '212-555-0100'",
       "UPDATE _website_settings_v SET version_paypal_url = 'https://paypal.me/SavedRescue'",
       'ALTER TABLE website_settings DROP COLUMN paypal_handle',

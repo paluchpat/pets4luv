@@ -90,8 +90,7 @@ export function websiteSettingsDTO(
 ): WebsiteSettings {
   const source = doc && (staffPreview || doc._status === 'published') ? doc : defaultWebsiteSettings
   const result = Object.fromEntries(websiteSettingKeys.map(key => {
-    const value = key === 'paypalHandle' && source.paypalHandle === undefined && source.paypalUrl !== undefined
-      ? paypalHandleFromUrl(source.paypalUrl) : source[key]
+    const value = source[key]
     return [key, value === undefined ? defaultWebsiteSettings[key] : typeof value === 'string' ? value.trim() : '']
   })) as WebsiteSettings
   for (const key of requiredKeys) if (!result[key]) result[key] = defaultWebsiteSettings[key]

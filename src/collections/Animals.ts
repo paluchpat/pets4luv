@@ -52,8 +52,7 @@ export const Animals: CollectionConfig = {
         { name: 'description', type: 'textarea', hooks: sharedContentHooks, required: true },
         {
           name: 'summary', label: 'Summary', type: 'textarea', maxLength: 220, defaultValue: '',
-          // Preserve compatibility with existing animal and draft storage.
-          hooks: { ...sharedContentHooks, beforeValidate: [({ value }) => value ?? '', ...sharedContentHooks.beforeValidate] },
+          hooks: sharedContentHooks,
         },
         { name: 'careNeeds', type: 'textarea', hooks: sharedContentHooks, label: 'Public care needs' },
       ] },
@@ -65,8 +64,5 @@ export const Animals: CollectionConfig = {
         { name: 'internalNotes', type: 'textarea', access: { read: ({ req }) => Boolean(req.user) }, admin: { description: 'Private; excluded from all public content.' } },
       ] },
     ] },
-    // Retired controls: preserve legacy values without exposing them in the editor.
-    { name: 'ageEstimateReferenceDate', type: 'date', admin: { hidden: true } },
-    { name: 'energyLevel', type: 'select', defaultValue: 'unknown', options: ['low', 'moderate', 'high', 'unknown'], admin: { hidden: true } },
   ],
 }

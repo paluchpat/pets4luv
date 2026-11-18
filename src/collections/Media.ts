@@ -26,21 +26,10 @@ export const Media: CollectionConfig = {
   fields: [
     {
       name: 'alt', label: 'Photo description', type: 'text', defaultValue: '',
-      // Existing photo databases require a string; an empty description stays valid.
-      hooks: { beforeValidate: [({ value }) => value ?? ''] },
       admin: { description: 'Alt text is a short description of the photo for people who use screen readers. Example: Poppy resting in a basket.' },
     },
     { name: 'caption', type: 'text' },
     // Payload merges this label into its existing read-only filename field.
     { name: 'filename', label: 'Photo', type: 'text' },
   ],
-}
-
-export const IntakeFiles: CollectionConfig = {
-  slug: 'intake-files', labels: { singular: 'Private intake file', plural: 'Private intake files' },
-  admin: { useAsTitle: 'label', hidden: true, description: 'Retired private-file storage. No longer used by the website editor.' },
-  // Keep archived files inaccessible; approved animal photos use the separate media collection.
-  access: { read: () => false, create: () => false, update: () => false, delete: () => false },
-  upload: { staticDir: path.resolve(uploadRoot, 'private'), mimeTypes: ['image/jpeg', 'image/png', 'image/webp'], },
-  fields: [{ name: 'label', type: 'text', required: true }],
 }

@@ -44,9 +44,5 @@ export const WebsiteSettings: GlobalConfig = {
       ] },
     ],
   },
-    // Retain legacy storage so development schema updates never prompt to delete saved URLs.
-    // Editors manage handles only; retired URLs cannot be read or edited through the CMS/API.
-    { name: 'paypalUrl', type: 'text', admin: { hidden: true }, access: { read: () => false, create: () => false, update: () => false } },
-    { name: 'venmoUrl', type: 'text', admin: { hidden: true }, access: { read: () => false, create: () => false, update: () => false } },
   ],
 }

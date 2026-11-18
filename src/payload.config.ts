@@ -8,11 +8,9 @@ import sharp from 'sharp'
 import { sharedLinkFields } from './lib/shared-link-fields'
 import { cmsEnglishTranslations, cmsLexicalEnglishTranslations } from './lib/cms-translations'
 import { Users } from './collections/Users'
-import { Media, IntakeFiles } from './collections/Media'
+import { Media } from './collections/Media'
 import { Animals } from './collections/Animals'
-import { Knowledge } from './collections/Knowledge'
 import { Pages } from './collections/Pages'
-import { Intakes } from './collections/Intakes'
 import { Homepage } from './globals/Homepage'
 import { HomepageIntro } from './globals/HomepageIntro'
 import { WebsiteSettings } from './globals/WebsiteSettings'
@@ -51,9 +49,9 @@ export default buildConfig({
   serverURL,
   i18n: { translations: { en: cmsEnglishTranslations } },
   admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNav: ['./components/admin/AdminBrand#AdminBrand'], graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' }, actions: ['./components/admin/AdminBrand#ViewWebsite'], views: { dashboard: { Component: './components/admin/DashboardContent#DashboardContent' } }, afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'] } },
-  collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
+  collections: [Users, Animals, Pages, Media], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
   editor: async args => {
-    const editor = await lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'], fields: ({ defaultFields }) => sharedLinkFields(defaultFields) }), UnorderedListFeature(), OrderedListFeature()] })(args)
+    const editor = await lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages'], fields: ({ defaultFields }) => sharedLinkFields(defaultFields) }), UnorderedListFeature(), OrderedListFeature()] })(args)
     args.config.i18n.translations = deepMergeSimple(args.config.i18n.translations, { en: { lexical: cmsLexicalEnglishTranslations } })
     return editor
   },
@@ -66,7 +64,6 @@ export default buildConfig({
   plugins: storageAdapter ? [cloudStoragePlugin({
     collections: {
       media: { adapter: storageAdapter, prefix: 'media' },
-      'intake-files': { adapter: storageAdapter, prefix: 'intake-files' },
     },
     useCompositePrefixes: true,
   })] : [],

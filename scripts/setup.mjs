@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
-await Promise.all(['data', 'uploads/public', 'uploads/private', 'backups'].map((dir) => mkdir(dir, { recursive: true })))
+await Promise.all(['data', 'uploads/public', 'backups'].map((dir) => mkdir(dir, { recursive: true })))
 let existing = ''
 try { existing = await readFile('.env', 'utf8') } catch (error) { if (error.code !== 'ENOENT') throw error }
 if (!/^PAYLOAD_SECRET=.{32,}$/m.test(existing)) {

@@ -3,6 +3,7 @@ import { getWebsiteSettings } from '@/lib/content'
 import { phoneHref as contactPhoneHref } from '@/lib/website-settings'
 
 export const metadata: Metadata = { title: 'Applications' }
+export const dynamic = 'force-dynamic'
 
 const formDirectory = 'https://irp.cdn-website.com/664b757c/files/uploaded/'
 

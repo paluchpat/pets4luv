@@ -77,7 +77,7 @@ test('payment URLs derive only from saved handles and disappear when a handle is
   const invalid = websiteSettingsDTO({ ...defaultWebsiteSettings, paypalHandle: '../other', venmoHandle: 'bad/name', _status: 'published' })
   assert.equal(invalid.paypalUrl, '')
   assert.equal(invalid.venmoUrl, '')
-  assert.equal(websiteSettingsDTO({ paypalUrl: 'https://paypal.me/LegacyRescue', _status: 'published' }).paypalHandle, 'LegacyRescue')
+  assert.equal(websiteSettingsDTO({ paypalHandle: '', paypalUrl: 'https://paypal.me/LegacyRescue', _status: 'published' }).paypalUrl, '')
 })
 
 test('optional social and adoption directory links appear only when configured', () => {

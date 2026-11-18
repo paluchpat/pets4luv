@@ -7,7 +7,7 @@ function columnName(value: string) { return value.replace(/[A-Z]/g, letter => '_
 /** Add only this global and its revision storage; reruns preserve all editor changes. */
 export async function prepareWebsiteSettings(client: Pick<Client, 'transaction'>): Promise<void> {
   const columns = websiteSettingKeys.map(key => ({ name: columnName(key), value: defaultWebsiteSettings[key] }))
-  const definitions = (prefix: string) => [...columns.map(({ name, value }) => prefix + name + ' text DEFAULT ' + sqlString(value)), prefix + 'paypal_url text', prefix + 'venmo_url text'].join(', ')
+  const definitions = (prefix: string) => columns.map(({ name, value }) => prefix + name + ' text DEFAULT ' + sqlString(value)).join(', ')
   const names = columns.map(column => column.name).join(', ')
   const statements: InStatement[] = [
     'CREATE TABLE IF NOT EXISTS website_settings (id integer PRIMARY KEY NOT NULL, ' + definitions('') + ", _status text DEFAULT 'draft', updated_at text, created_at text)",

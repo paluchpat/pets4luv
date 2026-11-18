@@ -1,6 +1,6 @@
-# Pets4Luv local prototype
+# Pets4Luv website and CMS
 
-A Payload CMS + Next.js website based on the approved Pets4Luv desktop and mobile mockups. SQLite and uploaded files stay on this computer. All seeded animal records and policy examples are fictional demonstration content.
+A Payload CMS + Next.js website based on the approved Pets4Luv desktop and mobile mockups. Local development uses SQLite and local uploads; the protected Vercel preview uses Turso and private Vercel Blob storage. All seeded animal records and policy examples are fictional demonstration content.
 
 ## Run locally
 
@@ -26,23 +26,27 @@ Initialize an empty preview database from a clean checkout using an environment 
 NODE_ENV=development TURSO_PUSH_SCHEMA=true node --env-file=/absolute/path/to/preview.env --import tsx scripts/seed.ts
 ```
 
-Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/admin` to create the first administrator. Both photo collections use the private Blob store. Payload serves approved animal photos through its regular file routes. Retired intake-file routes reject access, including staff requests. Browser uploads on Vercel are limited to 4 MiB per file.
+Keep `TURSO_PUSH_SCHEMA` unset on Vercel. On the protected preview, browse to `/admin` to create the first administrator. Approved public photos use the private Blob store. Payload serves approved animal photos through its regular file routes. Retired intake and article endpoints are not registered. Browser uploads on Vercel are limited to 4 MiB per file.
 
-The build runs `prepare:cms` using the configured database credentials. It adds Main Menu storage and copies the current navigation once; later builds preserve published changes, drafts, and intentionally removed links. It initializes Website Settings with the current public contact and donation details, preserving existing edits and drafts. It adds the Homepage Intro tables and initializes the current introduction when absent. It also moves adoption and volunteering into Pages with their drafts and revision history. A migration record for each article keeps later builds from repeating the move or replacing edits. The build adds Poppy’s extra demo photos in two one-time batches (two photos, then three more), retaining the main photo and skipping real listings or pending drafts. Later deployments preserve editorial removals.
+The build runs `prepare:cms` to prepare the shared settings, homepage, and menu storage. It preserves published content, drafts, revisions, and intentionally removed links. A guarded one-time cleanup moves any remaining adoption/volunteering articles into Pages and removes the retired intake/article tables and unused fields. It refuses to discard nonempty intake records or unmigrated articles. It preserves active editor locks and archived page revisions. Local `predev` runs this upgrade before Payload synchronizes the development schema.
+
+Public pages, including Applications, read shared CMS settings on each request. Metadata and page rendering share request-scoped lookups without caching across visitors.
+
+Builds do not create demo animals, upload fixture photos, or change animal colors. Those actions belong to the explicit `seed` command.
 
 ## Content editing
 
-The sidebar and dashboard follow this order: Animals, Homepage, Pages, Settings. Users is under Settings alongside Website Settings and Main Menu. Animal editing places required fields before optional details. Weight is optional, accepts decimals, and appears on the animal’s public profile only when entered. Rescue intake ID and Internal notes remain available; unused age-reference and energy-level controls are retired.
+The sidebar and dashboard follow this order: Animals, Homepage, Pages, Settings. Users is under Settings alongside Website settings and Main menu. Animal editing places required fields before optional details. Weight is optional, accepts decimals, and appears on the animal’s public profile only when entered. Rescue intake ID and Internal notes remain available; unused age-reference and energy-level fields are removed.
 
-- **Settings → Main Menu:** add, remove, and drag links into the order you want. Select a published page, a built-in page (Home, Adopt, or Forms and applications), or enter a custom address. Choose Submenu to group links. Edit or hide the highlighted Donate button separately. Check **Also show in the footer** to keep its label and destination consistent with the main menu. Save a draft and use Preview before publishing; published changes appear without a code change or redeploy. Unpublished or deleted pages are hidden from public menus. Longer menus use the compact navigation when they no longer fit.
-- **Settings → Website Settings:** edit the shared address, email, phone, social profiles, adoption directories, and donation links. Save a draft to preview, then publish to update the website. Existing contact references in page text also follow these settings. Leave optional URLs blank to hide those links; TikTok starts blank. In new rich text, shared values can be inserted as {{address}}, {{emailAddress}}, {{phone}}, or any of the other settings field names.
+- **Settings → Main menu:** add, remove, and drag links into the order you want. Select a published page, a built-in page (Home, Adopt, or Forms and applications), or enter a custom address. Choose Submenu to group links. Edit or hide the highlighted Donate button separately. Check **Also show in the footer** to keep its label and destination consistent with the main menu. Save a draft and use Preview before publishing; published changes appear without a code change or redeploy. Unpublished or deleted pages are hidden from public menus. Longer menus use the compact navigation when they no longer fit.
+- **Settings → Website settings:** edit the shared address, email, phone, social profiles, adoption directories, and donation links. Save a draft to preview, then publish to update the website. Existing contact references in page text also follow these settings. Leave optional URLs blank to hide those links; TikTok starts blank. In new rich text, shared values can be inserted as {{address}}, {{emailAddress}}, {{phone}}, or any of the other settings field names.
 
 - **Animal profile gallery:** swipe photos on touchscreens, use the themed arrows or arrow keys, or tap a thumbnail. The thumbnail strip scrolls horizontally within the main photo’s width.
-- **Animals:** browse photo cards, search profiles, or filter Cats and Dogs. Cards show availability, publication state, photo count, and published homepage features. Click a card to edit in the side drawer or choose **Add an animal**. The Details, Photos, Story, Friendly with, and Editor notes tabs keep profile fields organized without changing existing data. Upload approved public photos in Photos and drag rows to choose the main image. Save a draft to keep changes private; publish to update the website. Adoption status is separate from draft/publication state. Marking an animal on hold or adopted removes it from available-animal searches and homepage highlights. The dashboard shows the five most recently updated profiles in a compact, horizontally scrollable strip with small thumbnails and status labels. The full Animals gallery fits five photo cards across on desktop and uses fewer columns as the available space narrows.
-- **Homepage → Homepage Intro:** edit the foundation heading and rich-text introduction, including the donation link. Save a draft and use the authenticated preview before publishing.
-- **Homepage → Homepage Highlights:** edit the featured-animal introduction, select available animals, and drag the rows to order them. Use the authenticated preview before publishing.
-- **Pages:** open a page directly from this sidebar group, or use **New page** to add one. Existing page links use the same labels as the public menu. Edit the body with the rich-text toolbar and save a draft before publishing. Adoption and volunteering keep their `/info/adoption` and `/info/volunteering` addresses; a published page with slug `donate` appears at `/donate`. Publish a new page first, then add it under **Settings → Main Menu**. Removing a menu link does not delete the page.
-- **Retired intake storage:** the Intake section and private-file tools are disabled. Existing records and files are retained as inaccessible storage, not an active workflow. Manage website animal profiles directly in Animals; the rescue uses its own operational system. Future automation can create and update animal drafts directly.
+- **Animals:** browse photo cards, search profiles, or filter Cats and Dogs. Cards show availability, publication state, photo count, and published homepage features. Click a card to edit in the side drawer or choose **Add an animal**. The Details, Photos, Story, Friendly with, and Editor notes tabs keep profile fields organized. Upload approved public photos in Photos and drag rows to choose the main image. Save a draft to keep changes private; publish to update the website. Adoption status is separate from draft/publication state. Marking an animal Pending or Adopted removes it from available-animal searches and homepage highlights. The dashboard shows featured animals first, followed by the most recently updated profiles in a compact, horizontally scrollable strip with small thumbnails and status labels. The full Animals gallery fits five photo cards across on desktop and uses fewer columns as the available space narrows.
+- **Homepage → Intro:** edit the foundation heading and rich-text introduction, including the donation link. Save a draft and use the authenticated preview before publishing.
+- **Homepage → Featured animals:** edit the featured-animal introduction, select available animals, and drag the rows to order them. Use the authenticated preview before publishing.
+- **Pages:** open a page directly from this sidebar group, or use **New page** to add one. Existing page links use the same labels as the public menu. Edit the body with the rich-text toolbar and save a draft before publishing. Internal links follow the destination’s published slug and disappear when the destination is unpublished or deleted. Adoption and volunteering keep their `/info/adoption` and `/info/volunteering` addresses; a published page with slug `donate` appears at `/donate`. Publish a new page first, then add it under **Settings → Main menu**. Removing a menu link does not delete the page.
+- **Website content only:** manage animal profiles directly in Animals. The rescue uses a separate operational system; this CMS has no intake-processing workflow.
 - **Staff:** the administrator can create an editor account for the content manager. Editors can maintain content but cannot assign administrative roles.
 
 Use **unknown** for unassessed compatibility. Public compatibility filters match explicit yes assessments, never unknown or conditional values.
@@ -68,9 +72,7 @@ Credit eligibility, balance, expiry, and billing behavior have **not** been veri
 
 The hosted preview uses schema synchronization during initial seeding. Before production hosting, introduce reviewed migrations, production backups, email delivery, and deployment-specific configuration. Do not expose this demo as a live adoption system with fictional fixtures.
 
-Initial verification on November 7, 2026: production build and TypeScript checks passed; seven backend integration tests passed; desktop and 320/390px mobile browser checks passed. The manager's own editing/usability session is still pending. Local preview screenshots are in `output/qa`.
-
-Dependency overrides pin patched DOMPurify and happy-dom versions. The installation audit reported no high or critical advisories, with 5 moderate and 7 low advisories remaining; review these again before production deployment.
+Use an isolated database and upload directory for integration tests and browser QA. The backend tests discard inherited hosted credentials, create temporary local databases, and clean up their connections. Keep test credentials and local QA artifacts out of Git.
 
 ## Backup and restore
 
@@ -81,7 +83,7 @@ Stop the app before copying its database and uploads together:
 ./scripts/local.sh restore -- backups/BACKUP_NAME /absolute/path/to/a-new-restore-directory
 ```
 
-Restore verifies SQLite integrity and writes into a new directory; it does not overwrite the working application. Backups include public and private uploads. Preserve `.env` securely and separately; it is intentionally excluded from backups and Git.
+Restore verifies SQLite integrity and writes into a new directory; it does not overwrite the working application. Backups include the database and uploaded files. Preserve `.env` securely and separately; it is intentionally excluded from backups and Git.
 
 ## Project layout
 

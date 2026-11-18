@@ -7,11 +7,10 @@ import { getPayload, type Payload } from 'payload'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { createClient } from '@libsql/client'
 import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText } from '../../src/lib/public-content'
-import { consolidateAdoption, seedAdoption } from '../../scripts/adoption-seed'
+import { seedAdoption } from '../../scripts/adoption-seed'
 import { seedPages } from '../../scripts/page-seeds'
 import { seedVolunteering } from '../../scripts/volunteering-seed'
 import { prepareHomepageIntro } from '../../scripts/homepage-intro-schema'
-import { prepareInformationPages } from '../../scripts/information-pages-schema'
 import { seedPoppyPhotos } from '../../scripts/poppy-photos-seed'
 import { seedDemoCalico } from '../../scripts/demo-calico-seed'
 import { prepareWebsiteSettings } from '../../scripts/website-settings-schema'
@@ -21,6 +20,7 @@ import { prepareMainMenuSchema } from '../../scripts/main-menu-schema'
 import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
+import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -29,25 +29,29 @@ let admin: any
 let editor: any
 let draftID: number
 let publishedID: number
-let privateFileID: number
 let publicPhotoID: number
 before(async () => {
+  // Tests must never inherit hosted credentials or migration flags from a developer's .env.
+  for (const name of ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'BLOB_READ_WRITE_TOKEN', 'TURSO_PUSH_SCHEMA', 'VERCEL', 'VERCEL_ENV', 'PAYLOAD_MIGRATING']) delete process.env[name]
+  process.env.DISABLE_PAYLOAD_HMR = 'true'
   directory = await mkdtemp(path.join(os.tmpdir(), 'pets4luv-security-'))
   process.env.DATABASE_URL = `file:${path.join(directory, 'test.db')}`
   process.env.LOCAL_UPLOAD_DIR = path.join(directory, 'uploads')
   const { default: config } = await import('../../src/payload.config')
-  payload = await getPayload({ config })
+  const resolvedConfig = await config
+  payload = await getPayload({ config: { ...resolvedConfig, typescript: { ...resolvedConfig.typescript, autoGenerate: false } } })
   admin = await payload.create({ collection: 'users', data: { email: 'admin@example.invalid', password: 'Temporary-test-only-88327', name: 'Test Admin', role: 'admin' } })
   editor = await payload.create({ collection: 'users', overrideAccess: false, user: admin, data: { email: 'editor@example.invalid', password: 'Temporary-test-only-99236', name: 'Test Editor', role: 'editor' } })
   publicPhotoID = (await payload.create({ collection: 'media', data: { alt: 'Approved test fixture' }, filePath: path.resolve('public/images/luna.png') })).id
   const basic = { name: 'Fixture', slug: 'published-fixture', species: 'cat' as const, sex: 'female' as const, ageGroup: 'adult' as const, size: 'small' as const, summary: 'Fictional fixture', description: 'Fictional fixture', status: 'available' as const, internalNotes: 'PRIVATE SENTINEL', rescueIntakeID: 'PRIVATE-1', photos: [{ photo: publicPhotoID }], compatibility: { dogs: 'unknown' as const, cats: 'yes' as const, children: 'conditional' as const } }
   publishedID = (await payload.create({ collection: 'animals', data: { ...basic, colors: ['black', 'white'], _status: 'published' } })).id
   draftID = (await payload.create({ collection: 'animals', draft: true, data: { ...basic, colors: ['gray'], slug: 'secret-draft', rescueIntakeID: 'PRIVATE-2', _status: 'draft' } })).id
-  privateFileID = (await payload.create({ collection: 'intake-files', data: { label: 'Private test card' }, file: { data: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=', 'base64'), mimetype: 'image/png', name: `private-${Date.now()}.png`, size: 68 } })).id
 })
 after(async () => {
   if (payload) {
+    const client = (payload.db as unknown as SQLiteAdapter).client
     await payload.destroy()
+    client.close()
   }
   if (directory) await rm(directory, { recursive: true, force: true })
 })
@@ -136,19 +140,8 @@ test('the reviewed Calico sample upgrade preserves drafts, real animals, and lat
   }
 })
 
-test('retired intake tools reject visitors and staff while animal edits still require staff', async () => {
-  for (const user of [undefined, editor, admin]) {
-    await assert.rejects(() => payload.find({ collection: 'intake-files', overrideAccess: false, user }))
-    await assert.rejects(() => payload.findByID({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user }))
-    await assert.rejects(() => payload.find({ collection: 'intakes', overrideAccess: false, user }))
-    await assert.rejects(() => payload.findVersions({ collection: 'intakes', overrideAccess: false, user }))
-    await assert.rejects(() => payload.create({ collection: 'intakes', overrideAccess: false, user, data: { intakeID: 'RETIRED-TEST', animalPhoto: privateFileID, informationCard: privateFileID, submittedFacts: 'Retired workflow', state: 'received' } }))
-    await assert.rejects(() => payload.update({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user, data: { label: 'Blocked edit' } }))
-    await assert.rejects(() => payload.delete({ collection: 'intake-files', id: privateFileID, overrideAccess: false, user }))
-  }
-  assert.equal(payload.collections.intakes.config.admin.hidden, true)
-  assert.equal(payload.collections['intake-files'].config.admin.hidden, true)
-  assert.equal((await payload.findByID({ collection: 'intake-files', id: privateFileID })).label, 'Private test card')
+test('retired prototype collections are absent and animal edits still require staff', async () => {
+  for (const slug of ['intakes', 'intake-files', 'knowledge']) assert.ok(!(slug in payload.collections))
   await assert.rejects(() => payload.update({ collection: 'animals', id: publishedID, data: { name: 'Anonymous edit' }, overrideAccess: false }))
 })
 
@@ -328,8 +321,8 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   const donate = await payload.create({ collection: 'pages', user: editor, overrideAccess: false, draft: true, data: { title: 'Manager draft donation copy', slug: 'donate', body: pageBody('DO NOT OVERWRITE'), _status: 'draft' } })
   const beforeAnimals = await payload.count({ collection: 'animals' })
   const beforeUsers = await payload.count({ collection: 'users' })
-  assert.deepEqual(await seedPages(payload), { created: ['contact', 'about', 'tnr', 'medical', 'injured-feral-cats'], refreshedContact: false })
-  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
+  assert.deepEqual(await seedPages(payload), { created: ['contact', 'about', 'tnr', 'medical', 'injured-feral-cats'] })
+  assert.deepEqual(await seedPages(payload), { created: [] })
   const preserved = await payload.findByID({ collection: 'pages', id: donate.id, draft: true })
   assert.equal(preserved.title, 'Manager draft donation copy')
   assert.equal(preserved._status, 'draft')
@@ -358,255 +351,23 @@ test('page seed creates missing starter pages and preserves existing drafts', as
   assert.equal((await payload.count({ collection: 'users' })).totalDocs, beforeUsers.totalDocs)
 })
 
-test('the Contact starter refresh preserves a pending draft and published staff edits', async () => {
-  const { docs: [contact] } = await payload.find({ collection: 'pages', where: { slug: { equals: 'contact' } } })
-  const previousBody = structuredClone(contact.body)
-  const placeholder = pageBody('Approved contact details will be added here when they are ready. Please check back for ways to get in touch.').root.children[0]
-  Object.assign(placeholder, { textFormat: 0, textStyle: '' })
-  previousBody.root.children.push(placeholder)
-  await payload.update({ collection: 'pages', id: contact.id, data: { body: previousBody, _status: 'published' } })
-
-  await payload.update({ collection: 'pages', id: contact.id, draft: true, data: { title: 'Pending staff contact edit', slug: 'contact-draft', _status: 'draft' } })
-  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
-  assert.equal((await payload.findByID({ collection: 'pages', id: contact.id, draft: true })).slug, 'contact-draft')
-  assert.deepEqual((await payload.findByID({ collection: 'pages', id: contact.id, draft: false })).body, previousBody)
-
-  await payload.update({ collection: 'pages', id: contact.id, data: { title: 'Staff contact information', slug: contact.slug, body: previousBody, _status: 'published' } })
-  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
-  await payload.update({ collection: 'pages', id: contact.id, data: { title: contact.title, _status: 'published' } })
-
-  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: true })
-  assert.deepEqual((await payload.findByID({ collection: 'pages', id: contact.id, draft: false })).body, contact.body)
-  assert.deepEqual(await seedPages(payload), { created: [], refreshedContact: false })
-})
-
-test('volunteering seed creates official copy and only upgrades the exact demo without a pending draft', async () => {
-  assert.equal(await seedVolunteering(payload), 'created')
-  const { docs: [article] } = await payload.find({ collection: 'knowledge', where: { slug: { equals: 'volunteering' } }, depth: 0 })
-  assert.equal(article.title, 'Volunteer with Pets4Luv')
-  assert.equal(await seedVolunteering(payload), 'preserved')
-
-  const body = pageBody('This fictional demonstration illustrates where approved volunteering information will appear. A real rescue may need help with animal care, transport, events and foster support. Ask the organization about its current opportunities, training and age requirements.')
-  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
-  const demo = {
-    title: 'A little of your time. A lot of love.',
-    slug: 'volunteering',
-    category: 'volunteering',
-    body,
-    source: 'Fictional demonstration fixture',
-    reviewer: 'Demo content',
-    reviewedAt: '2026-11-07',
-    _status: 'published',
-  } as const
-  const record = { collection: 'knowledge', id: article.id, depth: 0 } as const
-
-  const edited = await payload.update({ ...record, data: { ...demo, body: pageBody('Staff edited volunteering copy.') } })
-  assert.equal(await seedVolunteering(payload), 'preserved')
-  assert.deepEqual((await payload.findByID(record)).body, edited.body)
-
-  await payload.update({ ...record, data: demo })
-  const draft = await payload.update({ ...record, draft: true, data: { slug: 'volunteering-draft', title: 'Staff draft', _status: 'draft' } })
-  assert.equal(await seedVolunteering(payload), 'preserved')
-  const latest = await payload.findByID({ ...record, draft: true })
-  assert.equal(latest._status, 'draft')
-  assert.equal(latest.slug, draft.slug)
-  assert.equal(latest.title, draft.title)
-  assert.equal((await payload.findByID({ ...record, draft: false })).title, demo.title)
-
-  await payload.update({ ...record, data: demo })
-  assert.equal(await seedVolunteering(payload), 'updated')
-  const updated = await payload.findByID({ ...record, overrideAccess: false })
-  assert.equal(updated.title, 'Volunteer with Pets4Luv')
-  assert.equal(updated.source, 'https://www.pets4luv.org/volunteering')
-  assert.equal(updated.reviewer, null)
-  assert.equal(updated.reviewedAt, null)
-  assert.equal(updated.body.root.children.length, 3)
-  assert.ok(JSON.stringify(updated.body).includes('{{emailHref}}'))
-  const publishedBody = JSON.stringify(applyWebsiteSettings(updated.body, defaultWebsiteSettings))
-  assert.ok(publishedBody.includes('mailto:info@pets4luv.org'))
-  assert.ok(publishedBody.includes('tel:+15168607057'))
-  assert.equal(await seedVolunteering(payload), 'preserved')
-})
-
-test('adoption seed writes a single article and preserves staff drafts', async () => {
+test('information seeds use Pages directly and preserve published edits and renamed drafts', async () => {
   assert.deepEqual(await seedAdoption(payload), { adoption: 'created' })
-  const { docs: [shared], totalDocs } = await payload.find({ collection: 'knowledge', where: { category: { equals: 'adoption' } }, overrideAccess: false })
-  assert.equal(totalDocs, 1)
-  assert.equal(shared.slug, 'adoption')
-  assert.equal(shared.title, 'How adoption works')
-  assert.equal(shared.reviewer, null)
-  assert.equal(shared.reviewedAt, null)
-  assert.match(shared.source ?? '', /Cat-Adoption-Information.*Dog-Adoption-Information/)
-  const steps = shared.body.root.children.find(node => node.type === 'list')
-  assert.equal(steps?.tag, 'ol')
-  assert.equal(Array.isArray(steps?.children) && steps.children.length, 3)
-  for (const href of ['mailto:info@pets4luv.org', 'tel:+15168607057']) assert.ok(JSON.stringify(applyWebsiteSettings(shared.body, defaultWebsiteSettings)).includes(href))
-  assert.deepEqual(shared.body.root.children.filter(node => node.type === 'heading').map(node => [node.tag, richTextToText(node)]), [
-    ['h2', 'Cat adoption'],
-    ['h2', 'Dog adoption'],
-  ])
-
-  const body = pageBody('This is a fictional local demonstration, not an operating rescue. In a real adoption process, the rescue will discuss your household, help you meet an animal and explain its approved adoption policies. Contact the rescue directly for current fees, application requirements and availability.')
-  Object.assign(body.root.children[0], { textFormat: 0, textStyle: '' })
-  const demo = { title: 'Find your new best friend', slug: 'adoption', body, source: 'Fictional demonstration fixture', reviewer: 'Demo content', reviewedAt: '2026-11-07', _status: 'published' } as const
-  const record = { collection: 'knowledge', id: shared.id } as const
-  await payload.update({ ...record, data: demo })
-  await payload.update({ ...record, draft: true, data: { slug: 'adoption-draft', title: 'Staff adoption draft', _status: 'draft' } })
-  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved' })
-  assert.equal((await payload.findByID({ ...record, draft: true })).title, 'Staff adoption draft')
-  assert.deepEqual((await payload.findByID({ ...record, draft: false })).body, demo.body)
-
-  await payload.update({ ...record, data: demo })
-  const cat = await payload.create({ collection: 'knowledge', draft: true, data: { title: 'Staff cat draft', slug: 'cat-adoption', category: 'adoption', body: pageBody('Pending cat edits.'), _status: 'draft' } })
-  assert.deepEqual(await seedAdoption(payload), { adoption: 'updated' })
-  assert.deepEqual((await payload.findByID({ ...record, overrideAccess: false })).body, shared.body)
-  assert.equal((await payload.findByID({ collection: 'knowledge', id: cat.id, draft: true })).title, 'Staff cat draft')
-  assert.deepEqual(await seedAdoption(payload), { adoption: 'preserved' })
-
-  await payload.delete({ collection: 'knowledge', id: cat.id })
-  await payload.delete(record)
-})
-
-test('adoption consolidation copies published edits and resumes after a partial deletion', async t => {
-  const collection = 'knowledge' as const
-  const defaults = { category: 'adoption', _status: 'published' } as const
-  const overview = await payload.create({ collection, data: { ...defaults, title: 'Staff adoption overview', slug: 'adoption', body: pageBody('Edited overview.'), source: 'Edited source.' } })
-  const cat = await payload.create({ collection, data: { ...defaults, title: 'Cat adoption', slug: 'cat-adoption', body: pageBody('Edited cat policy.') } })
-  const dog = await payload.create({ collection, data: { ...defaults, title: 'Dog adoption', slug: 'dog-adoption', body: pageBody('Edited dog policy.') } })
-  const record = { collection, id: overview.id } as const
-  const dogRecord = { collection, id: dog.id } as const
-  await payload.update({ ...dogRecord, draft: true, data: { slug: 'dog-adoption-draft', body: pageBody('Pending staff edits.'), _status: 'draft' } })
-  await assert.rejects(() => consolidateAdoption(payload), /draft for "dog-adoption"/)
-  assert.deepEqual((await payload.findByID(record)).body, overview.body)
-  assert.equal((await payload.findByID({ collection, id: cat.id })).slug, cat.slug)
-  await payload.update({ ...dogRecord, data: { slug: dog.slug, body: dog.body, _status: 'published' } })
-
-  const originalDelete = payload.delete
-  const failSecondDelete = t.mock.method(payload, 'delete', async (options: { id?: number }) => {
-    if (options.id === dog.id) throw new Error('Temporary deletion failure')
-    return Reflect.apply(originalDelete, payload, [options])
-  })
-  await assert.rejects(() => consolidateAdoption(payload), /Temporary deletion failure/)
-  failSecondDelete.mock.restore()
-
-  const combined = await payload.findByID(record)
-  assert.equal(combined.title, overview.title)
-  assert.equal(combined.source, overview.source)
-  const combinedChildren = combined.body.root.children
-  assert.deepEqual(combinedChildren.map(richTextToText), [
-    'Edited overview.',
-    'Cat adoption',
-    'Edited cat policy.',
-    'Dog adoption',
-    'Edited dog policy.',
-  ])
-  assert.deepEqual([combinedChildren[1].tag, combinedChildren[3].tag], ['h2', 'h2'])
-  assert.deepEqual(combinedChildren[0], overview.body.root.children[0])
-  assert.deepEqual(combinedChildren[2], cat.body.root.children[0])
-  assert.deepEqual(combinedChildren[4], dog.body.root.children[0])
-  assert.equal(await payload.findByID({ collection, id: cat.id, disableErrors: true }), null)
-
-  await payload.update({ ...dogRecord, data: { body: pageBody('New dog policy.') } })
-  await assert.rejects(() => consolidateAdoption(payload), /different copy for "dog-adoption"/)
-  assert.equal(richTextToText((await payload.findByID(dogRecord)).body), 'New dog policy.')
-  assert.deepEqual((await payload.findByID(record)).body, combined.body)
-
-  await payload.update({ ...dogRecord, data: { body: dog.body } })
-  assert.deepEqual(await consolidateAdoption(payload), { updated: false, deleted: ['dog-adoption'] })
-  assert.deepEqual(await consolidateAdoption(payload), { updated: false, deleted: [] })
-  assert.equal(await payload.findByID({ ...dogRecord, disableErrors: true }), null)
-  assert.deepEqual((await payload.findByID(record)).body, combined.body)
-})
-
-
-test('information Pages migration adds old-schema metadata and preserves an existing canonical user page', async () => {
-  const client = createClient({ url: `file:${path.join(directory, 'old-pages.db')}` })
-  try {
-    await client.batch([
-      'CREATE TABLE pages (id integer PRIMARY KEY, title text, slug text, body text)',
-      'CREATE TABLE _pages_v (id integer PRIMARY KEY, parent_id integer, version_title text)',
-      'CREATE TABLE knowledge (id integer PRIMARY KEY, slug text)',
-      'CREATE TABLE payload_migrations (id integer PRIMARY KEY, name text, batch integer, updated_at text, created_at text)',
-      "INSERT INTO pages VALUES (1, 'User adoption policy', 'adoption', 'User body')",
-      "INSERT INTO knowledge VALUES (8, 'adoption')",
-    ], 'write')
-    await prepareInformationPages(client)
-    for (const [table, prefix] of [['pages', ''], ['_pages_v', 'version_']]) {
-      const columns = (await client.execute(`PRAGMA table_info(${table})`)).rows.map(row => row.name)
-      for (const column of ['category', 'source', 'reviewer', 'reviewed_at']) assert.ok(columns.includes(`${prefix}${column}`))
+  assert.equal(await seedVolunteering(payload), 'created')
+  for (const slug of ['adoption', 'volunteering']) {
+    const { docs: [page] } = await payload.find({ collection: 'pages', where: { slug: { equals: slug } }, draft: false })
+    assert.ok(page.body.root.children.length)
+    if (slug === 'adoption') {
+      assert.match(richTextToText(page.body), /Cat adoption/)
+      assert.match(richTextToText(page.body), /Dog adoption/)
     }
-    assert.deepEqual((await client.execute('SELECT id, title, slug, body FROM pages')).rows, [{ id: 1, title: 'User adoption policy', slug: 'adoption', body: 'User body' }])
-    assert.equal((await client.execute('SELECT count(*) AS total FROM _pages_v')).rows[0].total, 0)
-    const markers = (await client.execute('SELECT * FROM payload_migrations')).rows
-    assert.equal(markers.length, 1)
-    assert.equal(markers[0].batch, 0)
-    await client.execute("UPDATE pages SET slug = 'user-renamed-adoption'")
-    await prepareInformationPages(client)
-    assert.equal((await client.execute('SELECT slug FROM pages')).rows[0].slug, 'user-renamed-adoption')
-    assert.deepEqual((await client.execute('SELECT * FROM payload_migrations')).rows, markers)
-  } finally {
-    client.close()
+    await payload.update({ collection: 'pages', id: page.id, data: { title: 'Approved editorial title', body: pageBody('Approved editorial copy'), _status: 'published' } })
+    await payload.update({ collection: 'pages', id: page.id, draft: true, data: { title: 'Pending editorial title', slug: `${slug}-draft`, _status: 'draft' } })
+    assert.equal(slug === 'adoption' ? (await seedAdoption(payload)).adoption : await seedVolunteering(payload), 'preserved')
+    assert.equal((await payload.findByID({ collection: 'pages', id: page.id, draft: false })).title, 'Approved editorial title')
+    assert.equal((await payload.findByID({ collection: 'pages', id: page.id, draft: true })).title, 'Pending editorial title')
   }
 })
-
-test('information Pages migration copies published articles and all drafts once while preserving unrelated content', async () => {
-  const client = (payload.db as unknown as SQLiteAdapter).client
-  const slugs = ['adoption', 'volunteering'] as const
-  const originals = new Map()
-  for (const slug of slugs) {
-    const { docs: [article] } = await payload.find({ collection: 'knowledge', where: { slug: { equals: slug } }, draft: false })
-    const published = await payload.update({ collection: 'knowledge', id: article.id, data: { source: `Approved ${slug} source`, reviewer: 'Rescue reviewer', reviewedAt: '2026-11-17T12:00:00.000Z', _status: 'published' } })
-    originals.set(slug, published)
-    await payload.update({ collection: 'knowledge', id: article.id, draft: true, data: { title: `PRIVATE ${slug} draft`, slug: `${slug}-pending`, body: pageBody(`PRIVATE ${slug} body`), _status: 'draft' } })
-  }
-  const snapshot = async (table: string) => (await client.execute(`SELECT * FROM ${table} ORDER BY id`)).rows
-  const archive = [await snapshot('knowledge'), await snapshot('_knowledge_v')]
-  const standalonePages = await snapshot('pages')
-  const standaloneVersions = await snapshot('_pages_v')
-  const standalonePageIDs = new Set(standalonePages.map(row => row.id))
-  const standaloneVersionIDs = new Set(standaloneVersions.map(row => row.id))
-  const highlights = [await snapshot('homepage'), await snapshot('_homepage_v')]
-
-  await prepareInformationPages(client)
-  const pages = new Map()
-  const versionColumns = 'version_title, version_slug, version_body, version__status, version_updated_at, version_created_at, created_at, updated_at, latest, version_category, version_source, version_reviewer, version_reviewed_at'
-  for (const slug of slugs) {
-    const original = originals.get(slug)
-    const { docs: [page], totalDocs } = await payload.find({ collection: 'pages', overrideAccess: false, draft: false, where: { slug: { equals: slug } } })
-    assert.equal(totalDocs, 1)
-    pages.set(slug, page)
-    for (const field of ['title', 'slug', 'body', '_status', 'createdAt', 'updatedAt', 'category', 'source', 'reviewer', 'reviewedAt'] as const) assert.deepEqual(page[field], original[field], `${slug}.${field}`)
-    const migratedVersions = await client.execute({ sql: `SELECT ${versionColumns} FROM _pages_v WHERE parent_id = ? ORDER BY id`, args: [page.id] })
-    const originalVersions = await client.execute({ sql: `SELECT ${versionColumns} FROM _knowledge_v WHERE parent_id = ? ORDER BY id`, args: [original.id] })
-    assert.ok(originalVersions.rows.length > 1)
-    assert.deepEqual(migratedVersions.rows, originalVersions.rows)
-    const draft = await payload.findByID({ collection: 'pages', id: page.id, user: editor, overrideAccess: false, draft: true })
-    assert.equal(draft.title, `PRIVATE ${slug} draft`)
-    assert.equal(richTextToText(draft.body), `PRIVATE ${slug} body`)
-    const publicRead = await payload.findByID({ collection: 'pages', id: page.id, overrideAccess: false, draft: false })
-    assert.ok(!JSON.stringify(publicRead).includes('PRIVATE'))
-    assert.equal((await payload.find({ collection: 'pages', overrideAccess: false, draft: true, where: { slug: { equals: `${slug}-pending` } } })).totalDocs, 0)
-  }
-  const migrated = [await snapshot('pages'), await snapshot('_pages_v'), await snapshot('payload_migrations')]
-  await prepareInformationPages(client)
-  assert.deepEqual([await snapshot('pages'), await snapshot('_pages_v'), await snapshot('payload_migrations')], migrated)
-
-  const adoption = pages.get('adoption')
-  await payload.update({ collection: 'pages', id: adoption.id, user: editor, overrideAccess: false, data: { title: 'Editor policy', slug: 'adoption-editorial', body: pageBody('Editor published body'), _status: 'published' } })
-  await payload.update({ collection: 'pages', id: adoption.id, user: editor, overrideAccess: false, draft: true, data: { title: 'Editor pending policy', body: pageBody('Editor pending body'), _status: 'draft' } })
-  await payload.delete({ collection: 'pages', id: pages.get('volunteering').id, user: editor, overrideAccess: false })
-  const editorial = [await snapshot('pages'), await snapshot('_pages_v'), await snapshot('payload_migrations')]
-  await prepareInformationPages(client)
-  assert.deepEqual([await snapshot('pages'), await snapshot('_pages_v'), await snapshot('payload_migrations')], editorial)
-  assert.equal((await payload.find({ collection: 'pages', where: { slug: { in: [...slugs] } }, draft: false })).totalDocs, 0)
-  assert.equal((await payload.findByID({ collection: 'pages', id: adoption.id, draft: false })).title, 'Editor policy')
-  assert.equal((await payload.findByID({ collection: 'pages', id: adoption.id, draft: true })).title, 'Editor pending policy')
-  assert.deepEqual((await snapshot('pages')).filter(row => standalonePageIDs.has(row.id)), standalonePages)
-  assert.deepEqual((await snapshot('_pages_v')).filter(row => standaloneVersionIDs.has(row.id)), standaloneVersions)
-  assert.deepEqual([await snapshot('knowledge'), await snapshot('_knowledge_v')], archive)
-  assert.deepEqual([await snapshot('homepage'), await snapshot('_homepage_v')], highlights)
-})
-
 
 test('profile photos include all approved images without exposing media metadata', () => {
   const profile = animalProfileDTO({ name: 'Poppy', photos: [
@@ -713,6 +474,8 @@ test('Website Settings schema initializes current details once and preserves pub
 
   // Simulate the old URL-only schema, including a deliberately disabled draft link.
   await client.batch([
+    'ALTER TABLE website_settings ADD COLUMN paypal_url text',
+    'ALTER TABLE _website_settings_v ADD COLUMN version_paypal_url text',
     "UPDATE website_settings SET paypal_url = 'https://paypal.me/CurrentRescue'",
     "UPDATE _website_settings_v SET version_paypal_url = CASE WHEN version__status = 'draft' THEN '' ELSE 'https://www.paypal.com/paypalme/SavedRescue' END",
     'ALTER TABLE website_settings DROP COLUMN paypal_handle',
@@ -884,4 +647,26 @@ test('admin animal gallery protects drafts and projects only the selected staff 
   assert.equal(partial.age, 'Age unknown')
   assert.equal(partial.photos, 0)
   assert.equal(partial.publication, 'draft')
+})
+
+test('CMS document links follow published slugs and never reveal draft or deleted destinations', async () => {
+  const target = await payload.create({ collection: 'pages', data: { title: 'Linked page', slug: 'linked-page', body: pageBody('Public content'), _status: 'published' } })
+  const internal = (value: unknown, relationTo = 'pages') => ({ type: 'link', fields: { linkType: 'internal', doc: { relationTo, value }, newTab: true }, children: [{ type: 'text', text: 'Read more' }] })
+  const source = { root: { children: [internal(target.id), internal({ id: target.id, slug: 'untrusted' }), internal(draftID, 'animals'), internal(admin.id, 'users')] } }
+  const original = JSON.stringify(source)
+  try {
+    await payload.update({ collection: 'pages', id: target.id, draft: true, data: { slug: 'private-linked-draft', _status: 'draft' } })
+    const published = await resolveRichTextLinks(payload, source) as any
+    assert.equal(published.root.children[0].fields.url, '/linked-page')
+    assert.equal(published.root.children[1].fields.url, '/linked-page')
+    assert.equal(published.root.children[2].fields.url, '')
+    assert.equal(published.root.children[3].fields.url, '')
+    assert.equal(JSON.stringify(source), original)
+    assert.ok(!JSON.stringify(published).includes('private-linked-draft'))
+    await payload.update({ collection: 'pages', id: target.id, data: { slug: 'renamed-linked-page', _status: 'published' } })
+    assert.equal(((await resolveRichTextLinks(payload, source)) as any).root.children[0].fields.url, '/renamed-linked-page')
+    await payload.delete({ collection: 'pages', id: target.id })
+    assert.equal(((await resolveRichTextLinks(payload, source)) as any).root.children[0].fields.url, '')
+    assert.deepEqual(await resolveRichTextLinks(payload, { root: { children: [] } }), { root: { children: [] } })
+  } finally { await payload.delete({ collection: 'pages', id: target.id }).catch(() => {}) }
 })

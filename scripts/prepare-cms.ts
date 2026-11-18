@@ -9,8 +9,8 @@ const { default: config } = await import('../src/payload.config')
 const { prepareHomepageIntro } = await import('./homepage-intro-schema')
 const { prepareWebsiteSettings } = await import('./website-settings-schema')
 const { prepareInformationPages } = await import('./information-pages-schema')
-const { seedPoppyPhotos } = await import('./poppy-photos-seed')
-const { seedDemoCalico } = await import('./demo-calico-seed')
+const { cleanupRetiredSchema } = await import('./cleanup-retired-schema')
+const { prepareOptionalFields } = await import('./optional-fields-schema')
 const { prepareMainMenuSchema } = await import('./main-menu-schema')
 const { seedMainMenu } = await import('./main-menu-seed')
 const resolvedConfig = await config
@@ -25,11 +25,10 @@ try {
   await prepareWebsiteSettings(client)
   await prepareHomepageIntro(client)
   await prepareInformationPages(client)
+  await prepareOptionalFields(client)
+  await cleanupRetiredSchema(client)
   await prepareMainMenuSchema(client)
   await seedMainMenu(payload)
-  const addedPhotos = await seedPoppyPhotos(payload)
-  if (addedPhotos) console.log(`Added ${addedPhotos} extra Poppy demo photos.`)
-  if (await seedDemoCalico(payload)) console.log('Added the Calico tag to Olive’s sample profile.')
 } finally {
   try {
     await payload.destroy()
@@ -38,6 +37,4 @@ try {
     client.close()
   }
 }
-console.log('Homepage, Pages, Website Settings, and Main Menu storage is ready. Existing content and drafts were preserved.')
-// CLI preparation is complete; errors above remain uncaught and exit nonzero.
-process.exit(0)
+console.log('CMS storage is ready. Existing content and drafts were preserved.')
