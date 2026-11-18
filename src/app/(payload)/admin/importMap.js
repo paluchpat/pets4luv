@@ -3,6 +3,7 @@ import { UserEditorSaveButton as UserEditorSaveButton_e74ab27c6453dc27a047192427
 import { SlugSourceField as SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79 } from '../../../components/admin/SlugSourceField'
 import { WeightField as WeightField_fb53697c6be8024df2e7e09cc61f71f2 } from '../../../components/admin/WeightField'
 import { PhotoUploadControls as PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c } from '../../../components/admin/PhotoUploadControls'
+import { AnimalPhotoPlaceholder as AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf } from '../../../components/admin/AnimalPhotoPlaceholder'
 import { AnimalGalleryList as AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca } from '../../../components/admin/AnimalGalleryList'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -31,6 +32,7 @@ export const importMap = {
   "./components/admin/SlugSourceField#SlugSourceField": SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79,
   "./components/admin/WeightField#WeightField": WeightField_fb53697c6be8024df2e7e09cc61f71f2,
   "./components/admin/PhotoUploadControls#PhotoUploadControls": PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c,
+  "./components/admin/AnimalPhotoPlaceholder#AnimalPhotoPlaceholder": AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf,
   "./components/admin/AnimalGalleryList#AnimalGalleryList": AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,

@@ -223,6 +223,11 @@
   .cms-animal-photos .upload-relationship-details__actions .btn:hover { border-color: var(--cms-accent-text); color: var(--cms-accent-text); }
   .cms-animal-photos .array-field__add-row.btn:not(:disabled) { --btn-color: var(--cms-accent-text); min-height: 44px; padding: 8px 12px; border: 1px solid var(--cms-accent-text); border-radius: 8px; }
 
+  /* Keep the empty-gallery actions together, wrapping naturally on narrow screens. */
+  .cms-animal-photos:has(> .cms-use-placeholder) { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+  .cms-animal-photos:has(> .cms-use-placeholder) > :not(.array-field__add-row):not(.cms-use-placeholder) { flex-basis: 100%; }
+  .cms-use-placeholder.btn { min-height: 44px; margin: 2px 0; padding: 8px 12px; border: 1px solid var(--cms-accent-text); color: var(--cms-accent-text); }
+
   /* File-first photo creation, with the existing library as a secondary choice. */
   .cms-animal-photo-upload:has(> .cms-photo-upload) { padding: 22px 12px; border: 2px dashed var(--cms-line); border-radius: 8px; background: var(--cms-bg); text-align: center; }
   .cms-photo-upload__dropzone { display: flex; flex-direction: column; justify-content: center; gap: 10px; height: auto; padding: 0; border: 0; background: transparent; text-align: center; }
