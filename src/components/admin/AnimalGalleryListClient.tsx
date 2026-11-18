@@ -19,6 +19,7 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const { data, query, refineListData } = useListQuery()
   const { setStepNav } = useStepNav()
   const [search, setSearch] = useState(String(query.search || ''))
+  const searchIsLocal = useRef(false)
   const [message, setMessage] = useState('')
   const [pending, startTransition] = useTransition()
   const gallery = useRef<HTMLDivElement>(null)
@@ -28,7 +29,18 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const activeFilters = adminAnimalFilters.filter(filter => adminAnimalFilterValue(where, filter.field, filter.operator)).length
   const hasCriteria = Boolean(search.trim() || Object.keys(where || {}).length)
   useEffect(() => { setStepNav([{ label: 'Animals' }]) }, [setStepNav])
-  useEffect(() => { setSearch(String(query.search || '')) }, [query.search])
+  // Restore initial list preferences, but never replace newer typing with an older response.
+  useEffect(() => {
+    if (!searchIsLocal.current) setSearch(String(query.search || ''))
+  }, [query.search])
+  useEffect(() => {
+    function restoreSearchFromHistory() {
+      searchIsLocal.current = true
+      setSearch(new URLSearchParams(window.location.search).get('search') || '')
+    }
+    window.addEventListener('popstate', restoreSearchFromHistory)
+    return () => window.removeEventListener('popstate', restoreSearchFromHistory)
+  }, [])
   useEffect(() => {
     if (search.trim() === String(query.search || '')) return
     const timer = window.setTimeout(() => {
@@ -48,8 +60,12 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   function filter(field: string, value: string, operator: 'equals' | 'contains' = 'equals') {
     startTransition(() => { void refineListData({ where: updateAdminAnimalFilter(where, field, value, operator), search: search.trim() || undefined, page: 1 }) })
   }
+  function changeSearch(value: string) {
+    searchIsLocal.current = true
+    setSearch(value)
+  }
   function clearFilters() {
-    setSearch('')
+    changeSearch('')
     startTransition(() => { void refineListData({ where: {}, search: undefined, page: 1 }) })
   }
   const total = data?.totalDocs || 0
@@ -64,7 +80,7 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
     <div className="cms-gallery-toolbar-wrap">
       <div className="cms-gallery-toolbar">
         <label className="cms-gallery-search"><Search aria-hidden="true" /><span className="cms-sr-only">Search animal profiles</span>
-          <input type="search" placeholder="Search names, breeds, notes, intake IDs…" aria-describedby="cms-animal-search-help" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} />
+          <input type="search" placeholder="Search names, breeds, notes, intake IDs…" aria-describedby="cms-animal-search-help" value={search} maxLength={100} onChange={event => changeSearch(event.target.value)} />
         </label>
         <div className="cms-species-filters" role="group" aria-label="Pet type">
           {[{ value: 'all', label: 'All animals', icon: 'paw' }, { value: 'cat', label: 'Cats', icon: 'cat' }, { value: 'dog', label: 'Dogs', icon: 'dog' }].map(item => <button key={item.value} type="button" aria-pressed={selected === item.value} onClick={() => filter('species', item.value === 'all' ? '' : item.value)}><Icon kind={item.icon as 'paw' | 'cat' | 'dog'} />{item.label}</button>)}
