@@ -1,6 +1,7 @@
 export const animalColorOptions = [
   { label: 'Black', value: 'black' },
   { label: 'Brown', value: 'brown' },
+  { label: 'Calico', value: 'calico' },
   { label: 'Cream', value: 'cream' },
   { label: 'Gold', value: 'gold' },
   { label: 'Gray', value: 'gray' },

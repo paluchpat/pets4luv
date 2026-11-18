@@ -92,7 +92,7 @@ export function FilterSelect({ name, label, options, defaultValue = '', value: c
           onClick={() => choose(index)}
         >
           <span className={option.swatch ? 'filter-option-label' : undefined}>
-            {option.swatch && <span className="filter-option-swatch" aria-hidden="true" style={{ backgroundColor: option.swatch }} />}
+            {option.swatch && <span className="filter-option-swatch" aria-hidden="true" style={{ background: option.swatch }} />}
             {option.label}
           </span>
           <span className="filter-option-check" aria-hidden="true">{option.value === value ? '✓' : ''}</span>

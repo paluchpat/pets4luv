@@ -81,6 +81,26 @@ test('animal color matches any selected color on an available, published animal'
   assert.deepEqual(buildAnimalWhere({ color: 'not-a-color' }), buildAnimalWhere())
 })
 
+test('Calico can be saved and searched through public and CMS animal filters', async () => {
+  const calico = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, data: {
+    name: 'Coat pattern fixture', slug: 'coat-pattern-fixture', species: 'cat', sex: 'female', ageGroup: 'adult', size: 'small',
+    colors: ['calico', 'white'], description: 'Animal color filter fixture.', status: 'available',
+    compatibility: { dogs: 'unknown', cats: 'unknown', children: 'unknown' },
+    photos: [{ photo: publicPhotoID }], _status: 'published',
+  } })
+  try {
+    assert.deepEqual(calico.colors, ['calico', 'white'])
+    const visible = await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ species: 'cat', color: 'calico' }) })
+    assert.deepEqual(visible.docs.map(doc => doc.id), [calico.id])
+    const searched = await loadAdminGalleryPageCards(payload, editor, { search: 'calico cat', page: 1, limit: 12 })
+    assert.deepEqual(searched.map(card => card.id), [calico.id])
+    await payload.update({ collection: 'animals', id: calico.id, overrideAccess: false, user: editor, data: { status: 'on-hold' } })
+    assert.equal((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ color: 'calico' }) })).totalDocs, 0)
+  } finally {
+    await payload.delete({ collection: 'animals', id: calico.id })
+  }
+})
+
 test('retired intake tools reject visitors and staff while animal edits still require staff', async () => {
   for (const user of [undefined, editor, admin]) {
     await assert.rejects(() => payload.find({ collection: 'intake-files', overrideAccess: false, user }))
