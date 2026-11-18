@@ -1,11 +1,12 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildConfig } from 'payload'
+import { buildConfig, deepMergeSimple } from 'payload'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { cloudStoragePlugin } from '@payloadcms/plugin-cloud-storage'
 import { lexicalEditor, BoldFeature, ItalicFeature, ParagraphFeature, HeadingFeature, FixedToolbarFeature, LinkFeature, UnorderedListFeature, OrderedListFeature } from '@payloadcms/richtext-lexical'
 import sharp from 'sharp'
 import { sharedLinkFields } from './lib/shared-link-fields'
+import { cmsEnglishTranslations, cmsLexicalEnglishTranslations } from './lib/cms-translations'
 import { Users } from './collections/Users'
 import { Media, IntakeFiles } from './collections/Media'
 import { Animals } from './collections/Animals'
@@ -48,10 +49,14 @@ const storageAdapter = tursoURL && blobToken ? privateBlobAdapter(blobToken) : n
 export default buildConfig({
   secret,
   serverURL,
-  i18n: { translations: { en: { fields: { chooseFromExisting: 'Choose existing photo' } } } },
+  i18n: { translations: { en: cmsEnglishTranslations } },
   admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNav: ['./components/admin/AdminBrand#AdminBrand'], graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' }, actions: ['./components/admin/AdminBrand#ViewWebsite'], views: { dashboard: { Component: './components/admin/DashboardContent#DashboardContent' } }, afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'] } },
   collections: [Users, Animals, Knowledge, Pages, Media, Intakes, IntakeFiles], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
-  editor: lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'], fields: ({ defaultFields }) => sharedLinkFields(defaultFields) }), UnorderedListFeature(), OrderedListFeature()] }),
+  editor: async args => {
+    const editor = await lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages', 'knowledge'], fields: ({ defaultFields }) => sharedLinkFields(defaultFields) }), UnorderedListFeature(), OrderedListFeature()] })(args)
+    args.config.i18n.translations = deepMergeSimple(args.config.i18n.translations, { en: { lexical: cmsLexicalEnglishTranslations } })
+    return editor
+  },
   db: sqliteAdapter({
     client: tursoURL
       ? { url: tursoURL, authToken: tursoAuthToken }

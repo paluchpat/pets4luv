@@ -42,12 +42,12 @@ export const MainMenu: GlobalConfig = {
   },
   fields: [
     { name: 'items', label: 'Menu items', type: 'array', maxRows: 12,
-      labels: { singular: 'Menu item', plural: 'Menu items' },
+      labels: { singular: 'menu item', plural: 'menu items' },
       admin: { initCollapsed: true, components: { RowLabel: './components/admin/MenuRowLabel#MenuRowLabel' } },
       fields: [
         ...linkFields(true),
         { name: 'children', label: 'Submenu links', type: 'array', maxRows: 16,
-          labels: { singular: 'Submenu link', plural: 'Submenu links' },
+          labels: { singular: 'submenu link', plural: 'submenu links' },
           validate: (value: unknown, { siblingData }: ValidationContext) => siblingData?.linkType !== 'submenu' || (Array.isArray(value) && value.length > 0) ? true : 'Add at least one link to this submenu.',
           admin: { condition: (_, siblingData) => siblingData?.linkType === 'submenu', initCollapsed: true, components: { RowLabel: './components/admin/MenuRowLabel#MenuRowLabel' } },
           fields: linkFields(),

@@ -10,6 +10,6 @@ export const Homepage: GlobalConfig = {
   fields: [
     { name: 'heading', type: 'text', required: true, defaultValue: 'The best part of their story is still ahead.' },
     { name: 'intro', type: 'richText', required: true, hooks: sharedContentHooks },
-    { name: 'featuredAnimals', type: 'array', maxRows: 6, fields: [{ name: 'animal', type: 'relationship', relationTo: 'animals', required: true, filterOptions: { and: [{ status: { equals: 'available' } }, { _status: { equals: 'published' } }] } }], admin: { description: 'Only your selected, published, available animals appear. Unavailable selections are hidden without substitutes.' } },
+    { name: 'featuredAnimals', type: 'array', labels: { singular: 'row', plural: 'rows' }, maxRows: 6, fields: [{ name: 'animal', type: 'relationship', relationTo: 'animals', required: true, filterOptions: { and: [{ status: { equals: 'available' } }, { _status: { equals: 'published' } }] } }], admin: { components: { RowLabel: './components/admin/ArrayRowLabel#ArrayRowLabel' }, description: 'Only your selected, published, available animals appear. Unavailable selections are hidden without substitutes.' } },
   ],
 }
