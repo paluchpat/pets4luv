@@ -38,7 +38,7 @@ export const Animals: CollectionConfig = {
         { name: 'status', label: 'Adoption status', type: 'select', required: true, defaultValue: 'available', options: [{ label: 'Available', value: 'available' }, { label: 'Pending', value: 'on-hold' }, { label: 'Adopted', value: 'adopted' }] },
         { name: 'sex', label: 'Gender', type: 'select', required: true, defaultValue: 'unknown', options: ['female', 'male', 'unknown'] },
         { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
-        { name: 'size', type: 'select', required: true, options: ['small', 'medium', 'large'] },
+        { name: 'size', type: 'select', options: ['small', 'medium', 'large'] },
         { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
         { name: 'breed', label: 'Reported breed', type: 'text' },
         { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },

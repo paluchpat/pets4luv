@@ -47,7 +47,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <nav aria-label="Footer navigation">
         {menu.footerLinks.map(({ id, href, label, newTab }) => <Link key={id} href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener noreferrer" : undefined}>{label}{newTab && <span className="sr-only"> (opens in a new tab)</span>}</Link>)}
       </nav>
-      <p className="demo-notice">Development demo · Animal profiles and sample information are fictional. This is not the rescue’s live adoption catalog.</p>
+      {!publicSiteOrigin && <p className="demo-notice">Development preview. Please confirm adoption details with Pets4Luv.</p>}
     </footer>
   </body></html>
 }

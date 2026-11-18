@@ -81,12 +81,11 @@ export default async function ContentPage({ params }: Props) {
       />
     </section>}
     {isDonate && <>
-      <section className="support-options" aria-labelledby="support-options-title"><h2 id="support-options-title">There’s more than one way to show love.</h2><div className="support-option-grid"><article><h3>Give your time</h3><p>Learn about volunteering and the information available so far.</p><Link className="text-link" href="/info/volunteering">Explore volunteering <span aria-hidden="true">→</span></Link></article><article><h3>Find your companion</h3><p>Get to know the cats and dogs in our local demonstration catalog.</p><Link className="text-link" href="/animals">Meet the animals <span aria-hidden="true">→</span></Link></article></div></section>
+      <section className="support-options" aria-labelledby="support-options-title"><h2 id="support-options-title">There’s more than one way to show love.</h2><div className="support-option-grid"><article><h3>Give your time</h3><p>Learn about volunteering and the information available so far.</p><Link className="text-link" href="/info/volunteering">Explore volunteering <span aria-hidden="true">→</span></Link></article><article><h3>Find your companion</h3><p>Get to know the cats and dogs available for adoption.</p><Link className="text-link" href="/animals">Meet the animals <span aria-hidden="true">→</span></Link></article></div></section>
     </>}
     {isContact && <div className="local-page-actions"><Link className="button" href="/info/adoption">Adoption information <span aria-hidden="true">→</span></Link><Link className="button secondary" href="/info/volunteering">Volunteering information <span aria-hidden="true">→</span></Link></div>}
-    <div className="info-bottom">
-      {!isDonate && <Link className="text-link" href={isContact ? '/animals' : '/contact'}>{isContact ? 'Meet available animals' : 'Contact Pets4Luv'} <span aria-hidden="true">→</span></Link>}
-      <p className="small-note">Development demo · Animal profiles and sample information are fictional.</p>
-    </div>
+    {!isDonate && <div className="info-bottom">
+      <Link className="text-link" href={isContact ? '/animals' : '/contact'}>{isContact ? 'Meet available animals' : 'Contact Pets4Luv'} <span aria-hidden="true">→</span></Link>
+    </div>}
   </main>
 }

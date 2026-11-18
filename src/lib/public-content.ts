@@ -8,7 +8,7 @@ export type AnimalPhotoDTO = { url: string; alt: string }
 export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[]; weight: number | null }
 export type AnimalDTO = {
   id: number | string; name: string; slug: string; species: 'cat' | 'dog'; sex: 'female' | 'male' | 'unknown';
-  ageGroup: 'baby' | 'young' | 'adult' | 'senior'; size: 'small' | 'medium' | 'large'; breed: string;
+  ageGroup: 'baby' | 'young' | 'adult' | 'senior'; size: 'small' | 'medium' | 'large' | null; breed: string;
   ageLabel: string; summary: string; description: string; careNeeds: string; status: 'available' | 'on-hold' | 'adopted';
   photo: { url: string; alt: string } | null;
   compatibility: { dogs: Assessment; cats: Assessment; children: Assessment }; compatibilityNotes: string;
@@ -22,7 +22,7 @@ export function animalDTO(doc: any, photoVariant: 'card' | 'uncropped' = 'card')
   const photo = doc.photos?.[0]?.photo
   return {
     id: doc.id, name: doc.name, slug: doc.slug, species: doc.species, sex: doc.sex,
-    ageGroup: doc.ageGroup, size: doc.size, breed: doc.breed || '', ageLabel: ageLabel(doc),
+    ageGroup: doc.ageGroup, size: doc.size ?? null, breed: doc.breed || '', ageLabel: ageLabel(doc),
     summary: doc.summary?.trim() || '', description: doc.description || '', careNeeds: doc.careNeeds || '', status: doc.status,
     photo: photo && typeof photo === 'object' && photo.url
       ? { url: photoVariant === 'card' ? photo.sizes?.card?.url || photo.url : photo.url, alt: photo.alt || doc.name }
