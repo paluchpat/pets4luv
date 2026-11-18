@@ -6,7 +6,14 @@ export const Users: CollectionConfig = {
     tokenExpiration: 7200, maxLoginAttempts: 5, lockTime: 600000,
     cookies: { secure: process.env.VERCEL === '1' && process.env.VERCEL_ENV !== 'development' },
   },
-  admin: { useAsTitle: 'email', group: false, defaultColumns: ['name', 'email', 'role', 'updatedAt'], description: 'Manage website accounts and access. Administrators can add users and assign roles.' },
+  admin: {
+    useAsTitle: 'email', group: false, defaultColumns: ['name', 'email', 'role', 'updatedAt'],
+    description: 'Manage website accounts and access. Administrators can add users and assign roles.',
+    components: { edit: {
+      beforeDocumentControls: ['./components/admin/UserEditor#UserEditorTitle'],
+      SaveButton: './components/admin/UserEditor#UserEditorSaveButton',
+    } },
+  },
   access: {
     admin: ({ req }) => Boolean(req.user && ['admin', 'editor'].includes(String(req.user.role))),
     create: isAdmin,
@@ -27,6 +34,6 @@ export const Users: CollectionConfig = {
   },
   fields: [
     { name: 'name', type: 'text', required: true },
-    { name: 'role', type: 'select', required: true, defaultValue: 'editor', options: ['admin', 'editor'], access: { create: adminField, update: adminField }, admin: { condition: (_data, _siblingData, { user }) => user?.role === 'admin', description: 'Only administrators can assign roles. The first account is automatically an administrator.' } },
+    { name: 'role', type: 'select', required: true, defaultValue: 'editor', options: [{ label: 'Editor', value: 'editor' }, { label: 'Administrator', value: 'admin' }], access: { create: adminField, update: adminField }, admin: { condition: (_data, _siblingData, { user }) => user?.role === 'admin', description: 'Editors update website content. Administrators can also manage users and access.' } },
   ],
 }

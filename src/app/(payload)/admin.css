@@ -198,8 +198,13 @@
   .collection-list--users .table tbody tr:hover { background: var(--cms-bg); }
   .collection-list--users .search-bar { --search-bg: var(--cms-surface); }
   .collection-list--users .search-filter input { border: 1px solid var(--cms-line); border-radius: 8px; }
-  .collection-edit--users .document-fields__fields { max-width: 760px; padding: 24px; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); }
-  .collection-edit--users .document-fields__fields > .render-fields > .field-type:last-child { margin-bottom: 0; }
+  /* Match native sign-in fields and profile fields as one compact account form. */
+  .collection-edit--users :is(.auth-fields,.document-fields__fields) { width: 100%; max-width: 760px; padding: 24px; border: 1px solid var(--cms-line); border-radius: 12px; background: var(--cms-surface); }
+  .collection-edit--users .auth-fields { margin-bottom: 24px; gap: 24px; }
+  .collection-edit--users .auth-fields__changing-password { gap: 24px; }
+  .collection-edit--users .auth-fields .field-type { margin-bottom: 0; }
+  .collection-edit--users .auth-fields__controls:empty { display: none; }
+  .collection-edit--users .document-fields__fields > .field-type:last-child { margin-bottom: 0; }
 
   /* Animal photos prioritize the image over file metadata. */
   .cms-animal-photos > .array-field__header .array-field__header-actions { display: none; }
@@ -436,7 +441,7 @@
     .cms-clear-filters { position: static; margin-top: 6px; }
     .global-edit--main-menu :is(#field-items,#field-highlightedButton),
     .global-edit--main-menu .collapsible__content,
-    .collection-edit--users .document-fields__fields { padding: 16px; }
+    .collection-edit--users :is(.auth-fields,.document-fields__fields) { padding: 16px; }
     .collection-list--users .search-bar { width: 100%; }
     .cms-gallery-heading { flex-wrap: wrap; gap: 15px; }
     .cms-gallery-heading .cms-button-primary { width: 100%; }
