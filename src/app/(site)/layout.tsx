@@ -41,8 +41,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <Link href="/" className="footer-name">Pets4Luv Foundation</Link>
         <p>Bringing families together. One rescue at a time.</p>
         <address>{settings.address}</address>
-        <p><a href={phoneHref(settings.phone)} aria-label={`Call Pets4Luv at ${settings.phone}`}>{settings.phone}</a></p>
-        <SocialLinks settings={settings} />
+        <div className="footer-contact">
+          <a href={phoneHref(settings.phone)} aria-label={`Call Pets4Luv at ${settings.phone}`}>{settings.phone}</a>
+          <SocialLinks settings={settings} />
+        </div>
       </div>
       <nav aria-label="Footer navigation">
         {menu.footerLinks.map(({ id, href, label, newTab }) => <Link key={id} href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener noreferrer" : undefined}>{label}{newTab && <span className="sr-only"> (opens in a new tab)</span>}</Link>)}

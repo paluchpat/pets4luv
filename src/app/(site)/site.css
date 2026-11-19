@@ -818,8 +818,15 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   font-style: normal;
   margin-top: 6px;
 }
-.site-footer .social-links {
+.footer-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
   margin-top: 6px;
+}
+.footer-contact .social-links {
+  display: contents;
 }
 .contact-details .text-link {
   white-space: normal;
