@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { getHomepage, getWebsiteSettings } from '@/lib/content'
 import { homeDescription, homeTitle, homepageStructuredData, pageMetadata } from '@/lib/seo'
-import { SearchPanel, ChatLauncher } from '@/components/SearchPanel'
+import { SearchPanel } from '@/components/SearchPanel'
 import { PortraitPhoto } from '@/components/AnimalCard'
 import { RichContent } from '@/components/RichContent'
 import { HomeDonationImpact } from '@/components/HomeDonationImpact'
@@ -72,7 +72,6 @@ export default async function HomePage() {
         )}
       </section>
       <SearchPanel />
-      <ChatLauncher />
       <HomeDonationImpact />
     </div>
   </main>

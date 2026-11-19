@@ -63,7 +63,7 @@ Public content must not send visitors to the former rescue website. Known legacy
 
 ## AI remains disabled
 
-The visible chat is an unavailable-state preview. It does not generate responses, send messages to a provider, or infer animal traits. The server chat endpoint also refuses requests. No OpenAI SDK or API key is needed for this build. An environment flag alone must not turn on paid requests.
+The chat endpoint returns an unavailable response. The public homepage offers animal filters and links to adoption resources. No OpenAI SDK or API key is needed for this build. An environment flag alone must not turn on paid requests.
 
 Credit eligibility, balance, expiry, and billing behavior have **not** been verified. Enabling live visitor/admin AI is a later implementation step after verification and an agreed spending allowance. The manual CMS and gallery work independently of AI.
 

@@ -47,7 +47,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       <nav aria-label="Footer navigation">
         {menu.footerLinks.map(({ id, href, label, newTab }) => <Link key={id} href={href} target={newTab ? "_blank" : undefined} rel={newTab ? "noopener noreferrer" : undefined}>{label}{newTab && <span className="sr-only"> (opens in a new tab)</span>}</Link>)}
       </nav>
-      {!publicSiteOrigin && <p className="demo-notice">Development preview. Please confirm adoption details with Pets4Luv.</p>}
     </footer>
   </body></html>
 }
