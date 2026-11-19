@@ -28,7 +28,7 @@ a[href^="tel:"] { white-space: nowrap; }
   text-align: center;
   text-decoration: none;
 }
-.button:not(:disabled):hover{background:var(--logo-red);border-color:var(--logo-red);color:#fff;text-decoration:none}.button svg{width:22px;height:22px;flex:none}.button.secondary{background:transparent;color:var(--burgundy)}.button:disabled{background:#ad657a;border-color:#ad657a}.text-link{font-weight:700;text-decoration:none;white-space:nowrap}.text-link:hover{text-decoration:underline}.section-label{display:flex;align-items:center;gap:20px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--burgundy);margin-bottom:18px}.section-label:after{content:'';height:1px;background:var(--line);flex:1;min-width:30px}
+.button:not(:disabled):hover:where(:not(.chat-launcher)){background:var(--logo-red);border-color:var(--logo-red);color:#fff;text-decoration:none}.button svg{width:22px;height:22px;flex:none}.button.secondary{background:transparent;color:var(--burgundy)}.button:disabled{background:#ad657a;border-color:#ad657a}.text-link{font-weight:700;text-decoration:none;white-space:nowrap}.text-link:hover{text-decoration:underline}.section-label{display:flex;align-items:center;gap:20px;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--burgundy);margin-bottom:18px}.section-label:after{content:'';height:1px;background:var(--line);flex:1;min-width:30px}
 .site-header {
   container: site-header / inline-size;
   background: #fff;
@@ -179,6 +179,37 @@ a[href^="tel:"] { white-space: nowrap; }
 }
 
 .search-resources a { color: inherit; }
+
+.or-divider{display:flex;align-items:center;gap:24px;color:var(--muted);margin:24px 0 9px;text-align:center;font-size:20px}.or-divider:before,.or-divider:after{content:'';height:1px;flex:1;background:var(--line)}.chat-composer{scroll-margin-top:24px}.chat-composer h3{font-family:var(--sans);display:flex;align-items:center;gap:12px;font-size:26px;color:var(--burgundy);margin:0 0 12px}.chat-composer h3 svg{width:40px;height:36px}.compose-row{display:flex;position:relative;align-items:center}.compose-row textarea{resize:vertical;width:100%;min-height:calc(var(--control-height) + 10px);height:calc(var(--control-height) + 10px);padding:10px var(--field-padding-inline);padding-inline-end:128px}.compose-row .button{position:absolute;right:5px;top:5px}
+
+body:has(.chat-launcher) {
+  --chat-launcher-inset: clamp(16px, 2vw, 24px);
+  --chat-launcher-bottom: calc(var(--chat-launcher-inset) + env(safe-area-inset-bottom, 0px));
+}
+
+.chat-launcher {
+  position: fixed;
+  right: calc(var(--chat-launcher-inset) + env(safe-area-inset-right, 0px));
+  bottom: var(--chat-launcher-bottom);
+  z-index: 5;
+  max-width: calc(100% - 2 * var(--chat-launcher-inset) - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+}
+
+.chat-launcher.secondary {
+  background-color: var(--ivory);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chat-launcher:not(:disabled):hover {
+    background-color: var(--logo-red);
+    border-color: var(--logo-red);
+    color: #fff;
+  }
+}
+
+body:has(.chat-launcher) > .site-footer {
+  padding-bottom: calc(var(--chat-launcher-bottom) + var(--control-height) + 24px);
+}
 
 .weekly {
   display: grid;
@@ -432,13 +463,13 @@ a[href^="tel:"] { white-space: nowrap; }
 @media(min-width:1450px){.hero{height:550px}}
 @media(max-width:1150px){.hero{height:430px}.home-filters{gap:12px;grid-template-columns:2fr 1fr 1fr}.matching-button{grid-column:1 / -1;justify-self:end}.search-heading h2{font-size:32px}.site-footer{margin-inline:32px}.animal-grid{column-gap:22px}}
 @media(max-width:850px){.hero{height:410px}.search-heading{align-items:start}.search-heading h2{font-size:30px;max-width:330px}.search-heading .text-link{font-size:16px;margin-top:6px}.home-content{padding-inline:24px}.home-filters{grid-template-columns:1.8fr 1fr 1fr}.section-label{font-size:14px;gap:10px}.gallery-filters{padding:20px;gap:15px}.animal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.profile-intro h1{font-size:39px}.animal-profile{gap:28px}.profile-summary{font-size:20px}.site-footer{margin-inline:24px}}
-@media(max-width:680px){:root{--panel-radius:13px}body{font-size:17px}.hero{height:clamp(390px,86vw,560px)}.hero img{object-position:center 15%}.home-content{padding:18px 18px 0}.search-panel{padding:17px 16px 19px;margin-bottom:36px}.search-heading{display:block;border:0;padding-bottom:0;margin-bottom:21px}.search-heading h2{font-size:clamp(29px,6.65vw,42px);line-height:1.06;max-width:420px;letter-spacing:-1.2px;margin:0 0 13px}.search-heading .text-link{font-size:21px;display:inline-block;margin:0}.home-filters{grid-template-columns:1fr 1fr;gap:17px 20px}.home-filters>.species-field{grid-column:1 / -1}.matching-button{width:100%;margin-top:2px}.site-footer{margin:20px 18px 0;padding:24px 0;font-size:13px;gap:20px}.site-footer nav{gap:12px 20px}.page-shell{padding:32px 20px 40px}.page-shell h1{font-size:39px;letter-spacing:-1.3px}.page-intro{margin-bottom:25px}.page-intro .section-label{font-size:13px}.page-intro>p:last-child{font-size:18px}.animal-grid{gap:32px 17px}.animal-card h2{font-size:25px}.animal-card-body>p:not(.animal-card-age){font-size:15px}.animal-card-age{font-size:11px;line-height:1.4}.pagination{font-size:14px;gap:8px;flex-wrap:wrap}.pagination .button{padding-inline:8px}.animal-profile{display:flex;flex-direction:column;gap:22px}.profile-photo>img{aspect-ratio:1.15}.profile-intro{padding:0}.profile-intro h1{font-size:40px}.profile-summary{font-size:21px}.animal-facts{gap:14px 22px}.profile-story{margin-top:10px}.profile-story h2,.information-page .rich-content h2{font-size:27px}.information-page>.rich-content{font-size:18px}.empty-state,.unpublished-notice{padding:23px}.error-page{padding-top:70px;padding-bottom:70px}.error-page>.text-link{display:block;margin:22px 0 0}}
+@media(max-width:680px){:root{--panel-radius:13px}body{font-size:17px}.hero{height:clamp(390px,86vw,560px)}.hero img{object-position:center 15%}.home-content{padding:18px 18px 0}.search-panel{padding:17px 16px 19px;margin-bottom:36px}.search-heading{display:block;border:0;padding-bottom:0;margin-bottom:21px}.search-heading h2{font-size:clamp(29px,6.65vw,42px);line-height:1.06;max-width:420px;letter-spacing:-1.2px;margin:0 0 13px}.search-heading .text-link{font-size:21px;display:inline-block;margin:0}.home-filters{grid-template-columns:1fr 1fr;gap:17px 20px}.home-filters>.species-field{grid-column:1 / -1}.matching-button{width:100%;margin-top:2px}.or-divider{font-size:19px;gap:14px;margin:20px 0 16px;line-height:1.15}.or-divider span{max-width:250px}.chat-composer h3{font-size:26px;gap:12px;margin-bottom:15px}.chat-composer h3 svg{width:41px;height:37px}.compose-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px}.compose-row textarea{height:104px;min-height:104px;padding-inline-end:var(--field-padding-inline)}.compose-row .button{position:static}.site-footer{margin:20px 18px 0;padding:24px 0;font-size:13px;gap:20px}.site-footer nav{gap:12px 20px}.page-shell{padding:32px 20px 40px}.page-shell h1{font-size:39px;letter-spacing:-1.3px}.page-intro{margin-bottom:25px}.page-intro .section-label{font-size:13px}.page-intro>p:last-child{font-size:18px}.animal-grid{gap:32px 17px}.animal-card h2{font-size:25px}.animal-card-body>p:not(.animal-card-age){font-size:15px}.animal-card-age{font-size:11px;line-height:1.4}.pagination{font-size:14px;gap:8px;flex-wrap:wrap}.pagination .button{padding-inline:8px}.animal-profile{display:flex;flex-direction:column;gap:22px}.profile-photo>img{aspect-ratio:1.15}.profile-intro{padding:0}.profile-intro h1{font-size:40px}.profile-summary{font-size:21px}.animal-facts{gap:14px 22px}.profile-story{margin-top:10px}.profile-story h2,.information-page .rich-content h2{font-size:27px}.information-page>.rich-content{font-size:18px}.empty-state,.unpublished-notice{padding:23px}.error-page{padding-top:70px;padding-bottom:70px}.error-page>.text-link{display:block;margin:22px 0 0}}
 @media(max-width:380px){.header-inner{padding-inline:17px;gap:17px}.brand img{width:72px;height:72px}.hero{height:350px}.home-content{padding-inline:13px}.search-panel{padding-inline:13px}.animal-grid{grid-template-columns:1fr}.animal-card h2{font-size:29px}.animal-card-body>p:not(.animal-card-age){font-size:17px}.animal-card-age{font-size:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
 
 /* Keep intrinsic form and image sizes inside their responsive containers. */
 html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture,.hero picture img,.hero-copy,.home-content,.search-panel,.weekly,.weekly-intro,.weekly-companions,.weekly-animal,.weekly-animal>div,.gallery-filters,.animal-grid,.animal-card,.animal-profile,.profile-photo,.profile-intro{min-width:0}.hero{width:100%;max-width:100%}.hero picture img{max-width:100%}.preview-banner{background:#f4e4b9;color:#483811;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 20px;padding:10px 20px;font-size:14px}.preview-banner a{color:inherit;font-weight:700}
-@media(max-width:680px){.search-heading,.search-heading h2,.species-picker{min-width:0;max-width:100%}.page-shell{width:100%;max-width:100%}}
+@media(max-width:680px){.search-heading,.search-heading h2,.compose-row,.chat-composer,.species-picker{min-width:0;max-width:100%}.page-shell{width:100%;max-width:100%}}
 @media(min-width:431px) and (max-width:680px){.hero img{object-position:center 30%}}
 
 
@@ -455,6 +486,44 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   border-radius: var(--panel-radius);
 }
 
+.chat-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(34rem, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  margin: auto;
+  padding: clamp(1rem, 4vw, 2rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--panel-radius);
+  background: var(--ivory);
+  color: var(--ink);
+  box-shadow: 0 16px 48px #20101840;
+}
+
+.chat-dialog::backdrop {
+  background: #201018a6;
+}
+
+.chat-dialog h2 {
+  margin-bottom: 12px;
+  color: var(--burgundy);
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.2;
+}
+
+.chat-dialog p {
+  margin-bottom: 0;
+}
+
+.chat-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 20px;
+}
+
 .filter-field-label {
   display: block;
   margin-bottom: 6px;
@@ -467,7 +536,8 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 .species-picker,
 .filter-select-trigger,
 .filter-select > select,
-.gallery-filters input[type=search] {
+.gallery-filters input[type=search],
+.compose-row textarea {
   border: 1px solid var(--line);
   border-radius: var(--control-radius);
   background-color: #fff;
@@ -493,7 +563,8 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   padding-inline: var(--field-padding-inline);
 }
 
-.gallery-filters input[type=search]::placeholder {
+.gallery-filters input[type=search]::placeholder,
+.compose-row textarea::placeholder {
   color: var(--muted);
   opacity: 1;
 }
@@ -502,7 +573,8 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 .filter-select-trigger:focus,
 .filter-select-trigger[aria-expanded=true],
 .filter-select > select:focus,
-.gallery-filters input[type=search]:focus {
+.gallery-filters input[type=search]:focus,
+.compose-row textarea:focus {
   border-color: var(--logo-red);
 }
 
@@ -511,7 +583,8 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   outline-color: var(--logo-red);
 }
 
-.gallery-filters input[type=search]:focus {
+.gallery-filters input[type=search]:focus,
+.compose-row textarea:focus {
   outline: none;
 }
 
