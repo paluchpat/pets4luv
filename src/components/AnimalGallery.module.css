@@ -25,7 +25,8 @@
 .viewport::-webkit-scrollbar { display: none; }
 .viewport:focus-visible { outline: 2px solid var(--logo-red); outline-offset: -3px; }
 .draggable { cursor: grab; }
-.draggable[data-dragging] { cursor: grabbing; scroll-snap-type: none; }
+.draggable[data-dragging] { cursor: grabbing; }
+.draggable:is([data-dragging], [data-settling]) { scroll-snap-type: none; }
 
 .slide {
   flex: 0 0 100%;

@@ -13,6 +13,7 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
   const thumbnails = useRef<HTMLDivElement>(null)
   const selectedRef = useRef(0)
   const mouseDrag = useRef<AbortController | null>(null)
+  const settleFrame = useRef(0)
   const id = useId()
   const active = Math.min(selected, Math.max(0, photos.length - 1))
   const multiple = photos.length > 1
@@ -33,6 +34,7 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
       observer.disconnect()
       mouseDrag.current?.abort()
       mouseDrag.current = null
+      stopSettling(element)
       delete element.dataset.dragging
     }
   }, [photoSet])
@@ -52,14 +54,55 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
     const element = viewport.current
     if (!element || !photos.length) return
     const next = (index + photos.length) % photos.length
+    if (settleFrame.current) {
+      settleDrag(element, next)
+      return
+    }
     element.scrollTo({ left: next * element.clientWidth, behavior: scrollBehavior() })
   }
 
+  function stopSettling(element: HTMLDivElement) {
+    cancelAnimationFrame(settleFrame.current)
+    settleFrame.current = 0
+    delete element.dataset.settling
+  }
+
+  function settleDrag(element: HTMLDivElement, index: number) {
+    const origin = element.scrollLeft
+    const distance = element.children[index].getBoundingClientRect().left - element.getBoundingClientRect().left
+    // Keep snap disabled until the photo is aligned, so release starts at the pointer's position.
+    element.dataset.settling = 'true'
+    delete element.dataset.dragging
+    cancelAnimationFrame(settleFrame.current)
+
+    if (scrollBehavior() === 'instant' || Math.abs(distance) <= 1) {
+      element.scrollLeft = origin + distance
+      stopSettling(element)
+      return
+    }
+
+    const start = performance.now()
+    const duration = Math.min(320, Math.max(160, Math.abs(distance) * .65))
+    function animate(now: number) {
+      const progress = Math.min(1, (now - start) / duration)
+      const ease = progress * progress * (3 - 2 * progress)
+      element.scrollLeft = origin + distance * ease
+      if (progress === 1) stopSettling(element)
+      else settleFrame.current = requestAnimationFrame(animate)
+    }
+    settleFrame.current = requestAnimationFrame(animate)
+  }
+
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== 'mouse' || event.button !== 0 || !event.isPrimary) return
     const element = event.currentTarget
+    if (event.pointerType !== 'mouse') {
+      if (settleFrame.current) stopSettling(element)
+      return
+    }
+    if (event.button !== 0 || !event.isPrimary) return
     const { pointerId, clientX: startX, clientY: startY } = event
-    const startLeft = element.scrollLeft
+    let startLeft = element.scrollLeft
+    let startIndex = active
     let moved = false
     mouseDrag.current?.abort()
     const controller = new AbortController()
@@ -72,6 +115,11 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
         if (Math.abs(distance) < 6 || Math.abs(distance) <= Math.abs(pointer.clientY - startY)) return
         moved = true
         element.dataset.dragging = 'true'
+        if (settleFrame.current) {
+          startLeft = element.scrollLeft
+          startIndex = selectedRef.current
+          stopSettling(element)
+        }
       }
       element.scrollLeft = startLeft - distance
     }
@@ -80,12 +128,11 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
       if (pointer && pointer.pointerId !== pointerId) return
       controller.abort()
       mouseDrag.current = null
-      const threshold = Math.min(56, element.clientWidth / 5)
-      delete element.dataset.dragging
       if (!moved) return
+      const threshold = Math.min(56, element.clientWidth / 5)
       const distance = pointer ? pointer.clientX - startX : 0
       const step = pointer?.type === 'pointerup' && Math.abs(distance) >= threshold ? -Math.sign(distance) : 0
-      show(Math.max(0, Math.min(photos.length - 1, active + step)))
+      settleDrag(element, Math.max(0, Math.min(photos.length - 1, startIndex + step)))
     }
 
     // Keep tracking until release, including when the pointer leaves the photo.
