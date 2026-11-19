@@ -218,7 +218,10 @@ export function Header({ menu }: { menu: MainMenuDTO }) {
     }}>
       <div className="header-inner" ref={inner}>
         <Link ref={brand} href="/" className="brand" aria-label="Pets4Luv home">
-          <img src="/images/logo.png" alt="Pets4Luv Foundation" width="200" height="200" />
+          <picture>
+            <source type="image/webp" srcSet="/images/logo.webp" />
+            <img src="/images/logo.png" alt="Pets4Luv Foundation" width="200" height="200" />
+          </picture>
         </Link>
         {menu.items.length > 0 && <nav className="desktop-nav" aria-label="Main navigation">
           <NavigationItems items={menu.items} variant="desktop" pathname={pathname} />

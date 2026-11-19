@@ -19,8 +19,9 @@ export default async function HomePage() {
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredData }} />
     <section className="hero" aria-labelledby="hero-title">
       <picture>
-        <source media="(max-width: 680px)" srcSet="/images/hero-mobile.webp" />
-        <img src="/images/hero-desktop.png" alt="A golden dog and tabby cat resting together on a soft blanket" fetchPriority="high" />
+        <source media="(max-width: 680px)" type="image/webp" srcSet="/images/hero-mobile.webp" />
+        <source type="image/webp" srcSet="/images/hero-desktop.webp" />
+        <img src="/images/hero-desktop.jpg" alt="A golden dog and tabby cat resting together on a soft blanket" fetchPriority="high" />
       </picture>
       <div className="hero-copy">
         <h1 id="hero-title">{homepage.foundationIntro.heading}</h1>
