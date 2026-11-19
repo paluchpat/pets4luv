@@ -1,5 +1,6 @@
 import type { Payload, Sort, TypedUser, Where } from 'payload'
 import { mergeListSearchAndWhere } from 'payload/shared'
+import { featuredAnimalEligibility, featuredAnimalIds } from '../../lib/featured-animals'
 import { adminAnimalCard, type AdminAnimalCard } from '../../lib/admin-animal-gallery'
 
 function isStaff(user: TypedUser | null | undefined): user is TypedUser {
@@ -10,13 +11,10 @@ function isStaff(user: TypedUser | null | undefined): user is TypedUser {
 async function featuredAnimalIDs(payload: Payload, user: TypedUser): Promise<number[]> {
   const homepage = await payload.findGlobal({ slug: 'homepage', overrideAccess: false, user, draft: false, depth: 0, select: { featuredAnimals: true, _status: true } })
   if (homepage._status !== 'published') return []
-  const selected = [...new Set((homepage.featuredAnimals || []).flatMap(row => {
-    const id = typeof row.animal === 'object' ? row.animal?.id : row.animal
-    return typeof id === 'number' ? [id] : []
-  }))]
+  const selected = featuredAnimalIds(homepage.featuredAnimals)
   if (!selected.length) return []
   const available = await payload.find({ collection: 'animals', overrideAccess: false, user, draft: false, depth: 0, pagination: false,
-    where: { and: [{ id: { in: selected } }, { _status: { equals: 'published' } }, { status: { equals: 'available' } }] }, select: {},
+    where: { and: [{ id: { in: selected } }, featuredAnimalEligibility] }, select: {},
   })
   const availableIDs = new Set(available.docs.map(doc => doc.id))
   return selected.filter(id => availableIDs.has(id))

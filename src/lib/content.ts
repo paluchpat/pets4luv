@@ -7,8 +7,9 @@ import { resolveRichTextLinks } from './rich-text-links'
 import { mainMenuDTO, menuPageIDs, type MainMenuDTO } from './main-menu'
 import { applyWebsiteSettings, websiteSettingsDTO, type WebsiteSettings } from './website-settings'
 
+import { featuredAnimalEligibility, featuredAnimalIds, featuredAnimalLimit } from './featured-animals'
 import { defaultGallerySort, type GallerySort } from './gallery-filters'
-import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalDTO, type AnimalProfileDTO, type AnimalFilters, type HomepageDTO } from './public-content'
+import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalProfileDTO, type AnimalFilters, type HomepageDTO } from './public-content'
 export * from './public-content'
 
 const galleryPageSize = 12
@@ -104,14 +105,14 @@ export async function getHomepage(): Promise<HomepageDTO> {
     payload.findGlobal({ slug: 'homepage-intro', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }),
     getWebsiteSettings(),
   ])
-  const ids = (homepage.featuredAnimals || []).map((row: any) => typeof row.animal === 'object' ? row.animal?.id : row.animal).filter(Boolean)
-  const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: 6, where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }, { status: { equals: 'available' } }] } }) : { docs: [] }
-  const byID = new Map(result.docs.map((doc: any) => [String(doc.id), applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)]))
+  const ids = featuredAnimalIds(homepage.featuredAnimals)
+  const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: featuredAnimalLimit, where: { and: [{ id: { in: ids } }, featuredAnimalEligibility] } }) : { docs: [] }
+  const byID = new Map(result.docs.map(doc => [doc.id, applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)]))
   const foundation = homepageIntroDTO(foundationIntro, Boolean(user))
   const [resolvedBody, resolvedIntro] = await Promise.all([resolveRichTextLinks(payload, foundation.body), resolveRichTextLinks(payload, homepage.intro || null)])
   const body = applyWebsiteSettings(resolvedBody, settings)
   const intro = applyWebsiteSettings(resolvedIntro, settings)
-  return { foundationIntro: { ...foundation, body, bodyText: richTextToText(body) }, heading: homepage.heading || 'A few faces to fall for', intro, introText: richTextToText(intro), featuredAnimals: ids.map((id: any) => byID.get(String(id))).filter(Boolean) as AnimalDTO[] }
+  return { foundationIntro: { ...foundation, body, bodyText: richTextToText(body) }, heading: homepage.heading || 'A few faces to fall for', intro, introText: richTextToText(intro), featuredAnimals: ids.flatMap(id => byID.get(id) ?? []) }
 }
 
 const getContentPage = cache(async (slug: string) => {

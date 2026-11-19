@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { getPayload, type Payload } from 'payload'
+import { getPayload, ValidationError, type Payload } from 'payload'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { createClient } from '@libsql/client'
 import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText } from '../../src/lib/public-content'
@@ -150,6 +150,21 @@ test('editor cannot create users or escalate their own role', async () => {
   await payload.update({ collection: 'users', id: editor.id, user: editor, overrideAccess: false, data: { role: 'admin', name: 'Still an editor' } })
   const persisted = await payload.findByID({ collection: 'users', id: editor.id })
   assert.equal(persisted.role, 'editor')
+})
+
+test('the homepage rejects a fourth featured animal on draft and published saves', async () => {
+  for (const draft of [true, false]) {
+    await assert.rejects(() => payload.updateGlobal({
+      slug: 'homepage', draft, overrideAccess: false, user: editor,
+      data: {
+        heading: 'Too many featured animals',
+        intro: pageBody('Featured introduction'),
+        featuredAnimals: Array.from({ length: 4 }, () => ({ animal: publishedID })),
+        _status: draft ? 'draft' : 'published',
+      },
+    }), error => error instanceof ValidationError &&
+      error.data.errors.some(field => field.path === 'featuredAnimals'))
+  }
 })
 
 test('homepage draft and draft relationships stay private', async () => {
