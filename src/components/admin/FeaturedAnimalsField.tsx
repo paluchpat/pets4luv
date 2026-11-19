@@ -10,7 +10,8 @@ import type { Animal } from '../../payload-types'
 
 type FeaturedAnimal = Pick<Animal, 'id' | 'name' | 'photos' | 'status' | '_status'>
 type AnimalPage = { docs: FeaturedAnimal[]; hasNextPage: boolean; hasPrevPage: boolean }
-const pageSize = 8
+const pageSize = 10
+const searchDelay = 300
 
 function validateCount(value: unknown) {
   const count = Array.isArray(value) ? value.length : typeof value === 'number' ? value : 0
@@ -31,12 +32,12 @@ function animalQuery(api: string, where: Where, limit: number, page = 1) {
   })
 }
 
-function useAnimalPage(url: string, delay = 0) {
+function useAnimalPage(url: string) {
   const [result, setResult] = useState<{ url: string; page: AnimalPage | null }>()
   useEffect(() => {
     if (!url) return
     const controller = new AbortController()
-    const timer = window.setTimeout(async () => {
+    async function loadPage() {
       try {
         const response = await fetch(url, { signal: controller.signal, cache: 'no-store' })
         if (!response.ok) throw new Error('Unable to load animals')
@@ -45,9 +46,10 @@ function useAnimalPage(url: string, delay = 0) {
       } catch {
         if (!controller.signal.aborted) setResult({ url, page: null })
       }
-    }, delay)
-    return () => { window.clearTimeout(timer); controller.abort() }
-  }, [url, delay])
+    }
+    void loadPage()
+    return () => controller.abort()
+  }, [url])
 
   return { page: result?.url === url ? result.page : undefined, loading: Boolean(url) && result?.url !== url }
 }
@@ -68,18 +70,24 @@ function AnimalPicker({ api, selected, disabled, onAdd, onClose }: {
   onClose: () => void
 }) {
   const [search, setSearch] = useState('')
-  const [page, setPage] = useState(1)
+  const [{ query, page }, setRequest] = useState({ query: '', page: 1 })
   const searchInput = useRef<HTMLInputElement>(null)
   const titleId = useId()
-  const query = search.trim()
+  const searchValue = search.trim()
+  const searchPending = searchValue !== query
   const where: Where = { and: [
     featuredAnimalEligibility,
     ...(selected.length ? [{ id: { not_in: selected } }] : []),
     ...(query ? [{ name: { contains: query } }] : []),
   ] }
-  const { page: result, loading } = useAnimalPage(animalQuery(api, where, pageSize, page), query ? 220 : 0)
+  const { page: result, loading } = useAnimalPage(animalQuery(api, where, pageSize, page))
 
   useEffect(() => { searchInput.current?.focus() }, [])
+  useEffect(() => {
+    if (!searchPending) return
+    const timer = window.setTimeout(() => setRequest({ query: searchValue, page: 1 }), searchDelay)
+    return () => window.clearTimeout(timer)
+  }, [searchPending, searchValue])
 
   return <section className="cms-featured-picker" aria-labelledby={titleId} aria-busy={loading}>
     <div className="cms-featured-toolbar">
@@ -90,7 +98,7 @@ function AnimalPicker({ api, selected, disabled, onAdd, onClose }: {
       <Search aria-hidden="true" />
       <span className="cms-sr-only">Search available animals</span>
       <input ref={searchInput} type="search" placeholder="Search by name" value={search} maxLength={100}
-        onChange={event => { setSearch(event.target.value); setPage(1) }} />
+        onChange={event => setSearch(event.target.value)} />
     </label>
     {loading && <p className="cms-featured-note" role="status">Searching animals…</p>}
     {result === null && <p className="cms-featured-note" role="alert">Could not load the available animals. Reopen the picker to try again.</p>}
@@ -104,8 +112,10 @@ function AnimalPicker({ api, selected, disabled, onAdd, onClose }: {
       </li>)}
     </ul>}
     {result && (result.hasPrevPage || result.hasNextPage) && <div className="cms-featured-actions">
-      <button type="button" className="cms-button" disabled={disabled || !result.hasPrevPage} onClick={() => setPage(page - 1)}>Previous</button>
-      <button type="button" className="cms-button" disabled={disabled || !result.hasNextPage} onClick={() => setPage(page + 1)}>Next</button>
+      <button type="button" className="cms-button" disabled={disabled || searchPending || !result.hasPrevPage}
+        onClick={() => setRequest({ query, page: page - 1 })}>Previous</button>
+      <button type="button" className="cms-button" disabled={disabled || searchPending || !result.hasNextPage}
+        onClick={() => setRequest({ query, page: page + 1 })}>Next</button>
     </div>}
   </section>
 }
@@ -154,19 +164,9 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
   }
 
   return <section className="field-type cms-featured-editor" aria-labelledby={headingId}>
-    <div className="cms-featured-toolbar">
-      <h3 id={headingId}>Featured animals</h3>
-      <span className="cms-featured-count" role="status">{rows.length} of {featuredAnimalLimit} selected</span>
-    </div>
+    <h3 id={headingId}>Featured animals</h3>
     <p className="cms-featured-note">The first available animal gets the large photo on the homepage.</p>
     <div className="cms-featured-panel">
-      <div className="cms-featured-toolbar">
-        <h4>Homepage order</h4>
-        {canEdit && <button type="button" ref={addButton} className="cms-button cms-button-primary cms-featured-add"
-          disabled={locked || atLimit} aria-expanded={picking && !atLimit} onClick={() => setPicking(!picking)}>
-          <Plus aria-hidden="true" />Add animal
-        </button>}
-      </div>
       {rows.length ? <ol className="cms-featured-list" ref={list}>
         {rows.map((row, index) => {
           const id = ordered[index]
@@ -194,6 +194,13 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
       {previews.page === null && <p className="cms-featured-note" role="alert">Could not load the selected animal previews.</p>}
       {rows.length > featuredAnimalLimit && <p className="cms-featured-note" role="alert">Remove extra animals to keep three or fewer.</p>}
       {showError && errorMessage && <p className="cms-featured-note" role="alert">{errorMessage}</p>}
+      <div className="cms-featured-add-controls">
+        {canEdit && <button type="button" ref={addButton} className="cms-button cms-button-primary cms-featured-add"
+          disabled={locked || atLimit} aria-expanded={picking && !atLimit} onClick={() => setPicking(!picking)}>
+          <Plus aria-hidden="true" />Add animal
+        </button>}
+        <span className="cms-featured-count" role="status">{rows.length} of {featuredAnimalLimit} selected</span>
+      </div>
     </div>
     {picking && !atLimit && canEdit && <AnimalPicker api={api} selected={selected} disabled={locked} onAdd={addAnimal} onClose={closePicker} />}
   </section>
