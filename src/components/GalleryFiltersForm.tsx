@@ -171,7 +171,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
             id="animal-search-details"
             name="q"
             type="search"
-            placeholder="Try young black cat"
+            placeholder="Name, description, breed or 'Young black cat'"
             defaultValue={filters.q}
             maxLength={gallerySearchMaxLength}
             onChange={event => scheduleSearch(event.currentTarget.value.slice(0, gallerySearchMaxLength))}
