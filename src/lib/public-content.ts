@@ -1,5 +1,6 @@
 import type { Where } from 'payload'
 import { isAnimalColor } from './animal-colors'
+import { buildAnimalSearchWhere } from './animal-search'
 import { defaultHomepageIntro } from './homepage-intro'
 
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
@@ -76,8 +77,10 @@ export function buildAnimalWhere(filters: AnimalFilters = {}): Where {
   for (const [filter, field] of [['goodWithDogs', 'dogs'], ['goodWithCats', 'cats'], ['goodWithChildren', 'children']] as const) {
     if ([true, 'true', 'yes', '1'].includes(filters[filter] as any)) and.push({ [`compatibility.${field}`]: { equals: 'yes' } })
   }
-  const q = filters.q?.trim().slice(0, 100)
-  if (q) and.push({ or: [{ name: { like: q } }, { breed: { like: q } }, { summary: { like: q } }] })
+  if (filters.q) {
+    const search = buildAnimalSearchWhere(filters.q, 'public')
+    if (Object.keys(search).length) and.push(search)
+  }
   return { and }
 }
 

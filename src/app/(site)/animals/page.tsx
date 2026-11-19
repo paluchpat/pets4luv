@@ -4,7 +4,7 @@ import { getWebsiteSettings, searchAnimals } from '@/lib/content'
 import { AdoptionDirectoryLinks } from '@/components/AdoptionDirectoryLinks'
 import { AnimalCard } from '@/components/AnimalCard'
 import { GalleryFiltersForm } from '@/components/GalleryFiltersForm'
-import { galleryHref, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
+import { galleryHref, gallerySearchMaxLength, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
 import { pageMetadata } from '@/lib/seo'
 import { siteLinks } from '@/lib/site-navigation'
 
@@ -17,7 +17,7 @@ function allowed(value: string, values: string[]) { return values.includes(value
 
 function galleryFilters(params: Params): GalleryFilters {
   return {
-    q: single(params.q).trim().slice(0, 200),
+    q: single(params.q).trim().slice(0, gallerySearchMaxLength),
     species: allowed(single(params.species), ['cat', 'dog']),
     ageGroup: allowed(single(params.ageGroup), ['baby', 'young', 'adult', 'senior']),
     size: allowed(single(params.size), ['small', 'medium', 'large']),

@@ -1,4 +1,5 @@
 export const galleryResultsHeadingId = 'gallery-results-heading'
+export const gallerySearchMaxLength = 200
 
 export const gallerySortOptions = [
   { value: 'name-asc', label: 'Name (A-Z)' },

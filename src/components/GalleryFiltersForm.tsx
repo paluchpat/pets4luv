@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLayoutEffect, useOptimistic, useRef, useTransition, type FormEvent, type ReactNode } from 'react'
 import { animalColorOptions, type AnimalColor } from '@/lib/animal-colors'
-import { emptyGalleryFilters, galleryHref, galleryResultsHeadingId, gallerySortOptions, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
+import { emptyGalleryFilters, galleryHref, galleryResultsHeadingId, gallerySearchMaxLength, gallerySortOptions, parseGallerySort, type GalleryFilters } from '@/lib/gallery-filters'
 import { FilterSelect } from './FilterSelect'
 import { Icon } from './Icons'
 import { SpeciesPicker } from './SpeciesPicker'
@@ -76,7 +76,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
       window.clearTimeout(searchTimer.current)
       if (window.location.pathname !== '/animals' || !searchInput.current) return
       const queries = new URLSearchParams(window.location.search).getAll('q')
-      const q = queries.length === 1 ? queries[0].slice(0, 200) : ''
+      const q = queries.length === 1 ? queries[0].slice(0, gallerySearchMaxLength) : ''
       searchInput.current.value = q
       lastSubmittedQuery.current = q
     }
@@ -140,7 +140,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
   function submitSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     window.clearTimeout(searchTimer.current)
-    const q = (searchInput.current?.value ?? '').slice(0, 200)
+    const q = (searchInput.current?.value ?? '').slice(0, gallerySearchMaxLength)
     lastSubmittedQuery.current = q
     applyFilters({ q })
   }
@@ -155,6 +155,21 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
   return <>
     <form action="/animals" method="get" onSubmit={submitSearch}>
       <div className="gallery-filters">
+        <div className="search-text">
+          <label className="filter-field-label" htmlFor="animal-search-details">Additional details</label>
+          <input
+            ref={searchInput}
+            id="animal-search-details"
+            name="q"
+            type="search"
+            placeholder="Name, breed, or traits"
+            aria-describedby="animal-search-help"
+            defaultValue={filters.q}
+            maxLength={gallerySearchMaxLength}
+            onChange={event => scheduleSearch(event.currentTarget.value.slice(0, gallerySearchMaxLength))}
+          />
+          <p id="animal-search-help">Try <strong>small black cat</strong>. Use quotes to search for a name or phrase in the profile text.</p>
+        </div>
         <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
         {selects.map(({ name, label, options }) => <FilterSelect
           key={name}
@@ -164,10 +179,6 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
           value={applied[name]}
           onValueChange={value => applyFilters({ [name]: value })}
         />)}
-        <label className="search-text">
-          <span className="filter-field-label">Additional details</span>
-          <input ref={searchInput} name="q" type="search" placeholder="Name, breed, description" defaultValue={filters.q} maxLength={200} onChange={event => scheduleSearch(event.currentTarget.value.slice(0, 200))} />
-        </label>
         <div className="gallery-filter-footer">
           <fieldset className="compatibility-filters">
             <legend>Friendly with</legend>

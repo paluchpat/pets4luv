@@ -86,6 +86,21 @@ test('animal color matches any selected color on an available, published animal'
   assert.deepEqual(buildAnimalWhere({ color: 'not-a-color' }), buildAnimalWhere())
 })
 
+test('public phrase search combines exact traits with public profile text and filters', async () => {
+  const search = async (q: string, filters = {}) => (await payload.find({
+    collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ ...filters, q }),
+  })).docs.map(doc => doc.id)
+
+  assert.deepEqual(await search('show me a small BLACK female cat'), [publishedID])
+  assert.deepEqual(await search('small black cat or senior dog'), [publishedID])
+  assert.deepEqual(await search('black Fixture'), [publishedID])
+  assert.deepEqual(await search('cat good with cats'), [publishedID])
+  assert.deepEqual(await search('cat good with children'), [])
+  assert.deepEqual(await search('black cat', { sex: 'male' }), [])
+  assert.deepEqual(await search('grey cat'), [])
+  assert.deepEqual(await search('"PRIVATE SENTINEL" or PRIVATE-1'), [])
+})
+
 test('Calico and Tuxedo can be saved and searched through public and CMS animal filters', async () => {
   for (const color of ['calico', 'tuxedo'] as const) {
     const animal = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, data: {
@@ -98,10 +113,13 @@ test('Calico and Tuxedo can be saved and searched through public and CMS animal 
       assert.deepEqual(animal.colors, [color, 'white'])
       const visible = await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ species: 'cat', color }) })
       assert.deepEqual(visible.docs.map(doc => doc.id), [animal.id])
+      const phrase = 'small ' + color + ' cat "filter fixture"'
+      assert.deepEqual((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ q: phrase }) })).docs.map(doc => doc.id), [animal.id])
+      assert.equal((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ q: '"fixture filter"' }) })).totalDocs, 0)
       const searched = await loadAdminGalleryPageCards(payload, editor, { search: color + ' cat', page: 1, limit: 12 })
       assert.deepEqual(searched.map(card => card.id), [animal.id])
       await payload.update({ collection: 'animals', id: animal.id, overrideAccess: false, user: editor, data: { status: 'on-hold' } })
-      assert.equal((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ color }) })).totalDocs, 0)
+      assert.equal((await payload.find({ collection: 'animals', overrideAccess: false, where: buildAnimalWhere({ color, q: phrase }) })).totalDocs, 0)
     } finally {
       await payload.delete({ collection: 'animals', id: animal.id })
     }
