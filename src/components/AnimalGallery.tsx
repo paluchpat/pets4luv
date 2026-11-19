@@ -12,7 +12,7 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
   const viewport = useRef<HTMLDivElement>(null)
   const thumbnails = useRef<HTMLDivElement>(null)
   const selectedRef = useRef(0)
-  const mouseDrag = useRef<AbortController | null>(null)
+  const pointerDrag = useRef<AbortController | null>(null)
   const settleFrame = useRef(0)
   const id = useId()
   const active = Math.min(selected, Math.max(0, photos.length - 1))
@@ -32,8 +32,8 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
     observer.observe(element)
     return () => {
       observer.disconnect()
-      mouseDrag.current?.abort()
-      mouseDrag.current = null
+      pointerDrag.current?.abort()
+      pointerDrag.current = null
       stopSettling(element)
       delete element.dataset.dragging
     }
@@ -82,10 +82,11 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
     }
 
     const start = performance.now()
-    const duration = Math.min(320, Math.max(160, Math.abs(distance) * .65))
+    const duration = 200 + Math.min(1, Math.abs(distance) / element.clientWidth) * 180
+    // Both pointer types use the same ease-out and come to rest exactly at the snap point.
     function animate(now: number) {
       const progress = Math.min(1, (now - start) / duration)
-      const ease = progress * progress * (3 - 2 * progress)
+      const ease = 1 - (1 - progress) ** 3
       element.scrollLeft = origin + distance * ease
       if (progress === 1) stopSettling(element)
       else settleFrame.current = requestAnimationFrame(animate)
@@ -94,19 +95,16 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
   }
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
-    const element = event.currentTarget
-    if (event.pointerType !== 'mouse') {
-      if (settleFrame.current) stopSettling(element)
-      return
-    }
     if (event.button !== 0 || !event.isPrimary) return
+    const element = event.currentTarget
     const { pointerId, clientX: startX, clientY: startY } = event
+    const slideWidth = element.clientWidth
     let startLeft = element.scrollLeft
     let startIndex = active
     let moved = false
-    mouseDrag.current?.abort()
+    pointerDrag.current?.abort()
     const controller = new AbortController()
-    mouseDrag.current = controller
+    pointerDrag.current = controller
 
     function move(pointer: PointerEvent) {
       if (pointer.pointerId !== pointerId) return
@@ -121,17 +119,17 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
           stopSettling(element)
         }
       }
-      element.scrollLeft = startLeft - distance
+      element.scrollLeft = startLeft - Math.max(-slideWidth, Math.min(slideWidth, distance))
     }
 
     function finish(pointer?: PointerEvent) {
       if (pointer && pointer.pointerId !== pointerId) return
       controller.abort()
-      mouseDrag.current = null
+      pointerDrag.current = null
       if (!moved) return
-      const threshold = Math.min(56, element.clientWidth / 5)
-      const distance = pointer ? pointer.clientX - startX : 0
-      const step = pointer?.type === 'pointerup' && Math.abs(distance) >= threshold ? -Math.sign(distance) : 0
+      const distance = pointer?.type === 'pointerup' ? startX - pointer.clientX : 0
+      const threshold = Math.min(56, slideWidth / 5)
+      const step = Math.abs(distance) >= threshold ? Math.sign(distance) : 0
       settleDrag(element, Math.max(0, Math.min(photos.length - 1, startIndex + step)))
     }
 
