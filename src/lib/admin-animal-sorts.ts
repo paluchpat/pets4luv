@@ -3,7 +3,7 @@
 export const defaultAdminAnimalSort = '-updatedAt'
 
 export const adminAnimalSortOptions = [
-  { value: defaultAdminAnimalSort, label: 'Featured + Recent' },
+  { value: defaultAdminAnimalSort, label: 'Featured + Newest' },
   { value: '-updatedAt,-id', label: 'Recently updated' },
   { value: '-createdAt', label: 'Newest addition' },
   { value: 'createdAt', label: 'Oldest addition' },
