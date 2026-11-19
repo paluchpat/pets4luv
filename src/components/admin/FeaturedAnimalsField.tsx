@@ -141,6 +141,7 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
   const locked = !canEdit || disabled
   const atLimit = rows.length >= featuredAnimalLimit
   const [picking, setPicking] = useState(false)
+  const pickerOpen = picking && !atLimit && canEdit
   const addButton = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLOListElement>(null)
   const headingId = useId()
@@ -195,13 +196,13 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
       {rows.length > featuredAnimalLimit && <p className="cms-featured-note" role="alert">Remove extra animals to keep three or fewer.</p>}
       {showError && errorMessage && <p className="cms-featured-note" role="alert">{errorMessage}</p>}
       <div className="cms-featured-add-controls">
-        {canEdit && <button type="button" ref={addButton} className="cms-button cms-button-primary cms-featured-add"
-          disabled={locked || atLimit} aria-expanded={picking && !atLimit} onClick={() => setPicking(!picking)}>
+        {canEdit && !pickerOpen && <button type="button" ref={addButton} className="cms-button cms-button-primary cms-featured-add"
+          disabled={locked || atLimit} onClick={() => setPicking(true)}>
           <Plus aria-hidden="true" />Add animal
         </button>}
         <span className="cms-featured-count" role="status">{rows.length} of {featuredAnimalLimit} selected</span>
       </div>
+      {pickerOpen && <AnimalPicker api={api} selected={selected} disabled={locked} onAdd={addAnimal} onClose={closePicker} />}
     </div>
-    {picking && !atLimit && canEdit && <AnimalPicker api={api} selected={selected} disabled={locked} onAdd={addAnimal} onClose={closePicker} />}
   </section>
 }
