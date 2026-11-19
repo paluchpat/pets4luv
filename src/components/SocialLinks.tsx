@@ -9,6 +9,10 @@ export function SocialLinks({ settings }: { settings: Pick<WebsiteSettings, 'ins
   ].filter(link => link.url)
   if (!links.length) return null
   return <div className="social-links">{links.map(({ url, label, Icon }) =>
-    <a key={label} href={url}><Icon aria-hidden="true" focusable="false" /><span>{label}</span></a>
+    <a key={label} href={url} target="_blank" rel="noopener noreferrer">
+      <Icon aria-hidden="true" focusable="false" />
+      <span>{label}</span>
+      <span className="sr-only"> (opens in a new tab)</span>
+    </a>
   )}</div>
 }

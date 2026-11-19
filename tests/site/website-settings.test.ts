@@ -84,6 +84,9 @@ test('optional social and adoption directory links appear only when configured',
   const social = renderToStaticMarkup(createElement(SocialLinks, { settings: { instagramUrl: '', facebookUrl: '', tiktokUrl: 'https://www.tiktok.com/@example' } }))
   assert.ok(social.includes('TikTok'))
   assert.ok(social.includes('<svg'))
+  assert.match(social, /target="_blank"/)
+  assert.match(social, /rel="noopener noreferrer"/)
+  assert.match(social, /opens in a new tab/)
   assert.doesNotMatch(social, /Instagram|Facebook/)
   assert.equal(renderToStaticMarkup(createElement(SocialLinks, { settings: { instagramUrl: '', facebookUrl: '', tiktokUrl: '' } })), '')
 
