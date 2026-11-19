@@ -1,6 +1,6 @@
 'use client'
 
-import { SaveButton, useDocumentInfo, useDocumentTitle } from '@payloadcms/ui'
+import { SaveButton, useDocumentInfo, useDocumentTitle, useFormModified } from '@payloadcms/ui'
 import { useEffect } from 'react'
 import { telegramHelp } from '../../lib/admin-sections'
 
@@ -21,6 +21,8 @@ export function UserEditorTitle() {
 
 export function UserEditorSaveButton() {
   const { id } = useDocumentInfo()
+  const modified = useFormModified()
+  if (id && !modified) return null
   return <SaveButton label={id ? 'Save changes' : 'Create user'} />
 }
 
