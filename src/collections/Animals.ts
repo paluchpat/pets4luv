@@ -4,6 +4,7 @@ import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access
 import { animalColorOptions } from '../lib/animal-colors'
 import { defaultAdminAnimalSort } from '../lib/admin-animal-sorts'
 import { adminAnimalSearchFields, expandAdminAnimalSearch } from '../lib/admin-animal-search'
+import { draftEditorControls } from '../lib/draft-editor-controls'
 
 const weightMessage = 'Enter a number of pounds, including decimals, or leave this blank.'
 function validWeightInput(value: unknown): boolean {
@@ -24,13 +25,7 @@ export const Animals: CollectionConfig = {
     listSearchableFields: adminAnimalSearchFields,
     components: {
       views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } },
-      edit: {
-        PublishButton: {
-          path: './components/admin/DraftEditorControls#DraftEditorPublishButton',
-          clientProps: { draftLabel: 'Publish animal' },
-        },
-        SaveDraftButton: './components/admin/DraftEditorControls#DraftEditorSaveDraftButton',
-      },
+      edit: draftEditorControls('Publish animal'),
     },
   },
   defaultSort: defaultAdminAnimalSort,

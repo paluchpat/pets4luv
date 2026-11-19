@@ -2,6 +2,7 @@ import { sharedContentHooks } from '../hooks/shared-content'
 import type { GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 import { defaultHomepageIntro } from '../lib/homepage-intro'
+import { draftEditorControls } from '../lib/draft-editor-controls'
 
 export const HomepageIntro: GlobalConfig = {
   slug: 'homepage-intro',
@@ -13,6 +14,7 @@ export const HomepageIntro: GlobalConfig = {
     description: 'Edit the foundation introduction, save a draft and preview before publishing.',
     preview: () => '/api/preview?path=/',
     livePreview: { url: '/api/preview?path=/' },
+    components: { elements: draftEditorControls('Publish intro') },
   },
   fields: [
     { name: 'heading', type: 'text', required: true, defaultValue: defaultHomepageIntro.heading },

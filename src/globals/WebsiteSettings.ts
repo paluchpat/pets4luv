@@ -1,5 +1,6 @@
 import type { Field, GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
+import { draftEditorControls } from '../lib/draft-editor-controls'
 import { defaultWebsiteSettings, normalizePaymentHandle, validatePhone, validatePaypalHandle, validateVenmoHandle, validateWebsiteUrl, type StoredWebsiteSettings as Settings } from '../lib/website-settings'
 
 const trim = ({ value }: { value?: unknown }) => typeof value === 'string' ? value.trim() : value
@@ -19,6 +20,7 @@ export const WebsiteSettings: GlobalConfig = {
     description: 'Shared contact details, social links, adoption listings, and donation links. Publish changes to update the website.',
     preview: () => '/api/preview?path=/contact',
     livePreview: { url: '/api/preview?path=/contact' },
+    components: { elements: draftEditorControls('Publish website settings') },
   },
   fields: [{
     type: 'tabs',

@@ -1,6 +1,7 @@
 import { sharedContentHooks } from '../hooks/shared-content'
 import type { Field, GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
+import { draftEditorControls } from '../lib/draft-editor-controls'
 import type { MenuRecord } from '../lib/main-menu'
 import { builtInMenuPages, validateMenuLabel, validateMenuUrl } from '../lib/main-menu'
 
@@ -39,6 +40,7 @@ export const MainMenu: GlobalConfig = {
     description: 'Add, remove, and drag menu items to reorder them. Submenus group related links. Save a draft to preview, then publish to update desktop and mobile navigation.',
     preview: () => '/api/preview?path=/',
     livePreview: { url: '/api/preview?path=/' },
+    components: { elements: draftEditorControls('Publish main menu') },
   },
   fields: [
     { name: 'items', label: 'Menu items', type: 'array', maxRows: 12,

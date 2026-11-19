@@ -1,6 +1,7 @@
 import { sharedContentHooks } from '../hooks/shared-content'
 import type { CollectionConfig } from 'payload'
 import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
+import { draftEditorControls } from '../lib/draft-editor-controls'
 
 const reservedSlugs = new Set(['admin', 'api', 'animals', 'applications', 'info', 'pages', 'media', 'intake-files', 'intakes', 'users', 'knowledge', 'homepage', 'images', 'fonts', 'assets', 'public', 'favicon', 'robots', 'sitemap', 'manifest', 'health'])
 
@@ -17,15 +18,7 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     group: false,
     description: 'Edit public pages, including adoption and volunteering information. Save a draft before publishing changes.',
-    components: {
-      edit: {
-        PublishButton: {
-          path: './components/admin/DraftEditorControls#DraftEditorPublishButton',
-          clientProps: { draftLabel: 'Publish page' },
-        },
-        SaveDraftButton: './components/admin/DraftEditorControls#DraftEditorSaveDraftButton',
-      },
-    },
+    components: { edit: draftEditorControls('Publish page') },
   },
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
