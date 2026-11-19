@@ -2,7 +2,7 @@ import { commitTransaction, createLocalReq, initTransaction, killTransaction, ty
 import type { User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
 import { isEditor } from './editors'
-import { featuredAnimalsByID, featuredReviewTokens, isFeaturedOnlyChange, latestFeaturedVersion, verifiedFeaturedVersion } from './featured-review'
+import { featuredAnimalsByID, featuredReviewTokens, featuredVersionKey, isFeaturedOnlyChange, latestFeaturedVersion, verifiedFeaturedVersion } from './featured-review'
 import { animalDraftRequest, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
 
 export type DraftReceipt = {
@@ -78,7 +78,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
       const latest = await latestFeaturedVersion(payload, req)
       const live = await payload.findGlobal({ ...options, slug: 'homepage', draft: false })
       const review = latest?.version._status === 'draft' && isFeaturedOnlyChange(live, latest.version)
-        ? featuredReviewTokens(payload.secret, Number(latest.id), editor)
+        ? featuredReviewTokens(payload.secret, latest, editor)
         : undefined
       result = {
         message: (changed ? 'Featured animals draft saved.' : 'The featured list already has that order.') + '\n' +
@@ -114,12 +114,12 @@ export async function publishFeaturedDraft(payload: Payload, editor: User, token
     const ids = featuredAnimalIds(latest.version.featuredAnimals)
     if (!ids.length) throw new DraftRequestError('This draft has no featured animals. Send a new featured list.')
     await featuredAnimalsByID(payload, ids, req)
-    if (Number(latest.id) !== version) {
+    if (featuredVersionKey(latest) !== version) {
       if (started) await commitTransaction(req)
       return {
         message: 'The draft changed. Review this new preview before publishing.',
         path: '/admin/globals/homepage',
-        review: featuredReviewTokens(payload.secret, Number(latest.id), editor),
+        review: featuredReviewTokens(payload.secret, latest, editor),
       }
     }
     await payload.updateGlobal({

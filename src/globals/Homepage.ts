@@ -3,11 +3,14 @@ import { ValidationError, type GlobalConfig } from 'payload'
 import { isStaff, publishedOrStaff } from '../access'
 import { featuredAnimalEligibility, featuredAnimalLimit } from '../lib/featured-animals'
 import { draftEditorControls } from '../lib/draft-editor-controls'
+import { discardFeaturedDraft } from '../lib/discard-featured-draft'
 
 export const Homepage: GlobalConfig = {
   slug: 'homepage', label: 'Featured animals',
   access: { read: publishedOrStaff, update: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, max: 30 },
+  forceSelect: { _status: true },
+  endpoints: [{ path: '/discard-draft', method: 'post', handler: discardFeaturedDraft }],
   hooks: { beforeValidate: [({ data, req }) => {
     if (Array.isArray(data?.featuredAnimals) && data.featuredAnimals.length > featuredAnimalLimit) {
       throw new ValidationError({ global: 'homepage', req, errors: [{ path: 'featuredAnimals', message: 'Choose up to three animals.' }] })
@@ -19,7 +22,10 @@ export const Homepage: GlobalConfig = {
     description: 'Edit the introduction, choose up to three available animals, set their homepage order, save a draft and preview before publishing.',
     preview: () => '/api/preview?path=/',
     livePreview: { url: '/api/preview?path=/' },
-    components: { elements: draftEditorControls('Publish featured animals') },
+    components: { elements: {
+      ...draftEditorControls('Publish featured animals'),
+      UnpublishButton: './components/admin/FeaturedDraftMenu#FeaturedDraftMenu',
+    } },
   },
   fields: [
     { name: 'heading', type: 'text', required: true, defaultValue: 'The best part of their story is still ahead.' },

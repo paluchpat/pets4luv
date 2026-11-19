@@ -6,7 +6,14 @@ import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animal
 import { DraftRequestError } from './requests'
 
 const reviewLifetime = 30 * 60
-const tokenPattern = /^([1-9]\d{0,14})\.([1-9]\d{0,11})\.([\w-]{22})$/
+const tokenPattern = /^([0-9a-z]{1,11}\.[0-9a-z]{1,10})\.([0-9a-z]{1,8})\.([\w-]{22})$/
+
+type FeaturedVersion = { id: number | string; updatedAt: string }
+
+export function featuredVersionKey(version: FeaturedVersion) {
+  // SQLite can reuse the ID of a discarded draft.
+  return Number(version.id).toString(36) + '.' + Date.parse(version.updatedAt).toString(36)
+}
 
 export function latestFeaturedVersion(payload: Payload, req?: PayloadRequest) {
   return payload.findGlobalVersions({
@@ -22,8 +29,9 @@ function signature(secret: string, value: string, purpose: Purpose, editor?: Use
     .digest().subarray(0, 16).toString('base64url')
 }
 
-export function featuredReviewTokens(secret: string, version: number, editor: User) {
-  const value = `${version}.${Math.floor(Date.now() / 1000) + reviewLifetime}`
+export function featuredReviewTokens(secret: string, version: FeaturedVersion, editor: User) {
+  const expires = Math.floor(Date.now() / 1000) + reviewLifetime
+  const value = featuredVersionKey(version) + '.' + expires.toString(36)
   return {
     previewToken: value + '.' + signature(secret, value, 'preview'),
     publishToken: value + '.' + signature(secret, value, 'publish', editor),
@@ -33,10 +41,10 @@ export function featuredReviewTokens(secret: string, version: number, editor: Us
 export function verifiedFeaturedVersion(secret: string, token: string, purpose: Purpose, editor?: User) {
   const match = tokenPattern.exec(token)
   if (!match || (purpose === 'publish' && !editor)) return
-  const [, id, expiry, supplied] = match
-  if (Number(expiry) <= Math.floor(Date.now() / 1000)) return
-  const expected = signature(secret, id + '.' + expiry, purpose, editor)
-  if (timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return Number(id)
+  const [, key, expiry, supplied] = match
+  if (Number.parseInt(expiry, 36) <= Math.floor(Date.now() / 1000)) return
+  const expected = signature(secret, key + '.' + expiry, purpose, editor)
+  if (timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return key
 }
 
 export function isFeaturedOnlyChange(live: Homepage, draft: Homepage) {
@@ -61,7 +69,7 @@ export async function previewFeaturedAnimals(payload: Payload, token: string) {
   const version = verifiedFeaturedVersion(payload.secret, token, 'preview')
   if (!version) return
   const latest = await latestFeaturedVersion(payload)
-  if (!latest || Number(latest.id) !== version || latest.version._status !== 'draft') return
+  if (!latest || featuredVersionKey(latest) !== version || latest.version._status !== 'draft') return
   const ids = featuredAnimalIds(latest.version.featuredAnimals)
   if (!ids.length) return
   try {

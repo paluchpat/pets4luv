@@ -22,6 +22,7 @@ import { HeadingFeatureClient as HeadingFeatureClient_e70f5e05f09f93e00b997edb1e
 import { ParagraphFeatureClient as ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { FixedToolbarFeatureClient as FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
 import { FeaturedAnimalsField as FeaturedAnimalsField_e61ed2d4e3c179d722043cb85b14e19c } from '../../../components/admin/FeaturedAnimalsField'
+import { FeaturedDraftMenu as FeaturedDraftMenu_2ea15056b0136fbce4cd08d5af674ec5 } from '../../../components/admin/FeaturedDraftMenu'
 import { MenuRowLabel as MenuRowLabel_668d8c2abe8684f4a655aafbcea4edb8 } from '../../../components/admin/MenuRowLabel'
 import { AdminIcon as AdminIcon_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
 import { AdminLogo as AdminLogo_eaac1db5e91cdf60fe2252784a702d30 } from '../../../components/admin/AdminBrand'
@@ -58,6 +59,7 @@ export const importMap = {
   "@payloadcms/richtext-lexical/client#ParagraphFeatureClient": ParagraphFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "@payloadcms/richtext-lexical/client#FixedToolbarFeatureClient": FixedToolbarFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
   "./components/admin/FeaturedAnimalsField#FeaturedAnimalsField": FeaturedAnimalsField_e61ed2d4e3c179d722043cb85b14e19c,
+  "./components/admin/FeaturedDraftMenu#FeaturedDraftMenu": FeaturedDraftMenu_2ea15056b0136fbce4cd08d5af674ec5,
   "./components/admin/MenuRowLabel#MenuRowLabel": MenuRowLabel_668d8c2abe8684f4a655aafbcea4edb8,
   "./components/admin/AdminBrand#AdminIcon": AdminIcon_eaac1db5e91cdf60fe2252784a702d30,
   "./components/admin/AdminBrand#AdminLogo": AdminLogo_eaac1db5e91cdf60fe2252784a702d30,

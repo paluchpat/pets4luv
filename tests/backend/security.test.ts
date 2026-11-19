@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { getPayload, ValidationError, type Payload } from 'payload'
+import { createLocalReq, getPayload, ValidationError, type Payload } from 'payload'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { createClient } from '@libsql/client'
 import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText } from '../../src/lib/public-content'
@@ -22,10 +22,11 @@ import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
 import { publishFeaturedDraft, saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
-import { previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
+import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
 import { parseDraftCommand } from '../../src/lib/catministrator/requests'
+import { discardFeaturedDraft } from '../../src/lib/discard-featured-draft'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -835,4 +836,70 @@ test('Catministrator saves profile and featured edits as drafts under an editor 
     slug: 'homepage', user: editor, overrideAccess: false, draft: true, data: { heading: 'Unrelated draft heading', _status: 'draft' },
   })
   assert.equal((await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead Third Bot Fixture')!)).review, undefined)
+})
+
+
+test('staff can discard the saved featured draft while preserving published content and history', async () => {
+  const animal = await payload.create({
+    collection: 'animals', user: editor, overrideAccess: false,
+    data: {
+      name: 'Discard draft fixture', slug: 'discard-draft-fixture', species: 'cat', sex: 'unknown', ageGroup: 'adult', status: 'available',
+      summary: 'A fixture animal.', description: 'A fixture animal.', photos: [{ photo: publicPhotoID }],
+      compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' }, _status: 'published',
+    },
+  })
+  await payload.updateGlobal({
+    slug: 'homepage', user: editor, overrideAccess: false,
+    data: { heading: 'Published homepage', intro: pageBody('Published intro.'), featuredAnimals: [], _status: 'published' },
+  })
+  const live = await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 })
+  const { docs: priorVersions } = await payload.findGlobalVersions({ slug: 'homepage', depth: 0, sort: ['-updatedAt', '-id'] })
+
+  const selection = parseDraftCommand('/featured discard-draft-fixture')!
+  await saveCatministratorDraft(payload, editor, selection)
+  const first = await payload.findGlobal({ slug: 'homepage', draft: true, depth: 0 })
+  await payload.updateGlobal({
+    slug: 'homepage', draft: true, user: editor, overrideAccess: false,
+    data: { featuredAnimals: [{ animal: animal.id }], _status: 'draft' },
+  })
+  const pending = await payload.findGlobal({ slug: 'homepage', draft: true, depth: 0 })
+  const discardedVersion = await latestFeaturedVersion(payload)
+  const { review } = await saveCatministratorDraft(payload, editor, selection)
+  assert.ok(review)
+
+  const discard = async (user: typeof editor | null, updatedAt: string) => discardFeaturedDraft(await createLocalReq({
+    user,
+    req: { headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ updatedAt }) },
+  }, payload))
+
+  assert.equal((await discard(null, pending.updatedAt!)).status, 401)
+  assert.equal((await discard({ ...editor, role: undefined }, pending.updatedAt!)).status, 403)
+  assert.equal((await discard(editor, first.updatedAt!)).status, 409)
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: true, depth: 0 }), pending)
+  const lock = await payload.create({
+    collection: 'payload-locked-documents',
+    data: { globalSlug: 'homepage', user: { relationTo: 'users', value: admin.id } },
+  })
+  assert.equal((await discard(editor, pending.updatedAt!)).status, 423)
+  await payload.delete({ collection: 'payload-locked-documents', id: lock.id })
+
+  assert.equal((await discard(editor, pending.updatedAt!)).status, 200)
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), live)
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: true, depth: 0 }), live)
+  const { docs: remaining } = await payload.findGlobalVersions({ slug: 'homepage', depth: 0, sort: ['-updatedAt', '-id'] })
+  assert.deepEqual(remaining.map(({ id, version, updatedAt }) => ({ id, version, updatedAt })),
+    priorVersions.map(({ id, version, updatedAt }) => ({ id, version, updatedAt })))
+  assert.equal(await previewFeaturedAnimals(payload, review.previewToken), undefined)
+
+  // SQLite's IDs for the removed revisions can be assigned again.
+  await saveCatministratorDraft(payload, editor, selection)
+  await payload.updateGlobal({
+    slug: 'homepage', draft: true, user: editor, overrideAccess: false,
+    data: { featuredAnimals: [{ animal: animal.id }], _status: 'draft' },
+  })
+  assert.equal((await latestFeaturedVersion(payload))?.id, discardedVersion?.id)
+  assert.equal(await previewFeaturedAnimals(payload, review.previewToken), undefined)
+  const approval = await publishFeaturedDraft(payload, editor, review.publishToken)
+  assert.match(approval.message, /draft changed/)
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), live)
 })
