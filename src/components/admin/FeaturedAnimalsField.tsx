@@ -1,7 +1,7 @@
 'use client'
 
-import { useConfig, useDocumentDrawer, useField, useForm, useFormFields } from '@payloadcms/ui'
-import { ArrowDown, ArrowUp, ImageOff, Pencil, Plus, Search, X } from 'lucide-react'
+import { DragHandleIcon, DraggableSortable, DraggableSortableItem, useConfig, useDocumentDrawer, useField, useForm, useFormFields } from '@payloadcms/ui'
+import { ImageOff, Pencil, Plus, Search, X } from 'lucide-react'
 import type { ArrayFieldClientProps, Where } from 'payload'
 import { stringify } from 'qs-esm'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -160,6 +160,7 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
   })
   const canEdit = !readOnly && !field.admin?.readOnly
   const locked = !canEdit || disabled
+  const canSort = !locked && rows.length > 1
   const atLimit = rows.length >= featuredAnimalLimit
   const [picking, setPicking] = useState(false)
   const pickerOpen = picking && !atLimit && canEdit
@@ -189,37 +190,47 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
     closePicker()
   }
 
+  function reorderAnimals({ moveFromIndex, moveToIndex }: { moveFromIndex: number; moveToIndex: number }) {
+    if (!canSort || moveFromIndex < 0 || moveToIndex < 0 || moveFromIndex === moveToIndex) return
+    moveFieldRow({ path, moveFromIndex, moveToIndex })
+  }
+
   return <section className="field-type cms-featured-editor" aria-labelledby={headingId}>
     <h3 id={headingId}>Featured animals</h3>
-    <p className="cms-featured-note">The first available animal gets the large photo on the homepage.</p>
+    <p className="cms-featured-note">The first available animal gets the large photo on the homepage.{canSort && ' Drag the handles to reorder.'}</p>
     <div className="cms-featured-panel">
-      {rows.length ? <ol className="cms-featured-list" ref={list}>
-        {rows.map((row, index) => {
-          const id = ordered[index]
-          const animal = id == null ? undefined : byId.get(id)
-          const name = animal?.name || (previews.loading ? 'Loading animal…' : 'Unavailable selection')
-          const hidden = !previews.loading && previews.page !== null && (index >= featuredAnimalLimit || !animal || animal.status !== 'available' || animal._status !== 'published')
-          return <li className="cms-featured-row" key={row.id}>
-            <FeaturedPhoto animal={animal} />
-            <div className="cms-featured-label">
-              <strong>{name}</strong>
-              {animal && id === lead && index === ordered.indexOf(id) && <span className="cms-featured-lead">Lead on homepage</span>}
-              {hidden && <span>Hidden on homepage</span>}
-            </div>
-            {canEdit && <div className="cms-featured-row-actions">
-              {animal && <EditFeaturedAnimal animal={animal} disabled={locked} onUpdate={refreshPreviews} />}
-              <div className="cms-featured-actions">
-                <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' up'} title="Move up"
-                  disabled={locked || index === 0} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index - 1 })}><ArrowUp aria-hidden="true" /></button>
-                <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' down'} title="Move down"
-                  disabled={locked || index === rows.length - 1} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index + 1 })}><ArrowDown aria-hidden="true" /></button>
-                <button type="button" className="cms-button cms-featured-icon" aria-label={'Remove ' + name} title="Remove from homepage"
-                  disabled={locked} onClick={() => removeFieldRow({ path, rowIndex: index })}><X aria-hidden="true" /></button>
-              </div>
-            </div>}
-          </li>
-        })}
-      </ol> : <p className="cms-featured-note">Choose up to three available animals.</p>}
+      {rows.length ? <DraggableSortable ids={rows.map(row => row.id)} onDragEnd={reorderAnimals}>
+        <ol className="cms-featured-list" ref={list}>
+          {rows.map((row, index) => {
+            const id = ordered[index]
+            const animal = id == null ? undefined : byId.get(id)
+            const name = animal?.name || (previews.loading ? 'Loading animal…' : 'Unavailable selection')
+            const hidden = !previews.loading && previews.page !== null && (index >= featuredAnimalLimit || !animal || animal.status !== 'available' || animal._status !== 'published')
+            return <DraggableSortableItem key={row.id} id={row.id} disabled={!canSort}>
+              {({ attributes, listeners, isDragging, setNodeRef, transform, transition }) => <li className="cms-featured-row"
+                ref={setNodeRef} style={{ transform, transition }} data-dragging={isDragging || undefined}>
+                <div className="cms-featured-animal">
+                  {canSort && <button type="button" className="cms-featured-drag-handle" {...attributes} {...listeners}
+                    aria-label={'Reorder ' + name} title="Drag to reorder">
+                    <DragHandleIcon />
+                  </button>}
+                  <FeaturedPhoto animal={animal} />
+                  <div className="cms-featured-label">
+                    <strong>{name}</strong>
+                    {animal && id === lead && index === ordered.indexOf(id) && <span className="cms-featured-lead">Lead on homepage</span>}
+                    {hidden && <span>Hidden on homepage</span>}
+                  </div>
+                </div>
+                {canEdit && <div className="cms-featured-row-actions">
+                  {animal && <EditFeaturedAnimal animal={animal} disabled={locked} onUpdate={refreshPreviews} />}
+                  <button type="button" className="cms-button cms-featured-icon" aria-label={'Remove ' + name} title="Remove from homepage"
+                    disabled={locked} onClick={() => removeFieldRow({ path, rowIndex: index })}><X aria-hidden="true" /></button>
+                </div>}
+              </li>}
+            </DraggableSortableItem>
+          })}
+        </ol>
+      </DraggableSortable> : <p className="cms-featured-note">Choose up to three available animals.</p>}
       {previews.page === null && <p className="cms-featured-note" role="alert">Could not load the selected animal previews.</p>}
       {rows.length > featuredAnimalLimit && <p className="cms-featured-note" role="alert">Remove extra animals to keep three or fewer.</p>}
       {showError && errorMessage && <p className="cms-featured-note" role="alert">{errorMessage}</p>}

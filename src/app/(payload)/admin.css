@@ -335,11 +335,17 @@
   .cms-featured-add:disabled { opacity: 1; background: var(--cms-line); color: var(--cms-muted); border-color: var(--cms-line); }
   .cms-featured-list, .cms-featured-options { padding: 0; list-style: none; }
   .cms-featured-list { margin: 0; }
-  .cms-featured-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 12px; padding-block: 10px; }
+  .cms-featured-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 12px; padding-block: 10px; }
+  .cms-featured-row[data-dragging] { position: relative; z-index: 1; background: var(--cms-surface); border-radius: 7px; box-shadow: 0 0 0 1px var(--cms-line); }
   .cms-featured-row + .cms-featured-row { border-top: 1px solid var(--cms-line); }
   .cms-featured-row:first-child { padding-top: 0; }
   .cms-featured-row:last-child { padding-bottom: 0; }
+  .cms-featured-animal { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .cms-featured-drag-handle { display: grid; place-items: center; flex: none; width: 32px; height: 44px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--cms-muted); touch-action: none; }
+  .cms-featured-drag-handle:hover { background: var(--cms-tint); color: var(--cms-accent-text); }
+  .cms-featured-drag-handle:focus-visible { outline: var(--accessibility-outline); outline-offset: -2px; }
   .cms-featured-photo { display: grid; place-items: center; width: 72px; aspect-ratio: 3 / 4; border-radius: 7px; color: var(--cms-muted); }
+  .cms-featured-animal .cms-featured-photo { flex: none; }
   .cms-featured-label { display: grid; gap: 3px; overflow-wrap: anywhere; }
   .cms-featured-label strong { font-size: 15px; }
   .cms-featured-label span { color: var(--cms-muted); font-size: 13px; }
@@ -352,7 +358,8 @@
   .cms-featured-option > svg { color: var(--cms-accent-text); }
   @container cms-featured (max-width: 500px) {
     .cms-featured-panel { padding: 12px; }
-    .cms-featured-row { grid-template-columns: auto minmax(0,1fr); gap: 7px 10px; }
+    .cms-featured-row { grid-template-columns: minmax(0,1fr); gap: 7px; }
+    .cms-featured-animal { gap: 10px; }
     .cms-featured-row .cms-featured-photo { width: 63px; }
     .cms-featured-row-actions { grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; }
   }
