@@ -12,6 +12,7 @@ const { prepareInformationPages } = await import('./information-pages-schema')
 const { cleanupRetiredSchema } = await import('./cleanup-retired-schema')
 const { prepareOptionalFields } = await import('./optional-fields-schema')
 const { prepareMainMenuSchema } = await import('./main-menu-schema')
+const { legacyTelegramEditors, prepareTelegramUsers } = await import('./telegram-users-schema')
 const { seedMainMenu } = await import('./main-menu-seed')
 const resolvedConfig = await config
 
@@ -22,6 +23,7 @@ const payload = await getPayload({
 })
 const client = (payload.db as unknown as SQLiteAdapter).client
 try {
+  await prepareTelegramUsers(client, process.env.TURSO_DATABASE_URL ? undefined : legacyTelegramEditors)
   await prepareWebsiteSettings(client)
   await prepareHomepageIntro(client)
   await prepareInformationPages(client)

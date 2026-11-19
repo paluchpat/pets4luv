@@ -38,13 +38,7 @@ Builds do not create demo animals, upload fixture photos, or change animal color
 
 Create a bot with [Telegram’s BotFather](https://t.me/BotFather) using `/newbot`. In Terminal, run `./scripts/local.sh catministrator:setup` and enter the bot token at the hidden prompt. The setup stores it in the Git-ignored `.env.catministrator` file.
 
-With the local CMS set up, run `./scripts/local.sh catministrator` in a separate Terminal tab. Send `/start` in a private chat with the bot. It replies with your Telegram user ID. A site administrator can link that ID to an existing local Payload account from another Terminal tab.
-
-```sh
-./scripts/local.sh catministrator -- link 123456789 editor@example.invalid
-```
-
-Use the Payload account’s email in this command. Each editor’s Telegram ID needs its own link. `./scripts/local.sh catministrator -- unlink TELEGRAM_USER_ID` revokes a link. Keep the local process running to receive messages.
+With the local CMS set up, run `./scripts/local.sh catministrator` in a separate Terminal tab and keep it running to receive messages. Send `/start` in a private chat with the bot to get your numeric Telegram user ID. A Payload administrator can open your account under **Settings → Users**, enter the ID in **Telegram ID**, and save. Clearing the field and saving revokes access. Each Telegram ID can be linked to a single account.
 
 Send `/help` for the direct draft commands. For example, `/edit Fig | summary=Sweet and playful.` drafts one animal edit, and `/featured Fig, Frida, Rollo` drafts the homepage list in that order. Open the draft in the local CMS to review and publish it.
 

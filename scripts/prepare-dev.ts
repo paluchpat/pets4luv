@@ -5,6 +5,7 @@ import { prepareWebsiteSettings } from './website-settings-schema'
 import { prepareInformationPages } from './information-pages-schema'
 import { cleanupRetiredSchema } from './cleanup-retired-schema'
 import { prepareOptionalFields } from './optional-fields-schema'
+import { legacyTelegramEditors, prepareTelegramUsers } from './telegram-users-schema'
 
 // First-time installations let Payload create its full schema. Upgrade existing local
 // content before Payload synchronizes the current website-only schema.
@@ -14,6 +15,7 @@ if (!process.env.TURSO_DATABASE_URL && url.startsWith('file:')) {
   if (exists) {
     const client = createClient({ url })
     try {
+      await prepareTelegramUsers(client, legacyTelegramEditors)
       const table = await client.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'website_settings'")
       if (table.rows.length) {
         await prepareWebsiteSettings(client)

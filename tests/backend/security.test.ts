@@ -1,6 +1,6 @@
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { getPayload, ValidationError, type Payload } from 'payload'
@@ -22,6 +22,8 @@ import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
 import { saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
+import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
+import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
 import { parseDraftCommand } from '../../src/lib/catministrator/requests'
 import { validatePageSlug } from '../../src/collections/Pages'
 
@@ -172,6 +174,56 @@ test('editor cannot create users or escalate their own role', async () => {
   await payload.update({ collection: 'users', id: editor.id, user: editor, overrideAccess: false, data: { role: 'admin', name: 'Still an editor' } })
   const persisted = await payload.findByID({ collection: 'users', id: editor.id })
   assert.equal(persisted.role, 'editor')
+})
+
+test('Telegram links are unique and only administrators can manage them', async () => {
+  const id = '9000000001'
+  const update = (user: typeof admin, telegramUserId: string | null) => payload.update({
+    collection: 'users', id: editor.id, user, overrideAccess: false, data: { telegramUserId },
+  })
+  await assert.rejects(() => update(admin, '@username'), /validation/i)
+  await update(editor, id)
+  assert.equal(await linkedTelegramEditor(payload, Number(id), Number.MAX_SAFE_INTEGER), undefined)
+
+  const linked = await update(admin, ' ' + id + ' ')
+  assert.equal(linked.telegramUserId, id)
+  const linkedAt = Math.floor(Date.parse(linked.telegramLinkedAt!) / 1000)
+  assert.equal((await linkedTelegramEditor(payload, Number(id), linkedAt))?.id, editor.id)
+  assert.equal(await linkedTelegramEditor(payload, Number(id), linkedAt - 1), undefined)
+  await assert.rejects(() => payload.update({
+    collection: 'users', id: admin.id, user: admin, overrideAccess: false, data: { telegramUserId: id },
+  }), /validation/i)
+
+  const ownUser = await update(editor, '9000000002')
+  assert.equal(ownUser.telegramUserId, undefined)
+  assert.equal(ownUser.telegramLinkedAt, undefined)
+  assert.equal((await linkedTelegramEditor(payload, Number(id), linkedAt))?.id, editor.id)
+
+  await update(admin, '')
+  assert.equal(await linkedTelegramEditor(payload, Number(id), Number.MAX_SAFE_INTEGER), undefined)
+})
+
+test('legacy Telegram links migrate once and clearing one prevents reimport', async () => {
+  const legacy = path.join(directory, 'telegram-editors')
+  await mkdir(legacy)
+  const id = '9000000003'
+  await writeFile(path.join(legacy, id + '.json'), JSON.stringify({ editor: 1, linkedAt: 1234 }))
+  const client = createClient({ url: 'file:' + path.join(directory, 'old-users.db') })
+  try {
+    await client.batch([
+      'CREATE TABLE users (id integer PRIMARY KEY, role text)',
+      "INSERT INTO users VALUES (1, 'admin'), (2, 'editor')",
+    ], 'write')
+    await prepareTelegramUsers(client, legacy)
+    const { rows: [user] } = await client.execute('SELECT * FROM users WHERE id = 1')
+    assert.equal(user.telegram_user_id, id)
+    assert.equal(user.telegram_linked_at, new Date(1234000).toISOString())
+    await client.execute('UPDATE users SET telegram_user_id = NULL, telegram_linked_at = NULL WHERE id = 1')
+    await prepareTelegramUsers(client, legacy)
+    assert.equal((await client.execute('SELECT telegram_user_id FROM users WHERE id = 1')).rows[0].telegram_user_id, null)
+  } finally {
+    client.close()
+  }
 })
 
 test('the homepage rejects a fourth featured animal on draft and published saves', async () => {

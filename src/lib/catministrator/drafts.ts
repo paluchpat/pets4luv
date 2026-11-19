@@ -1,11 +1,8 @@
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest } from 'payload'
 import type { User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
+import { isEditor } from './editors'
 import { animalDraftRequest, DraftRequestError, featuredDraftRequest, type DraftRequest } from './requests'
-
-export function isEditor(user: User | undefined | null): user is User {
-  return user?.role === 'admin' || user?.role === 'editor'
-}
 
 async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
   const key = reference.toLowerCase()
