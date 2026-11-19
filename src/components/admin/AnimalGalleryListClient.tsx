@@ -9,6 +9,14 @@ import type { AdminAnimalCard } from '../../lib/admin-animal-gallery'
 import { adminAnimalFilters, adminAnimalFilterValue, updateAdminAnimalFilter } from '../../lib/admin-animal-filters'
 import { Icon } from '../Icons'
 
+const sortOptions = [
+  { value: '-updatedAt', label: 'Recently updated' },
+  { value: '-createdAt', label: 'Newest addition' },
+  { value: 'createdAt', label: 'Oldest addition' },
+  { value: 'name', label: 'Name (A–Z)' },
+  { value: '-name', label: 'Name (Z–A)' },
+]
+
 export function AnimalGalleryListClient({ cards, canCreate, nativeList }: { cards: AdminAnimalCard[]; canCreate: boolean; nativeList: ReactNode }) {
   const { isInDrawer } = useListDrawerContext()
   return isInDrawer ? nativeList : <AnimalGalleryWorkspace cards={cards} canCreate={canCreate} />
@@ -21,10 +29,12 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const [search, setSearch] = useState(String(query.search || ''))
   const searchIsLocal = useRef(false)
   const [message, setMessage] = useState('')
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [pending, startTransition] = useTransition()
   const gallery = useRef<HTMLDivElement>(null)
   const previousPage = useRef(data?.page)
   const where = query.where as Where | undefined
+  const sort = query.sort || sortOptions[0].value
   const selected = adminAnimalFilterValue(where, 'species') || 'all'
   const activeFilters = adminAnimalFilters.filter(filter => adminAnimalFilterValue(where, filter.field, filter.operator)).length
   const hasCriteria = Boolean(search.trim() || Object.keys(where || {}).length)
@@ -88,19 +98,30 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
         </div>
       </div>
       <div className="cms-gallery-filter-bar">
-        <details className="cms-gallery-filters">
-          <summary><SlidersHorizontal aria-hidden="true" />Additional filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" /></summary>
-          <div className="cms-gallery-filter-grid">
-            {adminAnimalFilters.map(item => <label className="cms-gallery-filter" key={item.field}>
-              <span>{item.label}</span>
-              <span className="cms-filter-control"><select value={adminAnimalFilterValue(where, item.field, item.operator)} onChange={event => filter(item.field, event.target.value, item.operator)}>
-                <option value="">{item.empty}</option>
-                {item.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select><ChevronDown aria-hidden="true" /></span>
-            </label>)}
-          </div>
-        </details>
+        <button type="button" className="cms-button cms-gallery-filter-toggle" aria-expanded={filtersOpen}
+          aria-controls="cms-animal-filters" onClick={() => setFiltersOpen(open => !open)}>
+          <SlidersHorizontal aria-hidden="true" />Additional filters{activeFilters > 0 && <span className="cms-filter-count">{activeFilters}<span className="cms-sr-only"> active</span></span>}<ChevronDown className="cms-filters-chevron" aria-hidden="true" />
+        </button>
         {hasCriteria && <button type="button" className="cms-clear-filters" onClick={clearFilters}>Clear search and filters</button>}
+        <label className="cms-gallery-sort">
+          <span className="cms-gallery-sort-label">Sort by</span>
+          <span className="cms-filter-control"><select value={sort} onChange={event => {
+            const nextSort = event.target.value
+            startTransition(() => { void refineListData({ sort: nextSort, search: search.trim() || undefined, page: 1 }) })
+          }}>
+            {!sortOptions.some(option => option.value === sort) && <option value={sort}>Saved sort</option>}
+            {sortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select><ChevronDown aria-hidden="true" /></span>
+        </label>
+      </div>
+      <div className="cms-gallery-filter-grid" id="cms-animal-filters" hidden={!filtersOpen}>
+        {adminAnimalFilters.map(item => <label className="cms-gallery-filter" key={item.field}>
+          <span>{item.label}</span>
+          <span className="cms-filter-control"><select value={adminAnimalFilterValue(where, item.field, item.operator)} onChange={event => filter(item.field, event.target.value, item.operator)}>
+            <option value="">{item.empty}</option>
+            {item.options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select><ChevronDown aria-hidden="true" /></span>
+        </label>)}
       </div>
     </div>
     <div className="cms-gallery-results" aria-busy={pending}>
