@@ -76,7 +76,10 @@ test('a linked editor can send a draft command with a CMS review link', async ()
     },
     onError: () => assert.fail('The request should have succeeded'),
   })
-  assert.deepEqual(result, { chat: 123, text: 'Featured draft saved.\nReview in the CMS: https://example.invalid/admin/globals/homepage' })
+  assert.deepEqual(result, {
+    chat: 123, text: 'Featured draft saved.',
+    replyMarkup: { inline_keyboard: [[{ text: 'Review in the CMS', url: 'https://example.invalid/admin/globals/homepage' }]] },
+  })
 })
 
 
@@ -91,6 +94,25 @@ test('deletion requests get the CMS login link and never save a draft', async ()
   for (const text of ['/delete Fig', 'Please delete Fig', 'Can you remove Fig’s profile permanently?']) {
     const result = await replyToTelegram({ ...message, text }, handlers)
     assert.match(result?.text || '', /Deleting is currently unavailable in Catministrator/)
-    assert.match(result?.text || '', /https:\/\/example.invalid\/admin\/login/)
+    assert.deepEqual(result?.replyMarkup?.inline_keyboard, [[{ text: 'Log in to the CMS', url: 'https://example.invalid/admin/login' }]])
   }
+})
+
+
+test('local previews and review links use clickable loopback URLs', async () => {
+  const { replyMarkup } = (await replyToTelegram({ ...message, text: '/lead Tiny' }, {
+    cmsOrigin: 'http://localhost:3000',
+    isLinked: async () => true,
+    save: async () => ({
+      message: 'Featured draft saved.', path: '/admin/globals/homepage',
+      review: { previewToken: 'preview-token', publishToken: 'publish-token' },
+    }),
+    publish: async () => assert.fail('Saving a draft must not publish it'),
+    onError: () => assert.fail('The request should have succeeded'),
+  }))!
+  assert.deepEqual(replyMarkup?.inline_keyboard, [
+    [{ text: 'Preview homepage', url: 'http://127.0.0.1:3000/preview/featured/preview-token' }],
+    [{ text: 'Publish this draft', callback_data: '/publish publish-token' }],
+    [{ text: 'Review in the CMS', url: 'http://127.0.0.1:3000/admin/globals/homepage' }],
+  ])
 })

@@ -34,18 +34,26 @@ export function messageFromUpdate(update: TelegramUpdate): TelegramMessage | und
   }
 }
 
+function linkButton(text: string, path: string, cmsOrigin: string) {
+  const url = new URL(path, cmsOrigin)
+  // Telegram's HTTP URL validator expects a dotted hostname or an IPv6 address.
+  if (url.protocol === 'http:' && url.hostname === 'localhost') url.hostname = '127.0.0.1'
+  return { text, url: url.href }
+}
+
 function reviewReply(chat: number, result: DraftReceipt, cmsOrigin: string, canPublish: boolean): TelegramReply {
-  const text = result.message + '\nReview in the CMS: ' + new URL(result.path, cmsOrigin).href
-  if (!result.review || !canPublish) return { chat, text }
+  const cms = [linkButton('Review in the CMS', result.path, cmsOrigin)]
+  if (!result.review || !canPublish) {
+    return { chat, text: result.message, replyMarkup: { inline_keyboard: [cms] } }
+  }
   const { previewToken, publishToken } = result.review
-  const url = new URL('/preview/featured/' + previewToken, cmsOrigin)
-  const local = url.hostname === 'localhost' || url.hostname === '127.0.0.1'
   return {
     chat,
-    text: text + (local ? '\nPreview homepage: ' + url.href : '') + '\nThe preview and approval expire in 30 minutes.',
+    text: result.message + '\nThe preview and approval expire in 30 minutes.',
     replyMarkup: { inline_keyboard: [
-      ...(local ? [] : [[{ text: 'Preview homepage', url: url.href }]]),
+      [linkButton('Preview homepage', '/preview/featured/' + previewToken, cmsOrigin)],
       [{ text: 'Publish this draft', callback_data: '/publish ' + publishToken }],
+      cms,
     ] },
   }
 }
@@ -84,7 +92,10 @@ export async function replyToTelegram(
       if (!handlers.publish || !publication[1]) return answer('Use Publish this draft in a recent featured draft reply.')
       const result = await handlers.publish(id, date, publication[1])
       if (result.review) return reviewReply(id, result, handlers.cmsOrigin, true)
-      return answer(result.message + '\nView the homepage: ' + new URL(result.path, handlers.cmsOrigin).href)
+      return {
+        ...answer(result.message),
+        replyMarkup: { inline_keyboard: [[linkButton('View the homepage', result.path, handlers.cmsOrigin)]] },
+      }
     }
     const command = parseDraftCommand(text)
     if (!command && (text.startsWith('/') || !handlers.interpret)) return answer(commandHelp)
@@ -93,8 +104,10 @@ export async function replyToTelegram(
     return reviewReply(id, result, handlers.cmsOrigin, Boolean(handlers.publish))
   } catch (error) {
     if (error instanceof DeleteRequestError) {
-      return answer('Deleting is currently unavailable in Catministrator. Please log in to the CMS to manage this content.\n' +
-        new URL('/admin/login', handlers.cmsOrigin).href)
+      return {
+        ...answer('Deleting is currently unavailable in Catministrator. Please log in to the CMS to manage this content.'),
+        replyMarkup: { inline_keyboard: [[linkButton('Log in to the CMS', '/admin/login', handlers.cmsOrigin)]] },
+      }
     }
     if (error instanceof DraftRequestError) return answer(error.message)
     handlers.onError()
