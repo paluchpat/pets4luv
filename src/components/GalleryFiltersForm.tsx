@@ -160,6 +160,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
           key={name}
           label={label}
           name={name}
+          className={name === 'ageGroup' ? 'filter-select-age' : undefined}
           options={options}
           value={applied[name]}
           onValueChange={value => applyFilters({ [name]: value })}

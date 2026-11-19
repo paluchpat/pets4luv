@@ -13,7 +13,7 @@ export function SearchPanel() {
     <div className="search-heading"><h2 id="find-title">Find your furry best friend</h2><Link className="text-link" href="/animals">View all animals <span aria-hidden="true">→</span></Link></div>
     <form action={`/animals#${galleryResultsHeadingId}`} className="home-filters" id="home-animal-search" method="get">
       <SpeciesPicker showLabel />
-      <FilterSelect label="Age" name="ageGroup" options={ageOptions} />
+      <FilterSelect label="Age" name="ageGroup" options={ageOptions} className="filter-select-age" />
       <FilterSelect label="Gender" name="gender" options={genderOptions} />
       <button className="button matching-button" type="submit">Show matching pets <Icon kind="arrow" /></button>
     </form>

@@ -8,16 +8,15 @@ import { mainMenuDTO, menuPageIDs, type MainMenuDTO } from './main-menu'
 import { applyWebsiteSettings, websiteSettingsDTO, type WebsiteSettings } from './website-settings'
 
 import { featuredAnimalEligibility, featuredAnimalIds, featuredAnimalLimit } from './featured-animals'
+import { orderAnimalsByAge } from './animal-age'
 import { defaultGallerySort, type GallerySort } from './gallery-filters'
 import { animalDTO, animalProfileDTO, buildAnimalWhere, homepageIntroDTO, richTextToText, type AnimalProfileDTO, type AnimalFilters, type HomepageDTO } from './public-content'
 export * from './public-content'
 
 const galleryPageSize = 12
-const gallerySortFields: Record<GallerySort, string[]> = {
+const gallerySortFields: Record<Exclude<GallerySort, 'age-asc' | 'age-desc'>, string[]> = {
   'name-asc': ['name', 'id'],
   'name-desc': ['-name', 'id'],
-  'age-asc': ['-estimatedBirthDate', 'name', 'id'],
-  'age-desc': ['estimatedBirthDate', 'name', 'id'],
   newest: ['-createdAt', 'name', 'id'],
   oldest: ['createdAt', 'name', 'id'],
 }
@@ -27,21 +26,18 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
   const settings = await getWebsiteSettings()
   const page = Math.min(10000, Math.max(1, Math.floor(Number(filters.page) || 1)))
   const query = { collection: 'animals', overrideAccess: false, draft: false, where: buildAnimalWhere(filters) } as const
-  const sortFields = gallerySortFields[sort]
 
   if (sort === 'age-asc' || sort === 'age-desc') {
     const { docs: matches } = await payload.find({
       ...query,
       depth: 0,
       pagination: false,
-      select: { estimatedBirthDate: true },
-      sort: sortFields,
+      select: { estimatedBirthDate: true, ageGroup: true },
+      sort: ['name', 'id'],
     })
-    // Keep undated animals at the end in both directions before selecting the page.
-    const dated = matches.filter(animal => animal.estimatedBirthDate)
-    const undated = matches.filter(animal => !animal.estimatedBirthDate)
     const offset = (page - 1) * galleryPageSize
-    const ids = [...dated, ...undated].slice(offset, offset + galleryPageSize).map(animal => animal.id)
+    const ids = orderAnimalsByAge(matches, sort === 'age-desc')
+      .slice(offset, offset + galleryPageSize).map(animal => animal.id)
     const pagination = { totalDocs: matches.length, totalPages: Math.ceil(matches.length / galleryPageSize), page }
 
     if (!ids.length) return { ...pagination, docs: [] }
@@ -61,7 +57,7 @@ export async function searchAnimals(filters: AnimalFilters = {}, sort: GallerySo
     return { ...pagination, docs }
   }
 
-  const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: sortFields })
+  const result = await payload.find({ ...query, depth: 2, limit: galleryPageSize, page, sort: gallerySortFields[sort] })
   return { docs: result.docs.map(doc => applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)), totalDocs: result.totalDocs, totalPages: result.totalPages, page: result.page || 1 }
 }
 

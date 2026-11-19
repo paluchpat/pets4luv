@@ -1,4 +1,5 @@
 import type { Where } from 'payload'
+import { animalAgeGroupWhere } from './animal-age'
 import { isAnimalColor } from './animal-colors'
 import { buildAnimalSearchWhere } from './animal-search'
 import { defaultHomepageIntro } from './homepage-intro'
@@ -67,11 +68,13 @@ export function richTextToText(value: unknown): string {
 
 export function buildAnimalWhere(filters: AnimalFilters = {}): Where {
   const and: Where[] = [{ _status: { equals: 'published' } }, { status: { equals: 'available' } }]
-  const allowed = { species: ['cat', 'dog'], ageGroup: ['baby', 'young', 'adult', 'senior'], size: ['small', 'medium', 'large'], sex: ['female', 'male', 'unknown'] }
+  const allowed = { species: ['cat', 'dog'], size: ['small', 'medium', 'large'], sex: ['female', 'male', 'unknown'] }
   for (const key of Object.keys(allowed) as (keyof typeof allowed)[]) {
     const value = filters[key]
     if (value && allowed[key].includes(value)) and.push({ [key]: { equals: value } })
   }
+  const ageGroup = animalAgeGroupWhere(filters.ageGroup)
+  if (ageGroup) and.push(ageGroup)
   if (isAnimalColor(filters.color)) and.push({ colors: { contains: filters.color } })
   for (const [filter, field] of [['goodWithDogs', 'dogs'], ['goodWithCats', 'cats'], ['goodWithChildren', 'children']] as const) {
     if ([true, 'true', 'yes', '1'].includes(filters[filter] as any)) and.push({ [`compatibility.${field}`]: { equals: 'yes' } })

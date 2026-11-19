@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 
-type Option = { value: string; label: string; swatch?: string }
+type Option = { value: string; label: string; shortLabel?: string; swatch?: string }
 type Props = {
   name: string
   label: string
@@ -77,7 +77,7 @@ export function FilterSelect({ name, label, options, defaultValue = '', value: c
     <label id={labelId} className="filter-field-label" htmlFor={enhanced ? triggerId : `${id}-native`}>{label}</label>
     {enhanced ? <>
       <input type="hidden" name={name} value={value} />
-      <button ref={trigger} type="button" id={triggerId} className="filter-select-trigger" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-labelledby={`${labelId} ${id}-value`} aria-activedescendant={open ? `${id}-option-${activeIndex}` : undefined} onKeyDown={onKeyDown} onClick={() => { setActiveIndex(selectedIndex); setOpen(previous => !previous) }}><span id={`${id}-value`}>{options[selectedIndex].label}</span><svg viewBox="0 0 16 10" width="16" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="m2 2 6 6 6-6" /></svg></button>
+      <button ref={trigger} type="button" id={triggerId} className="filter-select-trigger" role="combobox" aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? listId : undefined} aria-labelledby={`${labelId} ${id}-value`} aria-activedescendant={open ? `${id}-option-${activeIndex}` : undefined} onKeyDown={onKeyDown} onClick={() => { setActiveIndex(selectedIndex); setOpen(previous => !previous) }}><span id={`${id}-value`}>{options[selectedIndex].shortLabel ?? options[selectedIndex].label}</span><svg viewBox="0 0 16 10" width="16" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><path d="m2 2 6 6 6-6" /></svg></button>
       {open && <div ref={list} id={listId} role="listbox" aria-labelledby={labelId} className="filter-select-options">
         {options.map((option, index) => <div
           key={option.value}
