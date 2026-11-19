@@ -1,7 +1,7 @@
 'use client'
 
-import { useConfig, useField, useForm, useFormFields } from '@payloadcms/ui'
-import { ArrowDown, ArrowUp, ImageOff, Plus, Search, X } from 'lucide-react'
+import { useConfig, useDocumentDrawer, useField, useForm, useFormFields } from '@payloadcms/ui'
+import { ArrowDown, ArrowUp, ImageOff, Pencil, Plus, Search, X } from 'lucide-react'
 import type { ArrayFieldClientProps, Where } from 'payload'
 import { stringify } from 'qs-esm'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -32,7 +32,7 @@ function animalQuery(api: string, where: Where, limit: number, page = 1) {
   })
 }
 
-function useAnimalPage(url: string) {
+function useAnimalPage(url: string, revision = 0) {
   const [result, setResult] = useState<{ url: string; page: AnimalPage | null }>()
   useEffect(() => {
     if (!url) return
@@ -49,7 +49,7 @@ function useAnimalPage(url: string) {
     }
     void loadPage()
     return () => controller.abort()
-  }, [url])
+  }, [url, revision])
 
   return { page: result?.url === url ? result.page : undefined, loading: Boolean(url) && result?.url !== url }
 }
@@ -60,6 +60,26 @@ function FeaturedPhoto({ animal }: { animal?: FeaturedAnimal }) {
   return <span className="cms-animal-card-photo cms-featured-photo">
     {url ? <img className="cms-animal-card-image" src={url} alt="" /> : <ImageOff size={21} aria-hidden="true" />}
   </span>
+}
+
+function EditFeaturedAnimal({ animal, disabled, onUpdate }: {
+  animal: FeaturedAnimal
+  disabled: boolean
+  onUpdate: () => void
+}) {
+  const [Drawer, Toggler, { closeDrawer }] = useDocumentDrawer({ collectionSlug: 'animals', id: animal.id })
+
+  function finish() {
+    closeDrawer()
+    onUpdate()
+  }
+
+  return <>
+    <Toggler className="cms-button" aria-label={`Edit details for ${animal.name}`} disabled={disabled}>
+      <Pencil aria-hidden="true" />Edit details
+    </Toggler>
+    <Drawer onSave={finish} onDelete={finish} />
+  </>
 }
 
 function AnimalPicker({ api, selected, disabled, onAdd, onClose }: {
@@ -131,7 +151,8 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
     animalId(fields[path + '.' + index + '.animal']?.value))))
   const ordered = JSON.parse(keys) as Array<number | null>
   const selected = [...new Set(ordered.flatMap(id => id === null ? [] : [id]))].sort((a, b) => a - b)
-  const previews = useAnimalPage(selected.length ? animalQuery(api, { id: { in: selected } }, selected.length) : '')
+  const [previewRevision, setPreviewRevision] = useState(0)
+  const previews = useAnimalPage(selected.length ? animalQuery(api, { id: { in: selected } }, selected.length) : '', previewRevision)
   const byId = new Map(previews.page?.docs.map(animal => [animal.id, animal]))
   const lead = ordered.slice(0, featuredAnimalLimit).find(id => {
     const animal = id === null ? undefined : byId.get(id)
@@ -145,6 +166,10 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
   const addButton = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLOListElement>(null)
   const headingId = useId()
+
+  function refreshPreviews() {
+    setPreviewRevision(revision => revision + 1)
+  }
 
   function closePicker() {
     setPicking(false)
@@ -181,13 +206,16 @@ export function FeaturedAnimalsField({ field, path: initialPath, readOnly, schem
               {animal && id === lead && index === ordered.indexOf(id) && <span className="cms-featured-lead">Lead on homepage</span>}
               {hidden && <span>Hidden on homepage</span>}
             </div>
-            {canEdit && <div className="cms-featured-actions">
-              <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' up'} title="Move up"
-                disabled={locked || index === 0} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index - 1 })}><ArrowUp aria-hidden="true" /></button>
-              <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' down'} title="Move down"
-                disabled={locked || index === rows.length - 1} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index + 1 })}><ArrowDown aria-hidden="true" /></button>
-              <button type="button" className="cms-button cms-featured-icon" aria-label={'Remove ' + name} title="Remove from homepage"
-                disabled={locked} onClick={() => removeFieldRow({ path, rowIndex: index })}><X aria-hidden="true" /></button>
+            {canEdit && <div className="cms-featured-row-actions">
+              {animal && <EditFeaturedAnimal animal={animal} disabled={locked} onUpdate={refreshPreviews} />}
+              <div className="cms-featured-actions">
+                <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' up'} title="Move up"
+                  disabled={locked || index === 0} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index - 1 })}><ArrowUp aria-hidden="true" /></button>
+                <button type="button" className="cms-button cms-featured-icon" aria-label={'Move ' + name + ' down'} title="Move down"
+                  disabled={locked || index === rows.length - 1} onClick={() => moveFieldRow({ path, moveFromIndex: index, moveToIndex: index + 1 })}><ArrowDown aria-hidden="true" /></button>
+                <button type="button" className="cms-button cms-featured-icon" aria-label={'Remove ' + name} title="Remove from homepage"
+                  disabled={locked} onClick={() => removeFieldRow({ path, rowIndex: index })}><X aria-hidden="true" /></button>
+              </div>
             </div>}
           </li>
         })}

@@ -322,7 +322,7 @@
   .cms-button:disabled { opacity: .45; cursor: default; }
 
   .cms-featured-editor { container: cms-featured / inline-size; margin-block-start: 24px; }
-  .cms-featured-toolbar, .cms-featured-actions { display: flex; align-items: center; gap: 8px; }
+  .cms-featured-toolbar, .cms-featured-actions, .cms-featured-row-actions { display: flex; align-items: center; gap: 8px; }
   .cms-featured-toolbar { justify-content: space-between; flex-wrap: wrap; }
   .cms-featured-editor > h3, .cms-featured-toolbar > h3 { margin: 0; font-size: 15px; font-weight: 700; }
   .cms-featured-count, .cms-featured-note { color: var(--cms-muted); font-size: 13px; }
@@ -350,11 +350,11 @@
   .cms-featured-option { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: 9px; width: 100%; min-width: 0; padding: 6px; text-align: left; white-space: normal; overflow-wrap: anywhere; }
   .cms-featured-option .cms-featured-photo { width: 45px; }
   .cms-featured-option > svg { color: var(--cms-accent-text); }
-  @container cms-featured (max-width: 370px) {
+  @container cms-featured (max-width: 500px) {
     .cms-featured-panel { padding: 12px; }
     .cms-featured-row { grid-template-columns: auto minmax(0,1fr); gap: 7px 10px; }
-    .cms-featured-row .cms-featured-photo { grid-row: 1 / span 2; width: 63px; }
-    .cms-featured-row .cms-featured-actions { grid-column: 2; }
+    .cms-featured-row .cms-featured-photo { width: 63px; }
+    .cms-featured-row-actions { grid-column: 1 / -1; justify-content: flex-end; flex-wrap: wrap; }
   }
   .cms-gallery-toolbar-wrap { container: cms-gallery-toolbar / inline-size; margin-bottom: 24px; }
   .cms-gallery-toolbar { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "search species" "help help"; column-gap: 14px; align-items: center; }
