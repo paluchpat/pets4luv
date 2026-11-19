@@ -21,7 +21,15 @@ export function latestFeaturedVersion(payload: Payload, req?: PayloadRequest) {
   }).then(({ docs }) => docs[0])
 }
 
-type Purpose = 'preview' | 'publish'
+export async function recentFeaturedPublications(payload: Payload, req: PayloadRequest) {
+  const { docs } = await payload.findGlobalVersions({
+    slug: 'homepage', req, overrideAccess: false, depth: 0, limit: 2, sort: ['-updatedAt', '-id'],
+    where: { 'version._status': { equals: 'published' } },
+  })
+  return docs
+}
+
+type Purpose = 'preview' | 'publish' | 'undo'
 
 function signature(secret: string, value: string, purpose: Purpose, editor?: User) {
   return createHmac('sha256', secret)
@@ -45,6 +53,19 @@ export function verifiedFeaturedVersion(secret: string, token: string, purpose: 
   if (Number.parseInt(expiry, 36) <= Math.floor(Date.now() / 1000)) return
   const expected = signature(secret, key + '.' + expiry, purpose, editor)
   if (timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) return key
+}
+
+export function featuredUndoToken(secret: string, published: FeaturedVersion, previous: FeaturedVersion, editor: User) {
+  const version = featuredVersionKey(published)
+  return version + '.' + signature(secret, version + '/' + featuredVersionKey(previous), 'undo', editor)
+}
+
+export function matchesFeaturedUndo(
+  secret: string, token: string, published: FeaturedVersion, previous: FeaturedVersion, editor: User,
+) {
+  const expected = Buffer.from(featuredUndoToken(secret, published, previous, editor))
+  const supplied = Buffer.from(token)
+  return expected.length === supplied.length && timingSafeEqual(supplied, expected)
 }
 
 export function isFeaturedOnlyChange(live: Homepage, draft: Homepage) {

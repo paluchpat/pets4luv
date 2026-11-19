@@ -2,13 +2,18 @@ import { commitTransaction, createLocalReq, initTransaction, killTransaction, ty
 import type { User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
 import { isEditor } from './editors'
-import { featuredAnimalsByID, featuredReviewTokens, featuredVersionKey, isFeaturedOnlyChange, latestFeaturedVersion, verifiedFeaturedVersion } from './featured-review'
+import {
+  featuredAnimalsByID, featuredReviewTokens, featuredUndoToken, featuredVersionKey, isFeaturedOnlyChange,
+  latestFeaturedVersion, matchesFeaturedUndo, recentFeaturedPublications, verifiedFeaturedVersion,
+} from './featured-review'
 import { animalDraftRequest, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
 
 export type DraftReceipt = {
   message: string
   path: string
   review?: ReturnType<typeof featuredReviewTokens>
+  changed?: boolean
+  undoToken?: string
 }
 
 async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
@@ -54,6 +59,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
           ? `Draft saved for ${animal.name}. Updated ${changed.map(field => field === 'status' ? 'adoption status' : field).join(', ')}.`
           : `${animal.name} already has those values.`,
         path: '/admin/collections/animals/' + animal.id,
+        changed: changed.length > 0,
       }
     } else {
       const homepage = await payload.findGlobal({ ...options, slug: 'homepage' })
@@ -84,7 +90,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         message: (changed ? 'Featured animals draft saved.' : 'The featured list already has that order.') + '\n' +
           animals.map((animal, index) => `${index + 1}. ${animal.name}${index === 0 ? ' (lead photo)' : ''}`).join('\n'),
         path: '/admin/globals/homepage',
-        review,
+        review, changed,
       }
     }
     if (started) await commitTransaction(req)
@@ -126,8 +132,44 @@ export async function publishFeaturedDraft(payload: Payload, editor: User, token
       ...options, draft: false, overrideLock: false,
       data: { featuredAnimals: ids.map(animal => ({ animal })), _status: 'published' },
     })
+    const [published, previous] = await recentFeaturedPublications(payload, req)
+    const undoToken = published && previous && live._status === 'published' && previous.version.updatedAt === live.updatedAt
+      ? featuredUndoToken(payload.secret, published, previous, editor)
+      : undefined
     if (started) await commitTransaction(req)
-    return { message: 'Featured animals published.', path: '/' }
+    return { message: 'Featured animals published.', path: '/', undoToken }
+  } catch (error) {
+    if (started) await killTransaction(req)
+    throw error
+  }
+}
+
+
+export async function undoFeaturedPublication(payload: Payload, editor: User, token: string): Promise<DraftReceipt> {
+  if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot publish website content.')
+  const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
+  const started = await initTransaction(req)
+  try {
+    const options = { req, slug: 'homepage', depth: 0, overrideAccess: false } as const
+    const [published, previous] = await recentFeaturedPublications(payload, req)
+    const live = await payload.findGlobal({ ...options, draft: false })
+    if (!published || !previous || live._status !== 'published' || live.updatedAt !== published.version.updatedAt ||
+        !matchesFeaturedUndo(payload.secret, token, published, previous, editor)) {
+      throw new DraftRequestError('That featured publication can’t be undone here. It has changed or was published by another editor. Review Versions in the CMS.')
+    }
+    const draft = await payload.findGlobal({ ...options, draft: true })
+    if (draft._status === 'draft') {
+      throw new DraftRequestError('There’s a newer featured draft. Review it in the CMS before undoing the publication.')
+    }
+    const ids = featuredAnimalIds(previous.version.featuredAnimals)
+    const animals = await featuredAnimalsByID(payload, ids, req)
+    await payload.updateGlobal({
+      ...options, draft: false, overrideLock: false,
+      data: { featuredAnimals: ids.map(animal => ({ animal })), _status: 'published' },
+    })
+    if (started) await commitTransaction(req)
+    const order = animals.map((animal, index) => `${index + 1}. ${animal.name}${index === 0 ? ' (lead photo)' : ''}`)
+    return { message: ['Restored the previous featured order.', ...order].join('\n'), path: '/' }
   } catch (error) {
     if (started) await killTransaction(req)
     throw error

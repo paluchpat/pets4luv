@@ -21,7 +21,7 @@ import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
-import { publishFeaturedDraft, saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
+import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../../src/lib/catministrator/drafts'
 import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
@@ -902,4 +902,60 @@ test('staff can discard the saved featured draft while preserving published cont
   const approval = await publishFeaturedDraft(payload, editor, review.publishToken)
   assert.match(approval.message, /draft changed/)
   assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), live)
+})
+
+
+test('featured undo restores only the previous published selection and protects newer work', async () => {
+  const animals: { id: number }[] = []
+  for (const name of ['Undo First', 'Undo Second', 'Undo Third']) {
+    animals.push(await payload.create({
+      collection: 'animals', user: editor, overrideAccess: false,
+      data: {
+        name, slug: name.toLowerCase().replace(' ', '-'), species: 'cat', sex: 'unknown', ageGroup: 'adult', status: 'available',
+        summary: 'An undo fixture.', description: 'An undo fixture.', photos: [{ photo: publicPhotoID }],
+        compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' }, _status: 'published',
+      },
+    }))
+  }
+  const [first, second, third] = animals
+  const choices = (list: typeof animals) => list.map(animal => ({ animal: animal.id }))
+  const order = async (draft = false) => (await payload.findGlobal({ slug: 'homepage', draft, depth: 0 })).featuredAnimals?.map(row => row.animal)
+  const baseline = { heading: 'Undo fixture headline', intro: pageBody('Undo fixture intro.'), featuredAnimals: choices([first, second, third]) }
+  await payload.updateGlobal({ slug: 'homepage', user: editor, data: { ...baseline, _status: 'published' } })
+
+  async function publish(order: string, actor = editor) {
+    const { review } = await saveCatministratorDraft(payload, actor, parseDraftCommand('/featured ' + order)!)
+    assert.ok(review)
+    const { undoToken } = await publishFeaturedDraft(payload, actor, review.publishToken)
+    assert.ok(undoToken)
+    assert.ok(Buffer.byteLength('/undo ' + undoToken) <= 64)
+    return undoToken
+  }
+
+  const approval = await publish('Undo Third, Undo Second, Undo First')
+  assert.deepEqual(await order(), [third.id, second.id, first.id])
+  await assert.rejects(() => undoFeaturedPublication(payload, admin, approval), /another editor/)
+  const pending = await payload.updateGlobal({
+    slug: 'homepage', user: editor, draft: true, data: { featuredAnimals: choices([second, first]), _status: 'draft' },
+  })
+  await assert.rejects(() => undoFeaturedPublication(payload, editor, approval), /newer featured draft/)
+  assert.deepEqual(await order(), [third.id, second.id, first.id])
+  assert.deepEqual(await order(true), [second.id, first.id])
+  assert.equal((await discardFeaturedDraft(await createLocalReq({
+    user: editor,
+    req: { headers: new Headers({ 'content-type': 'application/json' }), json: async () => ({ updatedAt: pending.updatedAt }) },
+  }, payload))).status, 200)
+
+  const restored = await undoFeaturedPublication(payload, editor, approval)
+  assert.match(restored.message, /Restored the previous featured order/)
+  const live = await payload.findGlobal({ slug: 'homepage', depth: 0 })
+  assert.equal(live.heading, baseline.heading)
+  assert.equal(richTextToText(live.intro), 'Undo fixture intro.')
+  assert.deepEqual(await order(), [first.id, second.id, third.id])
+  await assert.rejects(() => undoFeaturedPublication(payload, editor, approval), /can’t be undone/)
+
+  const nextApproval = await publish('Undo Third, Undo Second, Undo First')
+  await publish('Undo Second, Undo First, Undo Third', admin)
+  await assert.rejects(() => undoFeaturedPublication(payload, editor, nextApproval), /can’t be undone/)
+  assert.deepEqual(await order(), [second.id, first.id, third.id])
 })

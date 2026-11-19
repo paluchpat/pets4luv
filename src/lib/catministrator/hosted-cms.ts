@@ -26,5 +26,6 @@ export function hostedCatministratorCMS(origin: string, key: string, bypass?: st
     isLinked: (id: number, date: number) => call<boolean>({ action: 'linked', id, date }),
     save: (id: number, date: number, draft: DraftRequest) => call<DraftReceipt>({ action: 'save', id, date, draft }),
     publish: (id: number, date: number, token: string) => call<DraftReceipt>({ action: 'publish', id, date, token }),
+    undo: (id: number, date: number, token: string) => call<DraftReceipt>({ action: 'undo', id, date, token }),
   }
 }

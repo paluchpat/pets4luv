@@ -1,9 +1,9 @@
 import path from 'node:path'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { setTimeout as pause } from 'node:timers/promises'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { getPayload } from 'payload'
-import { publishFeaturedDraft, saveCatministratorDraft } from '../src/lib/catministrator/drafts'
+import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../src/lib/catministrator/drafts'
 import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/catministrator/editors'
 import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
 import { openAIInterpreter } from '../src/lib/catministrator/model'
@@ -44,6 +44,14 @@ async function readState(filename: string) {
   }
 }
 
+async function writeState(filename: string, value: string) {
+  const pending = filename + '.' + process.pid + '.tmp'
+  await writeFile(pending, value, { mode: 0o600 })
+  await rename(pending, filename)
+}
+
+type UndoState = { origin: string; token: string; lastAction: 'publish' | 'draft' }
+
 async function recordLink(id: string, address: string) {
   const { docs: [editor] } = await payload.find({
     collection: 'users', where: { email: { equals: address.trim().toLowerCase() } }, limit: 1, depth: 0, overrideAccess: true,
@@ -74,22 +82,78 @@ async function poll(botToken: string) {
   const interpret = process.env.AI_ENABLED === 'true' && apiKey && (gatewayKey || model) && Number.isSafeInteger(requestLimit) && requestLimit > 0
     ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory: path.join(stateDirectory, 'model-requests') })
     : undefined
+  async function requireEditor(id: number, date: number) {
+    const editor = await linkedTelegramEditor(payload, id, date)
+    if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+    return editor
+  }
+
   const cms = process.env.CATMINISTRATOR_CMS_ORIGIN
     ? hostedCatministratorCMS(process.env.CATMINISTRATOR_CMS_ORIGIN, process.env.CATMINISTRATOR_CMS_KEY || '', process.env.CATMINISTRATOR_VERCEL_BYPASS)
     : {
       cmsOrigin: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
       isLinked: async (id: number, date: number) => Boolean(await linkedTelegramEditor(payload, id, date)),
       save: async (id: number, date: number, request: Parameters<typeof saveCatministratorDraft>[2]) => {
-        const editor = await linkedTelegramEditor(payload, id, date)
-        if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+        const editor = await requireEditor(id, date)
         return saveCatministratorDraft(payload, editor, request)
       },
       publish: async (id: number, date: number, approval: string) => {
-        const editor = await linkedTelegramEditor(payload, id, date)
-        if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+        const editor = await requireEditor(id, date)
         return publishFeaturedDraft(payload, editor, approval)
       },
+      undo: async (id: number, date: number, approval: string) => {
+        const editor = await requireEditor(id, date)
+        return undoFeaturedPublication(payload, editor, approval)
+      },
     }
+  const undoFile = (id: number) => path.join(stateDirectory, 'telegram-' + bot.id + '-' + id + '.undo')
+  async function recall(id: number): Promise<UndoState | undefined> {
+    try {
+      const contents = await readState(undoFile(id))
+      if (!contents) return
+      const data = JSON.parse(contents) as Partial<UndoState> | null
+      if (data?.origin === cms.cmsOrigin && typeof data.token === 'string' &&
+          (data.lastAction === 'publish' || data.lastAction === 'draft')) {
+        return { origin: data.origin, token: data.token, lastAction: data.lastAction }
+      }
+    } catch {
+      console.error('Catministrator could not read the publication receipt.')
+    }
+  }
+  async function remember(id: number, state: UndoState) {
+    await writeState(undoFile(id), JSON.stringify(state)).catch(() => {
+      console.error('Catministrator could not save the publication receipt.')
+    })
+  }
+  const handlers: Parameters<typeof replyToTelegram>[1] = {
+    ...cms, interpret, onError: () => console.error('Catministrator CMS request failed.'),
+    save: async (id, date, request) => {
+      const result = await cms.save(id, date, request)
+      if (result.changed) {
+        const saved = await recall(id)
+        if (saved?.lastAction === 'publish') await remember(id, { ...saved, lastAction: 'draft' })
+      }
+      return result
+    },
+    publish: async (id, date, approval) => {
+      const result = await cms.publish(id, date, approval)
+      if (result.undoToken) await remember(id, { origin: cms.cmsOrigin, token: result.undoToken, lastAction: 'publish' })
+      return result
+    },
+    undo: async (id, date, { token, featured }) => {
+      const saved = await recall(id)
+      if (!token && !featured && saved?.lastAction === 'draft') {
+        throw new DraftRequestError('Your last change was a draft. Open the CMS to review or discard it.')
+      }
+      const approval = token || saved?.token
+      if (!approval) {
+        throw new DraftRequestError('I don’t have a featured publication from this chat to undo. Open Versions in the CMS to review older orders.')
+      }
+      const result = await cms.undo(id, date, approval)
+      if (saved?.token === approval) await rm(undoFile(id), { force: true }).catch(() => undefined)
+      return result
+    },
+  }
   console.log(`Listening for private messages to @${bot.username}. AI interpretation is ${interpret ? 'enabled' : 'disabled'}.`)
   while (!controller.signal.aborted) {
     try {
@@ -101,13 +165,9 @@ async function poll(botToken: string) {
         if (update.callback_query) {
           await call('answerCallbackQuery', { callback_query_id: update.callback_query.id }).catch(() => undefined)
         }
-        const response = await replyToTelegram(messageFromUpdate(update), {
-          ...cms, interpret, onError: () => console.error('Catministrator CMS request failed.'),
-        })
+        const response = await replyToTelegram(messageFromUpdate(update), handlers)
         const nextOffset = update.update_id + 1
-        const pendingFile = offsetFile + '.' + process.pid + '.tmp'
-        await writeFile(pendingFile, String(nextOffset), { mode: 0o600 })
-        await rename(pendingFile, offsetFile)
+        await writeState(offsetFile, String(nextOffset))
         offset = nextOffset
         if (response) await call('sendMessage', {
           chat_id: response.chat, text: response.text, reply_markup: response.replyMarkup, link_preview_options: { is_disabled: true },

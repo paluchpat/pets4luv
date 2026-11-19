@@ -28,7 +28,7 @@ type TelegramReply = {
 export function messageFromUpdate(update: TelegramUpdate): TelegramMessage | undefined {
   if (update.message) return update.message
   const callback = update.callback_query
-  if (!callback?.data?.startsWith('/publish ') || !callback.message?.chat) return
+  if (!/^(?:\/publish|\/undo) /.test(callback?.data || '') || !callback?.message?.chat) return
   return {
     chat: callback.message.chat, from: callback.from, date: Math.floor(Date.now() / 1000), text: callback.data,
   }
@@ -58,12 +58,36 @@ function reviewReply(chat: number, result: DraftReceipt, cmsOrigin: string, canP
   }
 }
 
+function homepageReply(chat: number, result: DraftReceipt, cmsOrigin: string): TelegramReply {
+  return {
+    chat,
+    text: result.message,
+    replyMarkup: { inline_keyboard: [
+      [linkButton('View the homepage', result.path, cmsOrigin)],
+      ...(result.undoToken ? [[{ text: 'Undo featured publish', callback_data: '/undo ' + result.undoToken }]] : []),
+    ] },
+  }
+}
+
+function undoRequest(text: string): { token?: string; featured: boolean } | undefined {
+  const phrase = text.trim().replace(/\s+/g, ' ').replace(/[.!?]+$/, '')
+    .replace(/^(?:(?:can|could|would) you )?(?:please )?/i, '')
+  const command = /^\/undo(?:\s+(\S+))?$/i.exec(phrase)
+  if (command) return { token: command[1], featured: true }
+  if (/^undo(?: (?:the |my )?last (?:action|change))?$/i.test(phrase)) return { featured: false }
+  if (/^restore (?:the )?previous featured(?: animals)? order$/i.test(phrase)) return { featured: true }
+  if (/^(?:undo|revert) (?:(?:the |my )?(?:last |latest )?featured(?: animals)? (?:publish|publication)|publishing (?:the )?(?:new )?featured animals(?: order)?)$/i.test(phrase)) {
+    return { featured: true }
+  }
+}
+
 export async function replyToTelegram(
   message: TelegramMessage | undefined,
   handlers: {
     isLinked: (id: number, date: number) => Promise<boolean>
     save: (id: number, date: number, request: DraftRequest) => Promise<DraftReceipt>
     publish?: (id: number, date: number, token: string) => Promise<DraftReceipt>
+    undo?: (id: number, date: number, request: { token?: string; featured: boolean }) => Promise<DraftReceipt>
     interpret?: (text: string) => Promise<DraftRequest>
     cmsOrigin: string
     onError: () => void
@@ -74,6 +98,7 @@ export async function replyToTelegram(
       typeof date !== 'number' || !Number.isSafeInteger(date) || typeof text !== 'string') return undefined
   const id = from.id
   const answer = (reply: string) => ({ chat: id, text: reply })
+  const undo = undoRequest(text)
   try {
     const linked = await handlers.isLinked(id, date)
     if (!linked) {
@@ -83,19 +108,20 @@ export async function replyToTelegram(
     }
     if (['/start', '/help'].includes(text.trim())) {
       return answer('Catministrator saves drafts for review in the CMS.\n\n' + commandHelp +
+        (handlers.undo ? '\n\n/undo — undo your latest featured publish.' : '') +
         (handlers.interpret ? '\n\nYou can also describe a single change in plain language.' : ''))
     }
     if (text.length > 3500) return answer('Please send a shorter draft request.')
     if (/^(?:please\s+)?(?:\/delete|(?:permanently\s+)?delete)(?:\s|$)/i.test(text.trim())) throw new DeleteRequestError()
+    if (undo && handlers.undo) {
+      return homepageReply(id, await handlers.undo(id, date, undo), handlers.cmsOrigin)
+    }
     const publication = /^\/publish(?:\s+(\S+))?$/i.exec(text.trim())
     if (publication) {
       if (!handlers.publish || !publication[1]) return answer('Use Publish this draft in a recent featured draft reply.')
       const result = await handlers.publish(id, date, publication[1])
       if (result.review) return reviewReply(id, result, handlers.cmsOrigin, true)
-      return {
-        ...answer(result.message),
-        replyMarkup: { inline_keyboard: [[linkButton('View the homepage', result.path, handlers.cmsOrigin)]] },
-      }
+      return homepageReply(id, result, handlers.cmsOrigin)
     }
     const command = parseDraftCommand(text)
     if (!command && (text.startsWith('/') || !handlers.interpret)) return answer(commandHelp)
@@ -109,9 +135,14 @@ export async function replyToTelegram(
         replyMarkup: { inline_keyboard: [[linkButton('Log in to the CMS', '/admin/login', handlers.cmsOrigin)]] },
       }
     }
-    if (error instanceof DraftRequestError) return answer(error.message)
-    handlers.onError()
-    return answer('I couldn’t save that draft. Try again, or use the CMS.')
+    if (!(error instanceof DraftRequestError)) handlers.onError()
+    const reply = error instanceof DraftRequestError ? error.message : undo
+      ? 'I couldn’t undo that publication. Try again, or review it in the CMS.'
+      : 'I couldn’t save that draft. Try again, or use the CMS.'
+    return undo ? {
+      ...answer(reply),
+      replyMarkup: { inline_keyboard: [[linkButton('Review in the CMS', '/admin/globals/homepage', handlers.cmsOrigin)]] },
+    } : answer(reply)
   }
 }
 

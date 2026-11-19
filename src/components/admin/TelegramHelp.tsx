@@ -67,6 +67,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <li>
             <h2>Review and publish</h2>
             <p>For featured animals, open <strong>Preview homepage</strong>, then tap <strong>Publish this draft</strong> in Telegram when it’s ready. The links expire after 30 minutes. If the draft changes, review the new preview before publishing.</p>
+            <p>After publishing featured animals, tap <strong>Undo featured publish</strong> or say “undo last action” to restore the previous live order. You can also send <code>/undo</code>. Undo applies to your publication while it’s still current. Review any newer featured draft in the CMS first.</p>
             <p>To discard a saved featured draft, open <strong>Review in the CMS</strong> and choose <strong>Discard draft</strong> from the three-dot menu.</p>
             <p>For animal profile drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
             <p>To delete content, sign in to the CMS. Catministrator sends the login link when you ask to delete something.</p>

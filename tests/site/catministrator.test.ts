@@ -5,7 +5,7 @@ import path from 'node:path'
 import { test } from 'node:test'
 import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
 import { DeleteRequestError, DraftRequestError, parseDraftCommand } from '../../src/lib/catministrator/requests'
-import { replyToTelegram } from '../../src/lib/catministrator/telegram'
+import { messageFromUpdate, replyToTelegram } from '../../src/lib/catministrator/telegram'
 
 test('Catministrator parses explicit changes and rejects fields outside its draft scope', () => {
   assert.deepEqual(parseDraftCommand('/edit Test Cat | status=pending | summary=A calm cat.'), {
@@ -114,5 +114,36 @@ test('local previews and review links use clickable loopback URLs', async () => 
     [{ text: 'Preview homepage', url: 'http://127.0.0.1:3000/preview/featured/preview-token' }],
     [{ text: 'Publish this draft', callback_data: '/publish publish-token' }],
     [{ text: 'Review in the CMS', url: 'http://127.0.0.1:3000/admin/globals/homepage' }],
+  ])
+})
+
+
+test('the featured publication reply offers Undo and plain-language undo bypasses the model', async () => {
+  const requests: { token?: string; featured: boolean }[] = []
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async (id: number) => id === 123,
+    save: async () => assert.fail('Undo must not save an unrelated draft'),
+    interpret: async () => assert.fail('Undo should skip the model'),
+    publish: async () => ({ message: 'Featured animals published.', path: '/', undoToken: 'signed-undo' }),
+    undo: async (_id: number, _date: number, request: { token?: string; featured: boolean }) => {
+      requests.push(request)
+      return { message: 'Restored the previous featured order.', path: '/' }
+    },
+    onError: () => assert.fail('The request should be handled'),
+  }
+  const published = await replyToTelegram({ ...message, text: '/publish approval' }, handlers)
+  const undoButton = published?.replyMarkup?.inline_keyboard[1]?.[0]
+  assert.equal(undoButton?.text, 'Undo featured publish')
+  for (const text of ['undo last action', 'undo publishing new featured animals order']) {
+    assert.match((await replyToTelegram({ ...message, text }, handlers))?.text || '', /Restored/)
+  }
+  const callback = { id: 'click', from: message.from, message, data: undoButton?.callback_data }
+  await replyToTelegram(messageFromUpdate({ update_id: 1, callback_query: callback }), handlers)
+  await replyToTelegram(messageFromUpdate({ update_id: 2, callback_query: { ...callback, from: { id: 99 } } }), handlers)
+  assert.deepEqual(requests, [
+    { featured: false },
+    { featured: true },
+    { token: 'signed-undo', featured: true },
   ])
 })
