@@ -6,7 +6,7 @@ import {
   featuredAnimalsByID, featuredReviewTokens, featuredUndoToken, featuredVersionKey, isFeaturedOnlyChange,
   latestFeaturedVersion, matchesFeaturedUndo, recentFeaturedPublications, verifiedFeaturedVersion,
 } from './featured-review'
-import { DraftRequestError, validateDraftRequest, type DraftRequest } from './requests'
+import { AnimalNameError, DraftRequestError, validateDraftRequest, type AnimalNameIssue, type DraftRequest } from './requests'
 
 export type DraftReceipt = {
   message: string
@@ -18,21 +18,28 @@ export type DraftReceipt = {
 
 async function findNamedAnimals(req: PayloadRequest, reference: string, draft: boolean, filter?: Where) {
   const key = reference.toLowerCase()
+  const explicitSlug = key.startsWith('slug:')
+  const named: Where = explicitSlug
+    ? { slug: { equals: key.slice(5) } }
+    : { or: [{ slug: { equals: key } }, { name: { like: reference } }] }
   const { docs } = await req.payload.find({
     req, collection: 'animals', draft, depth: 0, overrideAccess: false, pagination: false,
     select: { name: true, slug: true, status: true, _status: true, summary: true, description: true, breed: true },
-    where: { or: [{ slug: { equals: key } }, { name: { like: reference } }],
-      ...filter },
+    where: { ...named, ...filter },
   })
+  if (explicitSlug) return docs
   return docs.filter(doc => doc.slug === key || doc.name?.trim().toLowerCase() === key)
 }
 
-async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
+async function findAnimal(req: PayloadRequest, reference: string, draft: boolean, field: AnimalNameIssue['field'] = 'animal') {
   const matches = await findNamedAnimals(req, reference, draft, draft ? undefined : featuredAnimalEligibility)
-  if (matches.length > 1) throw new DraftRequestError(`“${reference}” matches more than one animal. Use the CMS slug.`)
+  if (matches.length > 1) {
+    throw new AnimalNameError(`“${reference}” matches more than one animal.`, { field, reference, suggestions: nameChoices(matches) })
+  }
   if (!matches[0]) {
     const scope = draft ? 'an animal' : 'a published, available animal'
-    throw new DraftRequestError(`I couldn’t find ${scope} named “${reference}”. Check the name or CMS slug.`)
+    const suggestions = await suggestNames(req, reference, draft, draft ? undefined : featuredAnimalEligibility)
+    throw new AnimalNameError(`I couldn’t find ${scope} named “${reference}”.`, { field, reference, suggestions })
   }
   return matches[0]
 }
@@ -44,6 +51,22 @@ function oneCharacterOff(first: string, second: string) {
   while (index < shorter.length && shorter[index] === longer[index]) index++
   if (shorter.length === longer.length) return shorter.slice(index + 1) === longer.slice(index + 1)
   return shorter.slice(index) === longer.slice(index + 1)
+}
+
+function nameChoices(animals: Pick<Animal, 'name' | 'slug'>[]) {
+  return animals.filter(animal => animal.name && animal.slug).slice(0, 3).map(({ name, slug }) => ({ name, slug }))
+}
+
+async function suggestNames(req: PayloadRequest, reference: string, draft: boolean, where?: Where) {
+  const key = reference.trim().toLowerCase()
+  if (key.length < 2) return []
+  const { docs } = await req.payload.find({
+    req, collection: 'animals', draft, depth: 0, overrideAccess: false, pagination: false,
+    select: { name: true, slug: true }, sort: ['name', 'id'], where,
+  })
+  const prefix = docs.filter(animal => animal.name?.trim().toLowerCase().startsWith(key) || animal.slug?.startsWith(key))
+  if (prefix.length) return nameChoices(prefix)
+  return key.length < 4 ? [] : nameChoices(docs.filter(animal => oneCharacterOff(key, animal.name?.trim().toLowerCase() || '')))
 }
 
 async function findFeaturedReplacement(req: PayloadRequest, reference: string) {
@@ -58,21 +81,28 @@ async function findFeaturedReplacement(req: PayloadRequest, reference: string) {
     candidates = docs.filter(animal => oneCharacterOff(key, animal.name?.trim().toLowerCase() || ''))
   }
   if (candidates.length > 1) {
-    throw new DraftRequestError(`More than one animal matches “${reference}”. Use the exact name or CMS slug.`)
+    const eligible = candidates.filter(animal => animal.status === 'available' && animal._status === 'published')
+    throw new AnimalNameError(`More than one animal matches “${reference}”.`, { field: 'replacement', reference, suggestions: nameChoices(eligible) })
   }
   const [match] = candidates
-  if (!match) throw new DraftRequestError(`I couldn’t find “${reference}”. Check the name or CMS slug.`)
+  if (!match) {
+    const suggestions = await suggestNames(req, reference, false, featuredAnimalEligibility)
+    throw new AnimalNameError(`I couldn’t find “${reference}”.`, { field: 'replacement', reference, suggestions })
+  }
   if (match._status !== 'published' || match.status !== 'available') {
     throw new DraftRequestError(`${match.name} needs to be published and available to be featured.`)
   }
   return match
 }
 
-export async function saveCatministratorDraft(payload: Payload, editor: User, input: DraftRequest) {
+export async function saveCatministratorDraft(
+  payload: Payload, editor: User, input: DraftRequest, expectedFeaturedVersion?: string | null,
+) {
   if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot edit website content.')
   const request = validateDraftRequest(input)
   const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
   const started = await initTransaction(req)
+  let featuredVersion: string | null | undefined
   try {
     const options = { req, depth: 0, overrideAccess: false, draft: true } as const
     let result: DraftReceipt
@@ -95,6 +125,11 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         changed: changed.length > 0,
       }
     } else {
+      const base = await latestFeaturedVersion(payload, req)
+      featuredVersion = base ? featuredVersionKey(base) : null
+      if (expectedFeaturedVersion !== undefined && expectedFeaturedVersion !== featuredVersion) {
+        throw new DraftRequestError('The featured list changed while I was waiting for the name. Send a new featured request to start from the current list.')
+      }
       const homepage = await payload.findGlobal({ ...options, slug: 'homepage' })
       const existing = featuredAnimalIds(homepage.featuredAnimals)
       let ids: number[]
@@ -103,13 +138,20 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         const matches = existing.length
           ? await findNamedAnimals(req, request.animal, false, { id: { in: existing } })
           : []
-        if (!matches.length) throw new DraftRequestError(`“${request.animal}” isn’t in the featured list.`)
-        if (matches.length > 1) throw new DraftRequestError(`More than one featured animal matches “${request.animal}”. Use the CMS slug.`)
+        if (!matches.length) {
+          const suggestions = existing.length ? await suggestNames(req, request.animal, false, { id: { in: existing } }) : []
+          throw new AnimalNameError(`“${request.animal}” isn’t in the featured list.`, { field: 'animal', reference: request.animal, suggestions })
+        }
+        if (matches.length > 1) {
+          throw new AnimalNameError(`More than one featured animal matches “${request.animal}”.`, {
+            field: 'animal', reference: request.animal, suggestions: nameChoices(matches),
+          })
+        }
         const [outgoing] = matches
         const incoming = await findFeaturedReplacement(req, request.replacement)
         ids = existing.map(id => id === outgoing.id ? incoming.id : id)
         const reference = request.replacement.toLowerCase()
-        if (reference !== incoming.slug && reference !== incoming.name.trim().toLowerCase()) {
+        if (reference !== incoming.slug && reference !== 'slug:' + incoming.slug && reference !== incoming.name.trim().toLowerCase()) {
           correction = ` Matched “${request.replacement}” to ${incoming.name}.`
         }
       } else if (request.action === 'lead') {
@@ -117,7 +159,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         ids = [lead.id, ...(existing.includes(lead.id) ? existing.filter(id => id !== lead.id) : existing.slice(1))]
       } else {
         ids = []
-        for (const name of request.animals) ids.push((await findAnimal(req, name, false)).id)
+        for (const [index, name] of request.animals.entries()) ids.push((await findAnimal(req, name, false, index)).id)
       }
       if (new Set(ids).size !== ids.length) throw new DraftRequestError('Each featured animal can appear once.')
       const animals = await featuredAnimalsByID(payload, ids, req)
@@ -143,6 +185,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
     if (started) await commitTransaction(req)
     return result
   } catch (error) {
+    if (error instanceof AnimalNameError) error.issue.featuredVersion = featuredVersion
     if (started) await killTransaction(req)
     throw error
   }

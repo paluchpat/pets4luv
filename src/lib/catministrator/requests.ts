@@ -4,6 +4,19 @@ export class DraftRequestError extends Error {}
 
 export class DeleteRequestError extends DraftRequestError {}
 
+export type AnimalNameIssue = {
+  reference: string
+  field: 'animal' | 'replacement' | number
+  suggestions: { name: string; slug: string }[]
+  featuredVersion?: string | null
+}
+
+export class AnimalNameError extends DraftRequestError {
+  constructor(message: string, public readonly issue: AnimalNameIssue) {
+    super(message)
+  }
+}
+
 const statuses = ['available', 'on-hold', 'adopted'] as const
 const textFields = { summary: 220, description: 3000, breed: 150 }
 type Status = (typeof statuses)[number]
@@ -86,6 +99,17 @@ export function validateDraftRequest(draft: unknown): DraftRequest {
     return animalDraftRequest(value.animal, value.patch as Record<string, unknown>)
   }
   throw new DraftRequestError('Send one supported draft request.')
+}
+
+export function correctAnimalReference(request: DraftRequest, field: AnimalNameIssue['field'], reference: string) {
+  if (typeof field === 'number' && request.action === 'featured' && Number.isInteger(field) &&
+      field >= 0 && field < request.animals.length) {
+    return featuredDraftRequest(request.animals.map((name, index) => index === field ? reference : name))
+  }
+  if (typeof field === 'string' && field in request) {
+    return validateDraftRequest({ ...request, [field]: reference })
+  }
+  throw new DraftRequestError('That correction no longer matches your draft request. Send the request again.')
 }
 
 export function parseDraftCommand(message: string): DraftRequest | undefined {

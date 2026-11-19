@@ -1,5 +1,9 @@
+import { randomBytes } from 'node:crypto'
 import type { DraftReceipt } from './drafts'
-import { commandHelp, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from './requests'
+import {
+  AnimalNameError, commandHelp, correctAnimalReference, DeleteRequestError, DraftRequestError,
+  parseDraftCommand, type AnimalNameIssue, type DraftRequest,
+} from './requests'
 
 type TelegramMessage = {
   chat?: { id: number; type: string }
@@ -28,7 +32,7 @@ type TelegramReply = {
 export function messageFromUpdate(update: TelegramUpdate): TelegramMessage | undefined {
   if (update.message) return update.message
   const callback = update.callback_query
-  if (!/^(?:\/publish|\/undo) /.test(callback?.data || '') || !callback?.message?.chat) return
+  if (!/^(?:\/publish|\/undo|\/name) /.test(callback?.data || '') || !callback?.message?.chat) return
   return {
     chat: callback.message.chat, from: callback.from, date: Math.floor(Date.now() / 1000), text: callback.data,
   }
@@ -81,11 +85,47 @@ function undoRequest(text: string): { token?: string; featured: boolean } | unde
   }
 }
 
+export type NameFollowUp = {
+  draft: DraftRequest
+  issue: AnimalNameIssue
+  message: string
+  requestedAt: number
+  expiresAt: number
+  nonce: string
+}
+
+function nameFollowUpReply(chat: number, pending: NameFollowUp): TelegramReply {
+  const { suggestions } = pending.issue
+  const canChoose = suggestions.length > 0
+  const question = suggestions.length === 1
+    ? ` Did you mean ${suggestions[0].name}?`
+    : canChoose ? ' Which animal did you mean?' : ''
+  const buttons = suggestions.map(({ name, slug }, index) => {
+    const duplicate = suggestions.some(other => other.slug !== slug && other.name.toLowerCase() === name.toLowerCase())
+    return [{ text: duplicate ? `${name} (${slug})` : name, callback_data: `/name ${pending.nonce} ${index}` }]
+  })
+  return {
+    chat,
+    text: pending.message + question + '\n' +
+      (canChoose ? 'Tap a match or reply “I meant” followed by the correct name.' : 'Reply “I meant” followed by the correct name or CMS slug.'),
+    ...(canChoose && { replyMarkup: { inline_keyboard: buttons } }),
+  }
+}
+
+function typedCorrection(text: string) {
+  return /^(?:i meant|i mean|actually,? (?:i meant|use))\s+(.+?)[.!?]?$/i.exec(text.trim())?.[1]
+    .trim().replace(/^[“"]|[”"]$/g, '')
+}
+
 export async function replyToTelegram(
   message: TelegramMessage | undefined,
   handlers: {
     isLinked: (id: number, date: number) => Promise<boolean>
-    save: (id: number, date: number, request: DraftRequest) => Promise<DraftReceipt>
+    save: (id: number, date: number, request: DraftRequest, featuredVersion?: string | null) => Promise<DraftReceipt>
+    nameFollowUps?: {
+      load: (id: number) => Promise<NameFollowUp | undefined>
+      store: (id: number, pending?: NameFollowUp) => Promise<void>
+    }
     publish?: (id: number, date: number, token: string) => Promise<DraftReceipt>
     undo?: (id: number, date: number, request: { token?: string; featured: boolean }) => Promise<DraftReceipt>
     interpret?: (text: string) => Promise<DraftRequest>
@@ -99,12 +139,26 @@ export async function replyToTelegram(
   const id = from.id
   const answer = (reply: string) => ({ chat: id, text: reply })
   const undo = undoRequest(text)
+  let pending: NameFollowUp | undefined
+  let attempt: DraftRequest | undefined
+  let requestedAt = date
+  const clearFollowUp = async () => {
+    if (pending) await handlers.nameFollowUps?.store(id)
+    pending = undefined
+  }
   try {
     const linked = await handlers.isLinked(id, date)
     if (!linked) {
       return answer(text.trim() === '/start'
         ? `Your Telegram user ID is ${id}. Give it to a Pets4Luv administrator to link your editor account.`
         : 'This Telegram account needs to be linked by a Pets4Luv administrator. Send /start to see your user ID.')
+    }
+    pending = await handlers.nameFollowUps?.load(id)
+    if (pending && (!Number.isSafeInteger(pending.requestedAt) || !Number.isFinite(pending.expiresAt) || pending.expiresAt <= Date.now())) await clearFollowUp()
+    if (text.trim() === '/cancel') {
+      const reply = pending ? 'Name clarification canceled. Send a new draft request when you’re ready.' : 'There’s no pending name clarification.'
+      await clearFollowUp()
+      return answer(reply)
     }
     if (['/start', '/help'].includes(text.trim())) {
       return answer('Catministrator saves drafts for review in the CMS.\n\n' + commandHelp +
@@ -114,19 +168,53 @@ export async function replyToTelegram(
     if (text.length > 3500) return answer('Please send a shorter draft request.')
     if (/^(?:please\s+)?(?:\/delete|(?:permanently\s+)?delete)(?:\s|$)/i.test(text.trim())) throw new DeleteRequestError()
     if (undo && handlers.undo) {
-      return homepageReply(id, await handlers.undo(id, date, undo), handlers.cmsOrigin)
+      const result = await handlers.undo(id, date, undo)
+      await clearFollowUp()
+      return homepageReply(id, result, handlers.cmsOrigin)
     }
     const publication = /^\/publish(?:\s+(\S+))?$/i.exec(text.trim())
     if (publication) {
       if (!handlers.publish || !publication[1]) return answer('Use Publish this draft in a recent featured draft reply.')
       const result = await handlers.publish(id, date, publication[1])
       if (result.review) return reviewReply(id, result, handlers.cmsOrigin, true)
+      await clearFollowUp()
       return homepageReply(id, result, handlers.cmsOrigin)
     }
-    const command = parseDraftCommand(text)
-    if (!command && (text.startsWith('/') || !handlers.interpret)) return answer(commandHelp)
-    const draft = command ?? await handlers.interpret!(text)
-    const result = await handlers.save(id, date, draft)
+    const choice = /^\/name (\S+) ([0-2])$/.exec(text.trim())
+    const typed = typedCorrection(text)
+    if ((choice || typed) && !pending) return answer('Send the draft request again so I know which animal to correct.')
+    if (choice && choice[1] !== pending?.nonce) return answer('That choice is out of date. Use the most recent name suggestion.')
+    const key = (typed || text).trim().toLowerCase()
+    const suggestions = pending?.issue.suggestions || []
+    const matching = suggestions.filter(({ name, slug }) => slug === key || name.toLowerCase() === key)
+    const confirmed = /^(?:yes|correct|that’s right|that's right)[.!]?$/.test(key)
+    let selected = matching.length === 1 ? matching[0] : undefined
+    if (choice) selected = suggestions[Number(choice[2])]
+    else if (confirmed && suggestions.length === 1) selected = suggestions[0]
+    const corrected = selected ? 'slug:' + selected.slug : typed
+    let featuredVersion: string | null | undefined
+    if (pending && corrected) {
+      if (date < pending.requestedAt || !await handlers.isLinked(id, pending.requestedAt)) {
+        await clearFollowUp()
+        return answer('This name clarification has expired. Send a new draft request.')
+      }
+      const current = pending
+      requestedAt = current.requestedAt
+      featuredVersion = current.issue.featuredVersion
+      attempt = correctAnimalReference(current.draft, current.issue.field, corrected)
+      await clearFollowUp()
+    } else {
+      if (pending && (choice || matching.length > 1 || confirmed || /^no[.!]?$/.test(key))) {
+        return nameFollowUpReply(id, pending)
+      }
+      const command = parseDraftCommand(text)
+      if (!command && (text.startsWith('/') || !handlers.interpret)) {
+        return pending ? nameFollowUpReply(id, pending) : answer(commandHelp)
+      }
+      attempt = command ?? await handlers.interpret!(text)
+      await clearFollowUp()
+    }
+    const result = await handlers.save(id, date, attempt, featuredVersion)
     return reviewReply(id, result, handlers.cmsOrigin, Boolean(handlers.publish))
   } catch (error) {
     if (error instanceof DeleteRequestError) {
@@ -134,6 +222,22 @@ export async function replyToTelegram(
         ...answer('Deleting is currently unavailable in Catministrator. Please log in to the CMS to manage this content.'),
         replyMarkup: { inline_keyboard: [[linkButton('Log in to the CMS', '/admin/login', handlers.cmsOrigin)]] },
       }
+    }
+    if (error instanceof AnimalNameError && attempt && handlers.nameFollowUps) {
+      const next = {
+        draft: attempt, issue: error.issue, message: error.message, requestedAt,
+        expiresAt: Date.now() + 30 * 60 * 1000, nonce: randomBytes(6).toString('base64url'),
+      }
+      try {
+        await handlers.nameFollowUps.store(id, next)
+        return nameFollowUpReply(id, next)
+      } catch {
+        handlers.onError()
+        return answer(error.message + ' Send the full request again with the correct name or CMS slug.')
+      }
+    }
+    if (pending && !attempt && !undo && !text.startsWith('/') && error instanceof DraftRequestError) {
+      return nameFollowUpReply(id, pending)
     }
     if (!(error instanceof DraftRequestError)) handlers.onError()
     const reply = error instanceof DraftRequestError ? error.message : undo

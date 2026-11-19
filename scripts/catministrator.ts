@@ -8,7 +8,7 @@ import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/cat
 import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
 import { openAIInterpreter } from '../src/lib/catministrator/model'
 import { DraftRequestError } from '../src/lib/catministrator/requests'
-import { messageFromUpdate, replyToTelegram, telegramBot, type TelegramUpdate } from '../src/lib/catministrator/telegram'
+import { messageFromUpdate, replyToTelegram, telegramBot, type NameFollowUp, type TelegramUpdate } from '../src/lib/catministrator/telegram'
 import { legacyTelegramEditors, prepareTelegramUsers } from './telegram-users-schema'
 
 const localDatabase = process.env.DATABASE_URL || 'file:./data/rescue.db'
@@ -93,9 +93,9 @@ async function poll(botToken: string) {
     : {
       cmsOrigin: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
       isLinked: async (id: number, date: number) => Boolean(await linkedTelegramEditor(payload, id, date)),
-      save: async (id: number, date: number, request: Parameters<typeof saveCatministratorDraft>[2]) => {
+      save: async (id: number, date: number, request: Parameters<typeof saveCatministratorDraft>[2], featuredVersion?: string | null) => {
         const editor = await requireEditor(id, date)
-        return saveCatministratorDraft(payload, editor, request)
+        return saveCatministratorDraft(payload, editor, request, featuredVersion)
       },
       publish: async (id: number, date: number, approval: string) => {
         const editor = await requireEditor(id, date)
@@ -125,10 +125,26 @@ async function poll(botToken: string) {
       console.error('Catministrator could not save the publication receipt.')
     })
   }
+  const followUpFile = (id: number) => path.join(stateDirectory, 'telegram-' + bot.id + '-' + id + '.name-follow-up')
   const handlers: Parameters<typeof replyToTelegram>[1] = {
     ...cms, interpret, onError: () => console.error('Catministrator CMS request failed.'),
-    save: async (id, date, request) => {
-      const result = await cms.save(id, date, request)
+    nameFollowUps: {
+      load: async id => {
+        try {
+          const value = await readState(followUpFile(id))
+          if (!value) return
+          const state = JSON.parse(value) as { origin?: string; pending?: NameFollowUp } | null
+          if (state?.origin === cms.cmsOrigin) return state.pending
+        } catch {
+          console.error('Catministrator could not read the name clarification.')
+        }
+      },
+      store: (id, pending) => pending
+        ? writeState(followUpFile(id), JSON.stringify({ origin: cms.cmsOrigin, pending }))
+        : rm(followUpFile(id), { force: true }),
+    },
+    save: async (id, date, request, featuredVersion) => {
+      const result = await cms.save(id, date, request, featuredVersion)
       if (result.changed) {
         const saved = await recall(id)
         if (saved?.lastAction === 'publish') await remember(id, { ...saved, lastAction: 'draft' })

@@ -31,7 +31,7 @@ export function readModelDraftOutput(text: string): DraftRequest {
   if (result.action === 'featured') return featuredDraftRequest(result.animals)
   if (result.action === 'delete') throw new DeleteRequestError()
   if (result.action === 'clarify') {
-    throw new DraftRequestError('Which animal and field should I edit, or which animals should be featured in what order?')
+    throw new DraftRequestError('Tell me the change you want and name the animal. For example, “Make Tiny the lead featured animal” or “Set Fig’s summary to Sweet and playful.”')
   }
   throw new Error('Invalid model action')
 }

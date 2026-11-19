@@ -25,7 +25,7 @@ import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication 
 import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
-import { parseDraftCommand } from '../../src/lib/catministrator/requests'
+import { AnimalNameError, correctAnimalReference, parseDraftCommand } from '../../src/lib/catministrator/requests'
 import { discardFeaturedDraft } from '../../src/lib/discard-featured-draft'
 import { validatePageSlug } from '../../src/collections/Pages'
 
@@ -995,4 +995,45 @@ test('Catministrator swaps one featured slot and resolves a unique typo without 
   await create('Mocachina', 'on-hold')
   await assert.rejects(() => replace('Fig | mocachina'), /needs to be published and available/)
   assert.deepEqual(await previewFeaturedAnimals(payload, result.review.previewToken), [bandit.id, fig.id, mochachina.id])
+})
+
+
+test('the featured name follow-up suggests CMS matches and protects newer revisions', async () => {
+  const create = (name: string, slug: string) => payload.create({
+    collection: 'animals', user: editor, overrideAccess: false,
+    data: {
+      name, slug, species: 'cat', sex: 'unknown', ageGroup: 'adult', status: 'available',
+      summary: 'Name follow-up fixture.', description: 'Name follow-up fixture.',
+      photos: [{ photo: publicPhotoID }], compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' },
+      _status: 'published',
+    },
+  })
+  const first = await create('Piper Follow-up', 'piper-follow-up')
+  const second = await create('Misty Follow-up', 'misty-follow-up')
+  const maple = await create('Maple', 'maple')
+  const options = { slug: 'homepage', user: editor, overrideAccess: false, depth: 0 } as const
+  await payload.updateGlobal({ ...options, data: {
+    heading: 'Name follow-up', intro: pageBody('Name follow-up fixture.'),
+    featuredAnimals: [second, first].map(animal => ({ animal: animal.id })), _status: 'published',
+  } })
+
+  const original = parseDraftCommand('/featured Piper Follow-up, Misty Follow-up, map')!
+  const unresolved = await saveCatministratorDraft(payload, editor, original).catch((error: unknown) => error)
+  assert.ok(unresolved instanceof AnimalNameError)
+  assert.equal(unresolved.issue.field, 2)
+  assert.deepEqual(unresolved.issue.suggestions, [{ name: 'Maple', slug: 'maple' }])
+  assert.equal(typeof unresolved.issue.featuredVersion, 'string')
+  assert.equal((await payload.findGlobal({ ...options, draft: true }))._status, 'published')
+  const corrected = correctAnimalReference(original, unresolved.issue.field, 'slug:maple')
+
+  // An exact display-name collision must not override a tapped CMS suggestion.
+  await create('Maple', 'other-maple')
+  const resolved = await saveCatministratorDraft(payload, editor, corrected, unresolved.issue.featuredVersion)
+  assert.ok(resolved.review)
+  assert.deepEqual(await previewFeaturedAnimals(payload, resolved.review.previewToken), [first.id, second.id, maple.id])
+
+  await assert.rejects(() => saveCatministratorDraft(payload, editor, corrected, unresolved.issue.featuredVersion),
+    /The featured list changed/)
+  const live = await payload.findGlobal({ ...options, draft: false })
+  assert.deepEqual(live.featuredAnimals?.map(row => row.animal), [second.id, first.id])
 })

@@ -1,4 +1,4 @@
-import { DraftRequestError, type DraftRequest } from './requests'
+import { AnimalNameError, DraftRequestError, type AnimalNameIssue, type DraftRequest } from './requests'
 import type { DraftReceipt } from './drafts'
 
 export function hostedCatministratorCMS(origin: string, key: string, bypass?: string) {
@@ -15,7 +15,8 @@ export function hostedCatministratorCMS(origin: string, key: string, bypass?: st
       method: 'POST', headers, body: JSON.stringify(body), redirect: 'error', signal: AbortSignal.timeout(18000),
     })
     if (response.status === 422) {
-      const error = await response.json() as { message: string }
+      const error = await response.json() as { message: string; nameIssue?: AnimalNameIssue }
+      if (error.nameIssue) throw new AnimalNameError(error.message, error.nameIssue)
       throw new DraftRequestError(error.message)
     }
     if (!response.ok) throw new Error('Hosted Catministrator CMS request failed.')
@@ -24,7 +25,8 @@ export function hostedCatministratorCMS(origin: string, key: string, bypass?: st
   return {
     cmsOrigin: base.origin,
     isLinked: (id: number, date: number) => call<boolean>({ action: 'linked', id, date }),
-    save: (id: number, date: number, draft: DraftRequest) => call<DraftReceipt>({ action: 'save', id, date, draft }),
+    save: (id: number, date: number, draft: DraftRequest, featuredVersion?: string | null) =>
+      call<DraftReceipt>({ action: 'save', id, date, draft, featuredVersion }),
     publish: (id: number, date: number, token: string) => call<DraftReceipt>({ action: 'publish', id, date, token }),
     undo: (id: number, date: number, token: string) => call<DraftReceipt>({ action: 'undo', id, date, token }),
   }

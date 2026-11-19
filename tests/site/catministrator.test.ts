@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
-import { DeleteRequestError, DraftRequestError, parseDraftCommand } from '../../src/lib/catministrator/requests'
-import { messageFromUpdate, replyToTelegram } from '../../src/lib/catministrator/telegram'
+import { AnimalNameError, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from '../../src/lib/catministrator/requests'
+import { messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
 
 test('Catministrator parses explicit changes and rejects fields outside its draft scope', () => {
   assert.deepEqual(parseDraftCommand('/edit Test Cat | status=pending | summary=A calm cat.'), {
@@ -150,4 +150,59 @@ test('the featured publication reply offers Undo and plain-language undo bypasse
     { featured: true },
     { token: 'signed-undo', featured: true },
   ])
+})
+
+
+test('a suggested name or typed correction resumes the original draft in the same Telegram chat', async () => {
+  const pending = new Map<number, NameFollowUp>()
+  const saves: DraftRequest[] = []
+  let modelCalls = 0
+  const initial = { ...message, text: 'Feature Fig first, then bandit then mocha' }
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    nameFollowUps: {
+      load: async (id: number) => pending.get(id),
+      store: async (id: number, followUp?: NameFollowUp) => {
+        if (followUp) pending.set(id, followUp)
+        else pending.delete(id)
+      },
+    },
+    interpret: async (text: string) => {
+      assert.equal(text, initial.text)
+      modelCalls++
+      return parseDraftCommand('/featured Fig, bandit, mocha')!
+    },
+    save: async (_id: number, _date: number, request: DraftRequest, version?: string | null) => {
+      if (version === undefined) throw new AnimalNameError('I couldn’t find “mocha”.', {
+        field: 2, reference: 'mocha', suggestions: [{ name: 'Mochachina', slug: 'mochachina' }], featuredVersion: 'current-version',
+      })
+      assert.equal(version, 'current-version')
+      saves.push(request)
+      return { message: 'Featured animals draft saved.', path: '/admin/globals/homepage' }
+    },
+    onError: () => assert.fail('The correction should be handled'),
+  }
+  const suggestion = await replyToTelegram(initial, handlers)
+  assert.match(suggestion?.text || '', /Did you mean Mochachina/)
+  assert.equal(suggestion?.replyMarkup?.inline_keyboard[0][0].text, 'Mochachina')
+  assert.deepEqual(saves, [])
+
+  const other = { ...message, from: { id: 456 }, chat: { id: 456, type: 'private' }, text: 'I meant Mochachina' }
+  assert.match((await replyToTelegram(other, handlers))?.text || '', /Send the draft request again/)
+  assert.match((await replyToTelegram({ ...message, text: '/name stale 0' }, handlers))?.text || '', /out of date/)
+  const completed = await replyToTelegram({ ...message, text: 'I meant mochachina' }, handlers)
+  assert.match(completed?.text || '', /draft saved/)
+  assert.deepEqual(saves, [{ action: 'featured', animals: ['Fig', 'bandit', 'slug:mochachina'] }])
+  assert.equal(modelCalls, 1)
+  assert.equal(pending.size, 0)
+
+  const retry = await replyToTelegram(initial, handlers)
+  const callback = { id: 'tap', from: message.from, message, data: retry?.replyMarkup?.inline_keyboard[0][0].callback_data }
+  assert.match((await replyToTelegram(messageFromUpdate({ update_id: 9, callback_query: callback }), handlers))?.text || '', /draft saved/)
+  assert.equal(saves.length, 2)
+  assert.equal(modelCalls, 2)
+  await replyToTelegram(initial, handlers)
+  assert.match((await replyToTelegram({ ...message, text: '/cancel' }, handlers))?.text || '', /clarification canceled/)
+  assert.equal(pending.size, 0)
 })

@@ -65,6 +65,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             <p><code>/lead</code> changes the first slot. If the animal is already featured, it moves to the front.</p>
             <p><code>/replace</code> changes one slot and keeps the other animals in order.</p>
             <p>If <code>/help</code> says plain-language requests are available, try “Replace Tiny with Mochachina in the featured list.”</p>
+            <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” The bot picks up the original request. Send <code>/cancel</code> to clear the pending clarification.</p>
           </li>
           <li>
             <h2>Review and publish</h2>

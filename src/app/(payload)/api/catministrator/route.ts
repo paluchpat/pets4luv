@@ -3,7 +3,7 @@ import config from '@payload-config'
 import { getPayload } from 'payload'
 import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '@/lib/catministrator/drafts'
 import { linkedTelegramEditor } from '@/lib/catministrator/editors'
-import { DraftRequestError } from '@/lib/catministrator/requests'
+import { AnimalNameError, DraftRequestError } from '@/lib/catministrator/requests'
 
 function hasServiceKey(request: Request, key: string) {
   const expected = Buffer.from('Bearer ' + key)
@@ -24,11 +24,15 @@ export async function POST(request: Request) {
     const editor = await linkedTelegramEditor(payload, body.id, body.date)
     if (body.action === 'linked') return Response.json(Boolean(editor))
     if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
-    if (body.action === 'save') return Response.json(await saveCatministratorDraft(payload, editor, body.draft))
+    if (body.action === 'save') {
+      if (body.featuredVersion != null && typeof body.featuredVersion !== 'string') return new Response(null, { status: 400 })
+      return Response.json(await saveCatministratorDraft(payload, editor, body.draft, body.featuredVersion))
+    }
     if (typeof body.token !== 'string') return new Response(null, { status: 400 })
     const apply = body.action === 'undo' ? undoFeaturedPublication : publishFeaturedDraft
     return Response.json(await apply(payload, editor, body.token))
   } catch (error) {
+    if (error instanceof AnimalNameError) return Response.json({ message: error.message, nameIssue: error.issue }, { status: 422 })
     if (error instanceof DraftRequestError) return Response.json({ message: error.message }, { status: 422 })
     console.error('The Catministrator CMS operation failed.')
     return new Response(null, { status: 500 })
