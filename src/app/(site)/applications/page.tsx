@@ -4,14 +4,14 @@ import { phoneHref as contactPhoneHref } from '@/lib/website-settings'
 
 export const metadata = pageMetadata({
   title: 'Forms and applications',
-  description: 'Find Pets4Luv forms for adopting, fostering, volunteering, and requesting help for a pet.',
+  description: 'Find Pets4Luv forms for adopting, fostering, and volunteering.',
   path: '/applications',
 })
 export const dynamic = 'force-dynamic'
 
 const formDirectory = 'https://irp.cdn-website.com/664b757c/files/uploaded/'
 
-type Application = { title: string; description?: string } & (
+type Application = { title: string } & (
   | { file: string }
   | { subject: string; action?: 'Request information'; phone?: boolean }
 )
@@ -35,19 +35,6 @@ const groups: ApplicationGroup[] = [
       { title: 'Community service', file: 'Volunteer_Application_-_community_Service.docx' },
       { title: 'Organization or group volunteering', file: 'Organizational_Volunteer_Application.docx' },
       { title: 'Reading program', file: 'Reading_Program_Application.docx' },
-    ],
-  },
-  {
-    id: 'get-help', title: 'Get help for your pet',
-    forms: [
-      { title: 'Medical assistance', description: 'For necessary, non-routine veterinary care when cost is a barrier.', subject: 'Medical assistance application', phone: true },
-      { title: 'Pet food pantry', description: 'For pet owners who need help affording food.', subject: 'Pet food pantry application', phone: true },
-    ],
-  },
-  {
-    id: 'surrender', title: 'Surrender a pet',
-    forms: [
-      { title: 'Surrender application', subject: 'Pet surrender application', phone: true },
     ],
   },
 ]
@@ -74,10 +61,7 @@ export default async function ApplicationsPage() {
           const href = isDownload ? `${formDirectory}${form.file}` : `mailto:${email}?subject=${encodeURIComponent(form.subject)}`
           const label = isDownload ? 'Word form (.docx)' : form.action || 'Request application'
           return <li key={form.title}>
-            <div>
-              <h3>{form.title}</h3>
-              {form.description && <p>{form.description}</p>}
-            </div>
+            <h3>{form.title}</h3>
             <div className="application-actions">
               <a className="button secondary" href={href} aria-label={`${label} for ${form.title}`}>{label}</a>
               {!isDownload && form.phone && <a className="text-link" href={phoneHref} aria-label={`Call ${phone} about ${form.title}`}>Call {phone}</a>}
