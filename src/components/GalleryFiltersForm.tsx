@@ -168,7 +168,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
             maxLength={gallerySearchMaxLength}
             onChange={event => scheduleSearch(event.currentTarget.value.slice(0, gallerySearchMaxLength))}
           />
-          <p id="animal-search-help">Try <strong>small black cat</strong>. Use quotes to search for a name or phrase in the profile text.</p>
+          <p id="animal-search-help">Try <strong>Young black cat</strong>. Use quotes to search for a name or phrase in the profile text.</p>
         </div>
         <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
         {selects.map(({ name, label, options }) => <FilterSelect
