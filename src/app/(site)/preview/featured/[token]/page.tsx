@@ -18,7 +18,7 @@ export default async function FeaturedPreview({ params }: { params: Promise<{ to
   const [homepage, settings] = await Promise.all([getHomepage(ids), getWebsiteSettings(true)])
   if (homepage.featuredAnimals.length !== ids.length) notFound()
   return <>
-    <div className="preview-banner" role="status"><strong>Featured animals preview</strong><span>Review the draft and return to Telegram to publish.</span></div>
+    <div className="preview-banner preview-banner--sticky" role="status"><strong>Featured animals preview</strong><span>Review the draft and return to Telegram to publish.</span></div>
     <HomepageView homepage={homepage} settings={settings} />
   </>
 }

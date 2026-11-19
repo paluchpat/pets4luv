@@ -469,6 +469,14 @@ body:has(.chat-launcher) > .site-footer {
 
 /* Keep intrinsic form and image sizes inside their responsive containers. */
 html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture,.hero picture img,.hero-copy,.home-content,.search-panel,.weekly,.weekly-intro,.weekly-companions,.weekly-animal,.weekly-animal>div,.gallery-filters,.animal-grid,.animal-card,.animal-profile,.profile-photo,.profile-intro{min-width:0}.hero{width:100%;max-width:100%}.hero picture img{max-width:100%}.preview-banner{background:#f4e4b9;color:#483811;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 20px;padding:10px 20px;font-size:14px}.preview-banner a{color:inherit;font-weight:700}
+
+.preview-banner--sticky {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 9;
+  text-align: center;
+}
+
 @media(max-width:680px){.search-heading,.search-heading h2,.compose-row,.chat-composer,.species-picker{min-width:0;max-width:100%}.page-shell{width:100%;max-width:100%}}
 @media(min-width:431px) and (max-width:680px){.hero img{object-position:center 30%}}
 
