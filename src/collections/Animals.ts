@@ -53,7 +53,7 @@ export const Animals: CollectionConfig = {
         { name: 'ageGroup', type: 'select', required: true, options: ['baby', 'young', 'adult', 'senior'] },
         { name: 'size', type: 'select', options: ['small', 'medium', 'large'] },
         { name: 'rescueIntakeID', label: 'Rescue intake ID', type: 'text', unique: true, index: true, access: { read: ({ req }) => Boolean(req.user) } },
-        { name: 'breed', label: 'Reported breed', type: 'text' },
+        { name: 'breed', label: 'Reported breed', type: 'text', admin: { components: { Field: './components/admin/ReportedBreedField#ReportedBreedField' } } },
         { name: 'colors', label: 'Color', type: 'select', hasMany: true, options: [...animalColorOptions] },
         { name: 'estimatedBirthDate', type: 'date', admin: { description: 'An estimate, not a confirmed birth date. Age display advances from this date.' } },
         { name: 'weight', type: 'number', min: 0, label: 'Weight (lb)', validate: (value: unknown) => validWeightInput(value) ? true : weightMessage, admin: { components: { Field: './components/admin/WeightField#WeightField' }, step: 0.1, description: 'Accepts decimals and appears on the animal’s website profile only when provided.' } },

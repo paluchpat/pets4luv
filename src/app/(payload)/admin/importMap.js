@@ -1,6 +1,7 @@
 import { UserEditorTitle as UserEditorTitle_e74ab27c6453dc27a0471924270d4526 } from '../../../components/admin/UserEditor'
 import { UserEditorSaveButton as UserEditorSaveButton_e74ab27c6453dc27a0471924270d4526 } from '../../../components/admin/UserEditor'
 import { SlugSourceField as SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79 } from '../../../components/admin/SlugSourceField'
+import { ReportedBreedField as ReportedBreedField_62f9c13cf8912d7068120f878f425515 } from '../../../components/admin/ReportedBreedField'
 import { WeightField as WeightField_fb53697c6be8024df2e7e09cc61f71f2 } from '../../../components/admin/WeightField'
 import { PhotoUploadControls as PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c } from '../../../components/admin/PhotoUploadControls'
 import { AnimalPhotoPlaceholder as AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf } from '../../../components/admin/AnimalPhotoPlaceholder'
@@ -34,6 +35,7 @@ export const importMap = {
   "./components/admin/UserEditor#UserEditorTitle": UserEditorTitle_e74ab27c6453dc27a0471924270d4526,
   "./components/admin/UserEditor#UserEditorSaveButton": UserEditorSaveButton_e74ab27c6453dc27a0471924270d4526,
   "./components/admin/SlugSourceField#SlugSourceField": SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79,
+  "./components/admin/ReportedBreedField#ReportedBreedField": ReportedBreedField_62f9c13cf8912d7068120f878f425515,
   "./components/admin/WeightField#WeightField": WeightField_fb53697c6be8024df2e7e09cc61f71f2,
   "./components/admin/PhotoUploadControls#PhotoUploadControls": PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c,
   "./components/admin/AnimalPhotoPlaceholder#AnimalPhotoPlaceholder": AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf,
