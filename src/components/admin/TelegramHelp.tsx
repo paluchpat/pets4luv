@@ -13,6 +13,7 @@ const examples = [
   { label: 'Mark an animal as pending', command: '/edit Tiny | status=pending' },
   { label: 'Set the homepage featured list', command: '/featured Fig, Frida, Rollo' },
   { label: 'Change the lead photo', command: '/lead Tiny' },
+  { label: 'Replace one featured animal', command: '/replace Tiny | Mochachina' },
 ]
 
 export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions }: AdminViewServerProps) {
@@ -62,7 +63,8 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             <p>For <code>/edit</code>, use <code>summary</code>, <code>description</code>, <code>breed</code>, or <code>status</code> as the field name. Status can be <strong>available</strong>, <strong>pending</strong>, or <strong>adopted</strong>.</p>
             <p><code>/featured</code> replaces the full list. Enter one to three published, available animals in homepage order. The first one gets the large photo.</p>
             <p><code>/lead</code> changes the first slot. If the animal is already featured, it moves to the front.</p>
-            <p>If <code>/help</code> says plain-language requests are available, you can also send “Set the first featured animal to Tiny.”</p>
+            <p><code>/replace</code> changes one slot and keeps the other animals in order.</p>
+            <p>If <code>/help</code> says plain-language requests are available, try “Replace Tiny with Mochachina in the featured list.”</p>
           </li>
           <li>
             <h2>Review and publish</h2>

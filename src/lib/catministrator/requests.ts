@@ -12,6 +12,7 @@ export type DraftRequest =
   | { action: 'animal'; animal: string; patch: AnimalPatch }
   | { action: 'featured'; animals: string[] }
   | { action: 'lead'; animal: string }
+  | { action: 'replace-featured'; animal: string; replacement: string }
 
 export const commandHelp = [
   'Draft an animal edit:',
@@ -21,6 +22,7 @@ export const commandHelp = [
   'Draft a featured list in homepage order:',
   '/featured Fig, Frida, Rollo',
   '/lead Tiny — change the lead animal',
+  '/replace Tiny | Mochachina — replace one featured animal',
 ].join('\n')
 
 function animalReference(value: unknown): string {
@@ -70,12 +72,33 @@ export function leadDraftRequest(animal: unknown): DraftRequest {
   return { action: 'lead', animal: animalReference(animal) }
 }
 
+export function featuredReplacementRequest(animal: unknown, replacement: unknown): DraftRequest {
+  return { action: 'replace-featured', animal: animalReference(animal), replacement: animalReference(replacement) }
+}
+
+export function validateDraftRequest(draft: unknown): DraftRequest {
+  if (!draft || typeof draft !== 'object') throw new DraftRequestError('Send one draft request.')
+  const value = draft as Record<string, unknown>
+  if (value.action === 'lead') return leadDraftRequest(value.animal)
+  if (value.action === 'featured') return featuredDraftRequest(value.animals)
+  if (value.action === 'replace-featured') return featuredReplacementRequest(value.animal, value.replacement)
+  if (value.action === 'animal' && value.patch && typeof value.patch === 'object' && !Array.isArray(value.patch)) {
+    return animalDraftRequest(value.animal, value.patch as Record<string, unknown>)
+  }
+  throw new DraftRequestError('Send one supported draft request.')
+}
+
 export function parseDraftCommand(message: string): DraftRequest | undefined {
-  const command = /^\/(edit|featured|lead)(?:\s+([\s\S]+))?$/i.exec(message.trim())
+  const command = /^\/(edit|featured|lead|replace)(?:\s+([\s\S]+))?$/i.exec(message.trim())
   if (!command) return undefined
   const text = command[2] || ''
   if (command[1].toLowerCase() === 'featured') return featuredDraftRequest(text.split(','))
   if (command[1].toLowerCase() === 'lead') return leadDraftRequest(text)
+  if (command[1].toLowerCase() === 'replace') {
+    const parts = text.split('|')
+    if (parts.length !== 2) throw new DraftRequestError('Use /replace followed by the current animal, a |, and the replacement.')
+    return featuredReplacementRequest(parts[0], parts[1])
+  }
   const [animal, ...fields] = text.split('|')
   const pairs = new Map<string, string>()
   for (const field of fields) {

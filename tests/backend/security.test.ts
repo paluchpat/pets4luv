@@ -959,3 +959,40 @@ test('featured undo restores only the previous published selection and protects 
   await assert.rejects(() => undoFeaturedPublication(payload, editor, nextApproval), /can’t be undone/)
   assert.deepEqual(await order(), [second.id, first.id, third.id])
 })
+
+
+test('Catministrator swaps one featured slot and resolves a unique typo without publishing', async () => {
+  const create = (name: string, status: 'available' | 'on-hold' = 'available') => payload.create({
+    collection: 'animals', user: editor, overrideAccess: false,
+    data: {
+      name, slug: name.toLowerCase(), species: 'cat', sex: 'unknown', ageGroup: 'adult', status,
+      summary: 'Featured replacement fixture.', description: 'Featured replacement fixture.',
+      photos: [{ photo: publicPhotoID }], compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' },
+      _status: 'published',
+    },
+  })
+  const bandit = await create('Bandit')
+  const fig = await create('Fig')
+  const tiny = await create('Tiny')
+  const mochachina = await create('Mochachina')
+  const options = { slug: 'homepage', user: editor, overrideAccess: false, depth: 0 } as const
+  await payload.updateGlobal({ ...options, data: {
+    heading: 'Featured replacement', intro: pageBody('Featured replacement fixture.'),
+    featuredAnimals: [bandit, fig, tiny].map(animal => ({ animal: animal.id })), _status: 'published',
+  } })
+  const replace = (text: string) => saveCatministratorDraft(payload, editor, parseDraftCommand('/replace ' + text)!)
+  await assert.rejects(() => replace('Mochachina | Tiny'), /isn’t in the featured list/)
+  await assert.rejects(() => replace('Tiny | Fig'), /Each featured animal can appear once/)
+  const result = await replace('tiny | mocachina')
+  assert.match(result.message, /Matched “mocachina” to Mochachina/)
+  assert.ok(result.review)
+  assert.deepEqual(await previewFeaturedAnimals(payload, result.review.previewToken), [bandit.id, fig.id, mochachina.id])
+  const published = await payload.findGlobal({ ...options, draft: false })
+  assert.deepEqual(published.featuredAnimals?.map(row => row.animal), [bandit.id, fig.id, tiny.id])
+
+  await create('Mocachinab')
+  await assert.rejects(() => replace('Fig | mocachina'), /More than one animal matches/)
+  await create('Mocachina', 'on-hold')
+  await assert.rejects(() => replace('Fig | mocachina'), /needs to be published and available/)
+  assert.deepEqual(await previewFeaturedAnimals(payload, result.review.previewToken), [bandit.id, fig.id, mochachina.id])
+})

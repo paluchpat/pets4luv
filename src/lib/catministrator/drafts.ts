@@ -1,12 +1,12 @@
-import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest } from 'payload'
-import type { User } from '../../payload-types'
+import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest, type Where } from 'payload'
+import type { Animal, User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
 import { isEditor } from './editors'
 import {
   featuredAnimalsByID, featuredReviewTokens, featuredUndoToken, featuredVersionKey, isFeaturedOnlyChange,
   latestFeaturedVersion, matchesFeaturedUndo, recentFeaturedPublications, verifiedFeaturedVersion,
 } from './featured-review'
-import { animalDraftRequest, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
+import { DraftRequestError, validateDraftRequest, type DraftRequest } from './requests'
 
 export type DraftReceipt = {
   message: string
@@ -16,15 +16,19 @@ export type DraftReceipt = {
   undoToken?: string
 }
 
-async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
+async function findNamedAnimals(req: PayloadRequest, reference: string, draft: boolean, filter?: Where) {
   const key = reference.toLowerCase()
   const { docs } = await req.payload.find({
     req, collection: 'animals', draft, depth: 0, overrideAccess: false, pagination: false,
     select: { name: true, slug: true, status: true, _status: true, summary: true, description: true, breed: true },
     where: { or: [{ slug: { equals: key } }, { name: { like: reference } }],
-      ...(draft ? {} : featuredAnimalEligibility) },
+      ...filter },
   })
-  const matches = docs.filter(doc => doc.slug === key || doc.name?.trim().toLowerCase() === key)
+  return docs.filter(doc => doc.slug === key || doc.name?.trim().toLowerCase() === key)
+}
+
+async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
+  const matches = await findNamedAnimals(req, reference, draft, draft ? undefined : featuredAnimalEligibility)
   if (matches.length > 1) throw new DraftRequestError(`“${reference}” matches more than one animal. Use the CMS slug.`)
   if (!matches[0]) {
     const scope = draft ? 'an animal' : 'a published, available animal'
@@ -33,11 +37,40 @@ async function findAnimal(req: PayloadRequest, reference: string, draft: boolean
   return matches[0]
 }
 
+function oneCharacterOff(first: string, second: string) {
+  if (first === second || Math.abs(first.length - second.length) > 1) return false
+  const [shorter, longer] = first.length <= second.length ? [first, second] : [second, first]
+  let index = 0
+  while (index < shorter.length && shorter[index] === longer[index]) index++
+  if (shorter.length === longer.length) return shorter.slice(index + 1) === longer.slice(index + 1)
+  return shorter.slice(index) === longer.slice(index + 1)
+}
+
+async function findFeaturedReplacement(req: PayloadRequest, reference: string) {
+  let candidates: Pick<Animal, 'id' | 'name' | 'slug' | 'status' | '_status'>[] = await findNamedAnimals(req, reference, false)
+  if (!candidates.length && reference.length >= 4) {
+    const { docs } = await req.payload.find({
+      req, collection: 'animals', draft: false, depth: 0, overrideAccess: false, pagination: false,
+      select: { name: true, slug: true, status: true, _status: true },
+      where: { _status: { equals: 'published' } },
+    })
+    const key = reference.toLowerCase()
+    candidates = docs.filter(animal => oneCharacterOff(key, animal.name?.trim().toLowerCase() || ''))
+  }
+  if (candidates.length > 1) {
+    throw new DraftRequestError(`More than one animal matches “${reference}”. Use the exact name or CMS slug.`)
+  }
+  const [match] = candidates
+  if (!match) throw new DraftRequestError(`I couldn’t find “${reference}”. Check the name or CMS slug.`)
+  if (match._status !== 'published' || match.status !== 'available') {
+    throw new DraftRequestError(`${match.name} needs to be published and available to be featured.`)
+  }
+  return match
+}
+
 export async function saveCatministratorDraft(payload: Payload, editor: User, input: DraftRequest) {
   if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot edit website content.')
-  const request = input.action === 'animal'
-    ? animalDraftRequest(input.animal, input.patch)
-    : input.action === 'lead' ? leadDraftRequest(input.animal) : featuredDraftRequest(input.animals)
+  const request = validateDraftRequest(input)
   const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
   const started = await initTransaction(req)
   try {
@@ -65,7 +98,21 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
       const homepage = await payload.findGlobal({ ...options, slug: 'homepage' })
       const existing = featuredAnimalIds(homepage.featuredAnimals)
       let ids: number[]
-      if (request.action === 'lead') {
+      let correction = ''
+      if (request.action === 'replace-featured') {
+        const matches = existing.length
+          ? await findNamedAnimals(req, request.animal, false, { id: { in: existing } })
+          : []
+        if (!matches.length) throw new DraftRequestError(`“${request.animal}” isn’t in the featured list.`)
+        if (matches.length > 1) throw new DraftRequestError(`More than one featured animal matches “${request.animal}”. Use the CMS slug.`)
+        const [outgoing] = matches
+        const incoming = await findFeaturedReplacement(req, request.replacement)
+        ids = existing.map(id => id === outgoing.id ? incoming.id : id)
+        const reference = request.replacement.toLowerCase()
+        if (reference !== incoming.slug && reference !== incoming.name.trim().toLowerCase()) {
+          correction = ` Matched “${request.replacement}” to ${incoming.name}.`
+        }
+      } else if (request.action === 'lead') {
         const lead = await findAnimal(req, request.animal, false)
         ids = [lead.id, ...(existing.includes(lead.id) ? existing.filter(id => id !== lead.id) : existing.slice(1))]
       } else {
@@ -87,7 +134,7 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         ? featuredReviewTokens(payload.secret, latest, editor)
         : undefined
       result = {
-        message: (changed ? 'Featured animals draft saved.' : 'The featured list already has that order.') + '\n' +
+        message: (changed ? 'Featured animals draft saved.' : 'The featured list already has that order.') + correction + '\n' +
           animals.map((animal, index) => `${index + 1}. ${animal.name}${index === 0 ? ' (lead photo)' : ''}`).join('\n'),
         path: '/admin/globals/homepage',
         review, changed,

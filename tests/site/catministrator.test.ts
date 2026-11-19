@@ -16,6 +16,10 @@ test('Catministrator parses explicit changes and rejects fields outside its draf
   })
   assert.deepEqual(parseDraftCommand('/lead Tiny'), { action: 'lead', animal: 'Tiny' })
   assert.deepEqual(readModelDraftOutput('{"action":"lead","animal":"Tiny"}'), { action: 'lead', animal: 'Tiny' })
+  const replacement = { action: 'replace-featured', animal: 'Tiny', replacement: 'Mocachina' }
+  assert.deepEqual(parseDraftCommand('/replace Tiny | Mocachina'), replacement)
+  assert.deepEqual(readModelDraftOutput(JSON.stringify(replacement)), replacement)
+  assert.throws(() => parseDraftCommand('/replace Tiny'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/edit Test Cat | _status=published'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured First, first'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured One, Two, Three, Four'), DraftRequestError)

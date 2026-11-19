@@ -1,19 +1,20 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { featuredAnimalLimit } from '../featured-animals'
-import { animalDraftRequest, DeleteRequestError, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
+import { animalDraftRequest, DeleteRequestError, DraftRequestError, featuredDraftRequest, featuredReplacementRequest, leadDraftRequest, type DraftRequest } from './requests'
 
 const fields = ['summary', 'description', 'breed', 'status'] as const
 const nullableText = { type: ['string', 'null'] }
 const schema = {
   type: 'object',
   properties: {
-    action: { type: 'string', enum: ['animal', 'featured', 'lead', 'delete', 'clarify'] },
+    action: { type: 'string', enum: ['animal', 'featured', 'lead', 'replace-featured', 'delete', 'clarify'] },
     animal: nullableText,
+    replacement: nullableText,
     animals: { type: 'array', items: { type: 'string' } },
     ...Object.fromEntries(fields.map(field => [field, nullableText])),
   },
-  required: ['action', 'animal', 'animals', ...fields],
+  required: ['action', 'animal', 'replacement', 'animals', ...fields],
   additionalProperties: false,
 }
 
@@ -26,6 +27,7 @@ export function readModelDraftOutput(text: string): DraftRequest {
     return animalDraftRequest(result.animal, patch)
   }
   if (result.action === 'lead') return leadDraftRequest(result.animal)
+  if (result.action === 'replace-featured') return featuredReplacementRequest(result.animal, result.replacement)
   if (result.action === 'featured') return featuredDraftRequest(result.animals)
   if (result.action === 'delete') throw new DeleteRequestError()
   if (result.action === 'clarify') {
@@ -70,11 +72,12 @@ export function openAIInterpreter({
         model, reasoning, store: false, max_output_tokens: 1200,
         instructions: [
           'Extract one draft request for a cat and dog rescue CMS from the message.',
-          'Supported actions are editing one existing animal, setting the lead featured animal, and replacing the entire featured list.',
+          'Supported actions are editing one existing animal, setting the lead featured animal, replacing one featured animal in its current slot, and replacing the entire featured list.',
           'For an edit, use the exact animal name or slug supplied by the editor. Supported fields are summary, description, reported breed, and adoption status.',
           'Only include fields the editor explicitly asks to change. Use the text they supplied. Never invent facts or rewrite other fields.',
           'Use available, on-hold, or adopted for status. Pending means on-hold.',
           'When the editor asks to set or change the first, lead, or spotlight animal alone, use lead and put that name in animal. For example, “set first featured animal to be Tiny” is a lead request with animal Tiny.',
+          'Use replace-featured for a request to swap one named featured animal for another, keeping the other positions. For example, “replace Tiny with Mocachina in featured list” uses Tiny in animal and Mocachina in replacement. Copy both names as supplied, including any typos. Do not invent a full list.',
           `For a full featured list, require 1–${featuredAnimalLimit} exact names or slugs in the requested homepage order.`,
           'If the editor asks to delete any stored content, including an animal, page, or photo, use delete even if other edits were requested. Updating the featured list is not deleting a record.',
           'For an ambiguous, incomplete, unsupported, or multi-action request, use clarify. Use null for unused fields and an empty array for unused animals.',
