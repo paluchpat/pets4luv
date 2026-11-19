@@ -156,7 +156,7 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
     <form action="/animals" method="get" onSubmit={submitSearch}>
       <div className="gallery-filters">
         <div className="search-text">
-          <label className="filter-field-label" htmlFor="animal-search-details">Additional details</label>
+          <label className="filter-field-label" htmlFor="animal-search-details">Search animals</label>
           <input
             ref={searchInput}
             id="animal-search-details"
