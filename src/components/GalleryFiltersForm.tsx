@@ -162,13 +162,11 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
             id="animal-search-details"
             name="q"
             type="search"
-            placeholder="Name, breed, or traits"
-            aria-describedby="animal-search-help"
+            placeholder="Young black cat"
             defaultValue={filters.q}
             maxLength={gallerySearchMaxLength}
             onChange={event => scheduleSearch(event.currentTarget.value.slice(0, gallerySearchMaxLength))}
           />
-          <p id="animal-search-help">Try <strong>Young black cat</strong>. Use quotes to search for a name or phrase in the profile text.</p>
         </div>
         <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
         {selects.map(({ name, label, options }) => <FilterSelect

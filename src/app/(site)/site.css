@@ -944,15 +944,9 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   grid-column: 1 / -1;
 }
 
-.search-text p {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-@media (min-width: 960px) {
+@media (min-width: 1140px) {
   .gallery-filters {
-    grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr));
+    grid-template-columns: minmax(300px, 1.8fr) repeat(4, minmax(154px, 1fr));
   }
   .gallery-filters > .species-field {
     grid-column: auto;
@@ -965,9 +959,14 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   gap: inherit;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 820px) {
   .gallery-filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .gallery-filters {
     padding: 17px;
     gap: 14px;
   }
