@@ -155,8 +155,17 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
   return <>
     <form action="/animals" method="get" onSubmit={submitSearch}>
       <div className="gallery-filters">
+        <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
+        {selects.map(({ name, label, options }) => <FilterSelect
+          key={name}
+          label={label}
+          name={name}
+          options={options}
+          value={applied[name]}
+          onValueChange={value => applyFilters({ [name]: value })}
+        />)}
         <div className="search-text">
-          <label className="filter-field-label" htmlFor="animal-search-details">Search animals</label>
+          <label className="filter-field-label" htmlFor="animal-search-details">Additional details</label>
           <input
             ref={searchInput}
             id="animal-search-details"
@@ -168,15 +177,6 @@ export function GalleryFiltersForm({ filters, totalDocs, page, totalPages, direc
             onChange={event => scheduleSearch(event.currentTarget.value.slice(0, gallerySearchMaxLength))}
           />
         </div>
-        <SpeciesPicker showLabel value={applied.species} onValueChange={species => applyFilters({ species })} />
-        {selects.map(({ name, label, options }) => <FilterSelect
-          key={name}
-          label={label}
-          name={name}
-          options={options}
-          value={applied[name]}
-          onValueChange={value => applyFilters({ [name]: value })}
-        />)}
         <div className="gallery-filter-footer">
           <fieldset className="compatibility-filters">
             <legend>Friendly with</legend>
