@@ -1,3 +1,4 @@
+import { TelegramIDDescription as TelegramIDDescription_e74ab27c6453dc27a0471924270d4526 } from '../../../components/admin/UserEditor'
 import { UserEditorTitle as UserEditorTitle_e74ab27c6453dc27a0471924270d4526 } from '../../../components/admin/UserEditor'
 import { UserEditorSaveButton as UserEditorSaveButton_e74ab27c6453dc27a0471924270d4526 } from '../../../components/admin/UserEditor'
 import { SlugSourceField as SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79 } from '../../../components/admin/SlugSourceField'
@@ -32,6 +33,7 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
+  "./components/admin/UserEditor#TelegramIDDescription": TelegramIDDescription_e74ab27c6453dc27a0471924270d4526,
   "./components/admin/UserEditor#UserEditorTitle": UserEditorTitle_e74ab27c6453dc27a0471924270d4526,
   "./components/admin/UserEditor#UserEditorSaveButton": UserEditorSaveButton_e74ab27c6453dc27a0471924270d4526,
   "./components/admin/SlugSourceField#SlugSourceField": SlugSourceField_09d2b4b0d1ef0ec465465d3f512f9f79,

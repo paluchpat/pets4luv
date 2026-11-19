@@ -22,3 +22,9 @@ export function UserEditorSaveButton() {
   const { id } = useDocumentInfo()
   return <SaveButton label={id ? 'Save changes' : 'Create user'} />
 }
+
+export function TelegramIDDescription() {
+  return <div className="field-description">
+    <span>Ask the user to send /start to the <strong>@Pets4LuvCatministratorBot</strong> and share the ID it returns. Clear this field and save to revoke access.</span>
+  </div>
+}

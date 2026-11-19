@@ -51,7 +51,7 @@ export const Users: CollectionConfig = {
       hooks: { beforeValidate: [({ value }) => typeof value === 'string' ? value.trim() || null : value] },
       admin: {
         condition: (_data, _siblingData, { user }) => user?.role === 'admin',
-        description: 'Ask the user to send /start to the bot and share the ID it returns. Clear this field and save to revoke access.',
+        components: { Description: './components/admin/UserEditor#TelegramIDDescription' },
       },
     },
     { name: 'name', type: 'text', required: true },
