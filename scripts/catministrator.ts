@@ -3,11 +3,12 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { setTimeout as pause } from 'node:timers/promises'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { getPayload } from 'payload'
-import { saveCatministratorDraft } from '../src/lib/catministrator/drafts'
+import { publishFeaturedDraft, saveCatministratorDraft } from '../src/lib/catministrator/drafts'
 import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/catministrator/editors'
+import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
 import { openAIInterpreter } from '../src/lib/catministrator/model'
 import { DraftRequestError } from '../src/lib/catministrator/requests'
-import { replyToTelegram, telegramBot, type TelegramUpdate } from '../src/lib/catministrator/telegram'
+import { messageFromUpdate, replyToTelegram, telegramBot, type TelegramUpdate } from '../src/lib/catministrator/telegram'
 import { legacyTelegramEditors, prepareTelegramUsers } from './telegram-users-schema'
 
 const localDatabase = process.env.DATABASE_URL || 'file:./data/rescue.db'
@@ -73,26 +74,35 @@ async function poll(botToken: string) {
   const interpret = process.env.AI_ENABLED === 'true' && apiKey && (gatewayKey || model) && Number.isSafeInteger(requestLimit) && requestLimit > 0
     ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory: path.join(stateDirectory, 'model-requests') })
     : undefined
-  const cmsOrigin = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
+  const cms = process.env.CATMINISTRATOR_CMS_ORIGIN
+    ? hostedCatministratorCMS(process.env.CATMINISTRATOR_CMS_ORIGIN, process.env.CATMINISTRATOR_CMS_KEY || '', process.env.CATMINISTRATOR_VERCEL_BYPASS)
+    : {
+      cmsOrigin: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
+      isLinked: async (id: number, date: number) => Boolean(await linkedTelegramEditor(payload, id, date)),
+      save: async (id: number, date: number, request: Parameters<typeof saveCatministratorDraft>[2]) => {
+        const editor = await linkedTelegramEditor(payload, id, date)
+        if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+        return saveCatministratorDraft(payload, editor, request)
+      },
+      publish: async (id: number, date: number, approval: string) => {
+        const editor = await linkedTelegramEditor(payload, id, date)
+        if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+        return publishFeaturedDraft(payload, editor, approval)
+      },
+    }
   console.log(`Listening for private messages to @${bot.username}. AI interpretation is ${interpret ? 'enabled' : 'disabled'}.`)
   while (!controller.signal.aborted) {
     try {
       const updates = await call<TelegramUpdate[]>('getUpdates', {
-        timeout: 25, limit: 1, offset, allowed_updates: ['message'],
+        timeout: 25, limit: 1, offset, allowed_updates: ['message', 'callback_query'],
       }, 35000)
       for (const update of updates) {
         if (!Number.isSafeInteger(update.update_id) || update.update_id < offset) continue
-        const response = await replyToTelegram(update.message, {
-          cmsOrigin, interpret,
-          isLinked: async (id, date) => Boolean(await linkedTelegramEditor(payload, id, date)),
-          save: async (id, date, request) => {
-            const editor = await linkedTelegramEditor(payload, id, date)
-            if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
-            const saved = await saveCatministratorDraft(payload, editor, request)
-            console.log('Processed Catministrator update ' + update.update_id + ' as CMS user ' + editor.id + '.')
-            return saved
-          },
-          onError: () => console.error('Catministrator draft request failed.'),
+        if (update.callback_query) {
+          await call('answerCallbackQuery', { callback_query_id: update.callback_query.id }).catch(() => undefined)
+        }
+        const response = await replyToTelegram(messageFromUpdate(update), {
+          ...cms, interpret, onError: () => console.error('Catministrator CMS request failed.'),
         })
         const nextOffset = update.update_id + 1
         const pendingFile = offsetFile + '.' + process.pid + '.tmp'
@@ -100,7 +110,7 @@ async function poll(botToken: string) {
         await rename(pendingFile, offsetFile)
         offset = nextOffset
         if (response) await call('sendMessage', {
-          chat_id: response.chat, text: response.text, link_preview_options: { is_disabled: true },
+          chat_id: response.chat, text: response.text, reply_markup: response.replyMarkup, link_preview_options: { is_disabled: true },
         })
       }
     } catch (error) {

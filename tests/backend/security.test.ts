@@ -21,7 +21,8 @@ import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
-import { saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
+import { publishFeaturedDraft, saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
+import { previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
 import { parseDraftCommand } from '../../src/lib/catministrator/requests'
@@ -801,11 +802,37 @@ test('Catministrator saves profile and featured edits as drafts under an editor 
   assert.match((await saveCatministratorDraft(payload, editor, edit)).message, /already has those values/)
 
   const featured = parseDraftCommand('/featured Second Bot Fixture, first-bot-fixture')!
-  await saveCatministratorDraft(payload, editor, featured)
+  const original = await saveCatministratorDraft(payload, editor, featured)
+  assert.ok(original.review)
+  assert.deepEqual(await previewFeaturedAnimals(payload, original.review.previewToken), [second.id, first.id])
   const homepageDraft = await payload.findGlobal({ slug: 'homepage', user: editor, overrideAccess: false, draft: true, depth: 0 })
   assert.equal(homepageDraft._status, 'draft')
   assert.deepEqual(homepageDraft.featuredAnimals?.map(row => row.animal), [second.id, first.id])
   assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), homepageBefore)
   await assert.rejects(() => saveCatministratorDraft(payload, editor, parseDraftCommand('/featured secret-draft')!), /published, available animal/)
   await assert.rejects(() => saveCatministratorDraft(payload, { ...editor, role: undefined }, edit), /cannot edit/)
+  const third = await createAnimal('Third Bot Fixture', 'third-bot-fixture')
+  await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead Third Bot Fixture')!)
+  const current = await publishFeaturedDraft(payload, editor, original.review.publishToken)
+  assert.match(current.message, /draft changed/)
+  assert.ok(current.review)
+  assert.equal(await previewFeaturedAnimals(payload, original.review.previewToken), undefined)
+  assert.deepEqual(await previewFeaturedAnimals(payload, current.review.previewToken), [third.id, first.id])
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), homepageBefore)
+  await assert.rejects(() => publishFeaturedDraft(payload, admin, current.review!.publishToken), /another editor/)
+  await assert.rejects(() => publishFeaturedDraft(payload, editor, current.review!.previewToken), /another editor/)
+  const promoted = await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead First Bot Fixture')!)
+  assert.ok(promoted.review)
+  assert.deepEqual(await previewFeaturedAnimals(payload, promoted.review.previewToken), [first.id, third.id])
+  const published = await publishFeaturedDraft(payload, editor, promoted.review.publishToken)
+  assert.match(published.message, /published/)
+  assert.equal(await previewFeaturedAnimals(payload, promoted.review.previewToken), undefined)
+  await assert.rejects(() => publishFeaturedDraft(payload, editor, promoted.review!.publishToken), /no longer pending/)
+  const live = await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 })
+  assert.deepEqual(live.featuredAnimals?.map(row => row.animal), [first.id, third.id])
+  assert.equal(live.heading, homepageBefore.heading)
+  await payload.updateGlobal({
+    slug: 'homepage', user: editor, overrideAccess: false, draft: true, data: { heading: 'Unrelated draft heading', _status: 'draft' },
+  })
+  assert.equal((await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead Third Bot Fixture')!)).review, undefined)
 })

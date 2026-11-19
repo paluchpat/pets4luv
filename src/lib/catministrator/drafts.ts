@@ -2,7 +2,14 @@ import { commitTransaction, createLocalReq, initTransaction, killTransaction, ty
 import type { User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
 import { isEditor } from './editors'
-import { animalDraftRequest, DraftRequestError, featuredDraftRequest, type DraftRequest } from './requests'
+import { featuredAnimalsByID, featuredReviewTokens, isFeaturedOnlyChange, latestFeaturedVersion, verifiedFeaturedVersion } from './featured-review'
+import { animalDraftRequest, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
+
+export type DraftReceipt = {
+  message: string
+  path: string
+  review?: ReturnType<typeof featuredReviewTokens>
+}
 
 async function findAnimal(req: PayloadRequest, reference: string, draft: boolean) {
   const key = reference.toLowerCase()
@@ -25,12 +32,12 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
   if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot edit website content.')
   const request = input.action === 'animal'
     ? animalDraftRequest(input.animal, input.patch)
-    : featuredDraftRequest(input.animals)
+    : input.action === 'lead' ? leadDraftRequest(input.animal) : featuredDraftRequest(input.animals)
   const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
   const started = await initTransaction(req)
   try {
     const options = { req, depth: 0, overrideAccess: false, draft: true } as const
-    let result: { message: string; path: string }
+    let result: DraftReceipt
     if (request.action === 'animal') {
       const animal = await findAnimal(req, request.animal, true)
       const fields = Object.keys(request.patch) as (keyof typeof request.patch)[]
@@ -49,12 +56,18 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
         path: '/admin/collections/animals/' + animal.id,
       }
     } else {
-      const animals = []
-      for (const name of request.animals) animals.push(await findAnimal(req, name, false))
-      const ids = animals.map(animal => animal.id)
-      if (new Set(ids).size !== ids.length) throw new DraftRequestError('Each featured animal can appear once.')
       const homepage = await payload.findGlobal({ ...options, slug: 'homepage' })
       const existing = featuredAnimalIds(homepage.featuredAnimals)
+      let ids: number[]
+      if (request.action === 'lead') {
+        const lead = await findAnimal(req, request.animal, false)
+        ids = [lead.id, ...(existing.includes(lead.id) ? existing.filter(id => id !== lead.id) : existing.slice(1))]
+      } else {
+        ids = []
+        for (const name of request.animals) ids.push((await findAnimal(req, name, false)).id)
+      }
+      if (new Set(ids).size !== ids.length) throw new DraftRequestError('Each featured animal can appear once.')
+      const animals = await featuredAnimalsByID(payload, ids, req)
       const changed = homepage.featuredAnimals?.length !== ids.length || ids.some((id, index) => existing[index] !== id)
       if (changed) {
         await payload.updateGlobal({
@@ -62,14 +75,59 @@ export async function saveCatministratorDraft(payload: Payload, editor: User, in
           data: { featuredAnimals: ids.map(animal => ({ animal })), _status: 'draft' },
         })
       }
+      const latest = await latestFeaturedVersion(payload, req)
+      const live = await payload.findGlobal({ ...options, slug: 'homepage', draft: false })
+      const review = latest?.version._status === 'draft' && isFeaturedOnlyChange(live, latest.version)
+        ? featuredReviewTokens(payload.secret, Number(latest.id), editor)
+        : undefined
       result = {
         message: (changed ? 'Featured animals draft saved.' : 'The featured list already has that order.') + '\n' +
           animals.map((animal, index) => `${index + 1}. ${animal.name}${index === 0 ? ' (lead photo)' : ''}`).join('\n'),
         path: '/admin/globals/homepage',
+        review,
       }
     }
     if (started) await commitTransaction(req)
     return result
+  } catch (error) {
+    if (started) await killTransaction(req)
+    throw error
+  }
+}
+
+export async function publishFeaturedDraft(payload: Payload, editor: User, token: string): Promise<DraftReceipt> {
+  if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot publish website content.')
+  const version = verifiedFeaturedVersion(payload.secret, token, 'publish', editor)
+  if (!version) throw new DraftRequestError('This approval has expired or belongs to another editor. Request a new preview.')
+  const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
+  const started = await initTransaction(req)
+  try {
+    const options = { req, slug: 'homepage', depth: 0, overrideAccess: false } as const
+    const latest = await latestFeaturedVersion(payload, req)
+    if (!latest || latest.version._status !== 'draft') {
+      throw new DraftRequestError('That draft is no longer pending. Check the homepage or send a new featured request.')
+    }
+    const live = await payload.findGlobal({ ...options, draft: false })
+    if (!isFeaturedOnlyChange(live, latest.version)) {
+      throw new DraftRequestError('Other homepage edits are pending. Review and publish them in the CMS.')
+    }
+    const ids = featuredAnimalIds(latest.version.featuredAnimals)
+    if (!ids.length) throw new DraftRequestError('This draft has no featured animals. Send a new featured list.')
+    await featuredAnimalsByID(payload, ids, req)
+    if (Number(latest.id) !== version) {
+      if (started) await commitTransaction(req)
+      return {
+        message: 'The draft changed. Review this new preview before publishing.',
+        path: '/admin/globals/homepage',
+        review: featuredReviewTokens(payload.secret, Number(latest.id), editor),
+      }
+    }
+    await payload.updateGlobal({
+      ...options, draft: false, overrideLock: false,
+      data: { featuredAnimals: ids.map(animal => ({ animal })), _status: 'published' },
+    })
+    if (started) await commitTransaction(req)
+    return { message: 'Featured animals published.', path: '/' }
   } catch (error) {
     if (started) await killTransaction(req)
     throw error

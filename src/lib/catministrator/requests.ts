@@ -2,6 +2,8 @@ import { featuredAnimalLimit } from '../featured-animals'
 
 export class DraftRequestError extends Error {}
 
+export class DeleteRequestError extends DraftRequestError {}
+
 const statuses = ['available', 'on-hold', 'adopted'] as const
 const textFields = { summary: 220, description: 3000, breed: 150 }
 type Status = (typeof statuses)[number]
@@ -9,6 +11,7 @@ export type AnimalPatch = { summary?: string; description?: string; breed?: stri
 export type DraftRequest =
   | { action: 'animal'; animal: string; patch: AnimalPatch }
   | { action: 'featured'; animals: string[] }
+  | { action: 'lead'; animal: string }
 
 export const commandHelp = [
   'Draft an animal edit:',
@@ -17,6 +20,7 @@ export const commandHelp = [
   '',
   'Draft a featured list in homepage order:',
   '/featured Fig, Frida, Rollo',
+  '/lead Tiny — change the lead animal',
 ].join('\n')
 
 function animalReference(value: unknown): string {
@@ -62,11 +66,16 @@ export function featuredDraftRequest(animals: unknown): DraftRequest {
   return { action: 'featured', animals: names }
 }
 
+export function leadDraftRequest(animal: unknown): DraftRequest {
+  return { action: 'lead', animal: animalReference(animal) }
+}
+
 export function parseDraftCommand(message: string): DraftRequest | undefined {
-  const command = /^\/(edit|featured)(?:\s+([\s\S]+))?$/i.exec(message.trim())
+  const command = /^\/(edit|featured|lead)(?:\s+([\s\S]+))?$/i.exec(message.trim())
   if (!command) return undefined
   const text = command[2] || ''
   if (command[1].toLowerCase() === 'featured') return featuredDraftRequest(text.split(','))
+  if (command[1].toLowerCase() === 'lead') return leadDraftRequest(text)
   const [animal, ...fields] = text.split('|')
   const pairs = new Map<string, string>()
   for (const field of fields) {

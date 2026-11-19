@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
-import { draftMode } from 'next/headers'
+import { draftMode, headers } from 'next/headers'
 import { Header } from '@/components/Header'
 import { PreviewRefresh } from '@/components/PreviewRefresh'
 import { SocialLinks } from '@/components/SocialLinks'
@@ -11,7 +11,7 @@ import { homeDescription, homeTitle, metadataBase, noIndex, publicSiteOrigin } f
 import './site.css'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const preview = (await draftMode()).isEnabled
+  const preview = (await draftMode()).isEnabled || (await headers()).has('x-pets4luv-featured-preview')
   return {
     metadataBase,
     title: { default: homeTitle, template: '%s · Pets4Luv' },
@@ -21,10 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const [mode, settings, menu] = await Promise.all([draftMode(), getWebsiteSettings(), getMainMenu()])
-  const preview = mode.isEnabled
+  const sharedPreview = (await headers()).has('x-pets4luv-featured-preview')
+  const [mode, settings, menu] = await Promise.all([draftMode(), getWebsiteSettings(sharedPreview), getMainMenu(sharedPreview)])
+  const preview = mode.isEnabled && !sharedPreview
   return <html lang="en" data-scroll-behavior="smooth"><body>
-    {!preview && <Script id="google-tag-manager" strategy="afterInteractive">{`
+    {!preview && !sharedPreview && <Script id="google-tag-manager" strategy="afterInteractive">{`
       (() => {
         window.dataLayer = window.dataLayer || [];
         window.gtag = function gtag() { window.dataLayer.push(arguments); };

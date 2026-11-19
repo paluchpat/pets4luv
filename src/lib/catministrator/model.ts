@@ -1,14 +1,14 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { featuredAnimalLimit } from '../featured-animals'
-import { animalDraftRequest, DraftRequestError, featuredDraftRequest, type DraftRequest } from './requests'
+import { animalDraftRequest, DeleteRequestError, DraftRequestError, featuredDraftRequest, leadDraftRequest, type DraftRequest } from './requests'
 
 const fields = ['summary', 'description', 'breed', 'status'] as const
 const nullableText = { type: ['string', 'null'] }
 const schema = {
   type: 'object',
   properties: {
-    action: { type: 'string', enum: ['animal', 'featured', 'clarify'] },
+    action: { type: 'string', enum: ['animal', 'featured', 'lead', 'delete', 'clarify'] },
     animal: nullableText,
     animals: { type: 'array', items: { type: 'string' } },
     ...Object.fromEntries(fields.map(field => [field, nullableText])),
@@ -25,7 +25,9 @@ export function readModelDraftOutput(text: string): DraftRequest {
     const patch = Object.fromEntries(fields.filter(field => result[field] != null).map(field => [field, result[field]]))
     return animalDraftRequest(result.animal, patch)
   }
+  if (result.action === 'lead') return leadDraftRequest(result.animal)
   if (result.action === 'featured') return featuredDraftRequest(result.animals)
+  if (result.action === 'delete') throw new DeleteRequestError()
   if (result.action === 'clarify') {
     throw new DraftRequestError('Which animal and field should I edit, or which animals should be featured in what order?')
   }
@@ -68,11 +70,13 @@ export function openAIInterpreter({
         model, reasoning, store: false, max_output_tokens: 1200,
         instructions: [
           'Extract one draft request for a cat and dog rescue CMS from the message.',
-          'Supported actions are an edit to one existing animal, or replacing the entire featured list.',
+          'Supported actions are editing one existing animal, setting the lead featured animal, and replacing the entire featured list.',
           'For an edit, use the exact animal name or slug supplied by the editor. Supported fields are summary, description, reported breed, and adoption status.',
           'Only include fields the editor explicitly asks to change. Use the text they supplied. Never invent facts or rewrite other fields.',
           'Use available, on-hold, or adopted for status. Pending means on-hold.',
-          `For featured animals, require a complete list of 1–${featuredAnimalLimit} exact names or slugs in the requested homepage order.`,
+          'When the editor asks to set or change the first, lead, or spotlight animal alone, use lead and put that name in animal. For example, “set first featured animal to be Tiny” is a lead request with animal Tiny.',
+          `For a full featured list, require 1–${featuredAnimalLimit} exact names or slugs in the requested homepage order.`,
+          'If the editor asks to delete any stored content, including an animal, page, or photo, use delete even if other edits were requested. Updating the featured list is not deleting a record.',
           'For an ambiguous, incomplete, unsupported, or multi-action request, use clarify. Use null for unused fields and an empty array for unused animals.',
         ].join(' '),
         input: message,

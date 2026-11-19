@@ -12,6 +12,7 @@ const examples = [
   { label: 'Update an animal’s short description', command: '/edit Fig | summary=Sweet and playful.' },
   { label: 'Mark an animal as pending', command: '/edit Tiny | status=pending' },
   { label: 'Set the homepage featured list', command: '/featured Fig, Frida, Rollo' },
+  { label: 'Change the lead photo', command: '/lead Tiny' },
 ]
 
 export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions }: AdminViewServerProps) {
@@ -24,7 +25,8 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
   }
   if (!permissions.canAccessAdmin || !isEditor(req.user)) notFound()
 
-  const localAdministrator = req.user.role === 'admin' && !process.env.TURSO_DATABASE_URL
+  const administrator = req.user.role === 'admin'
+  const hosted = Boolean(process.env.TURSO_DATABASE_URL)
   const usersURL = formatAdminURL({ adminRoute, path: '/collections/users' })
   const botURL = 'https://t.me/' + telegramHelp.username.slice(1)
 
@@ -59,21 +61,26 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             </dl>
             <p>For <code>/edit</code>, use <code>summary</code>, <code>description</code>, <code>breed</code>, or <code>status</code> as the field name. Status can be <strong>available</strong>, <strong>pending</strong>, or <strong>adopted</strong>.</p>
             <p><code>/featured</code> replaces the full list. Enter one to three published, available animals in homepage order. The first one gets the large photo.</p>
-            <p>If <code>/help</code> says plain-language requests are available, you can also send “Feature Fig first, then Frida and Rollo.”</p>
+            <p><code>/lead</code> changes the first slot. If the animal is already featured, it moves to the front.</p>
+            <p>If <code>/help</code> says plain-language requests are available, you can also send “Set the first featured animal to Tiny.”</p>
           </li>
           <li>
             <h2>Review and publish</h2>
-            <p>Follow the <strong>Review in the CMS</strong> link in the bot’s reply. Check the saved draft and choose <strong>Publish animal</strong> or <strong>Publish featured animals</strong> when it’s ready.</p>
+            <p>For featured animals, open <strong>Preview homepage</strong>, then tap <strong>Publish this draft</strong> in Telegram when it’s ready. The links expire after 30 minutes. If the draft changes, review the new preview before publishing.</p>
+            <p>For animal profile drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
+            <p>To delete content, sign in to the CMS. Catministrator sends the login link when you ask to delete something.</p>
           </li>
         </ol>
 
         <section className="cms-help-admin" aria-labelledby="telegram-admin-title">
           <h2 id="telegram-admin-title">For administrators</h2>
-          <p>In the local CMS, open {localAdministrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
+          <p>In the CMS the bot uses, open {administrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
           <p>To revoke access, clear <strong>Telegram ID</strong> and save again.</p>
           <p>The plain-language pilot uses GPT-6 Luna at medium effort with Vercel AI Gateway. Confirm Gateway access and set a request limit before enabling it.</p>
         </section>
-        <p className="cms-help-note">The Telegram pilot uses the local CMS. Open review links on the computer running it. If the bot is quiet, ask an administrator to check that the local bot process is running.</p>
+        <p className="cms-help-note">{hosted
+          ? 'If your demo asks for Vercel sign-in, sign in to view the preview. If the bot is quiet, ask an administrator to check its connection.'
+          : 'For local drafts, open review links on the computer running the CMS. If the bot is quiet, ask an administrator to check its connection.'}</p>
       </article>
     </Gutter>
   </DefaultTemplate>

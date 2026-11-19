@@ -73,9 +73,9 @@ async function previewActor(payload: Awaited<ReturnType<typeof getPayload>>) {
   return user && ['admin', 'editor'].includes(String(user.role)) ? user : null
 }
 
-export const getMainMenu = cache(async (): Promise<MainMenuDTO> => {
+export const getMainMenu = cache(async (publishedOnly = false): Promise<MainMenuDTO> => {
   const payload = await getPayload({ config })
-  const user = await previewActor(payload)
+  const user = publishedOnly ? null : await previewActor(payload)
   const menu = await payload.findGlobal({ slug: 'main-menu', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 })
   const ids = menuPageIDs(menu)
   const pages = ids.length ? await payload.find({
@@ -83,25 +83,26 @@ export const getMainMenu = cache(async (): Promise<MainMenuDTO> => {
     where: { and: [{ id: { in: ids } }, { _status: { equals: 'published' } }] },
     select: { slug: true, _status: true },
   }) : { docs: [] }
-  return mainMenuDTO(applyWebsiteSettings(menu, await getWebsiteSettings()), pages.docs, Boolean(user))
+  return mainMenuDTO(applyWebsiteSettings(menu, await getWebsiteSettings(publishedOnly)), pages.docs, Boolean(user))
 })
 
-export const getWebsiteSettings = cache(async (): Promise<WebsiteSettings> => {
+export const getWebsiteSettings = cache(async (publishedOnly = false): Promise<WebsiteSettings> => {
   const payload = await getPayload({ config })
-  const user = await previewActor(payload)
+  const user = publishedOnly ? null : await previewActor(payload)
   const settings = await payload.findGlobal({ slug: 'website-settings', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 })
   return websiteSettingsDTO(settings, Boolean(user))
 })
 
-export async function getHomepage(): Promise<HomepageDTO> {
+export async function getHomepage(previewFeaturedIDs?: number[]): Promise<HomepageDTO> {
+  const publishedOnly = previewFeaturedIDs !== undefined
   const payload = await getPayload({ config })
-  const user = await previewActor(payload)
+  const user = publishedOnly ? null : await previewActor(payload)
   const [homepage, foundationIntro, settings] = await Promise.all([
     payload.findGlobal({ slug: 'homepage', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }),
     payload.findGlobal({ slug: 'homepage-intro', overrideAccess: false, draft: Boolean(user), user: user || undefined, depth: 0 }),
-    getWebsiteSettings(),
+    getWebsiteSettings(publishedOnly),
   ])
-  const ids = featuredAnimalIds(homepage.featuredAnimals)
+  const ids = previewFeaturedIDs ?? featuredAnimalIds(homepage.featuredAnimals)
   const result = ids.length ? await payload.find({ collection: 'animals', overrideAccess: false, draft: false, depth: 2, limit: featuredAnimalLimit, where: { and: [{ id: { in: ids } }, featuredAnimalEligibility] } }) : { docs: [] }
   const byID = new Map(result.docs.map(doc => [doc.id, applyWebsiteSettings(animalDTO(doc, 'uncropped'), settings)]))
   const foundation = homepageIntroDTO(foundationIntro, Boolean(user))

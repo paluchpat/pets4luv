@@ -1,0 +1,46 @@
+import { timingSafeEqual } from 'node:crypto'
+import config from '@payload-config'
+import { getPayload } from 'payload'
+import { publishFeaturedDraft, saveCatministratorDraft } from '@/lib/catministrator/drafts'
+import { linkedTelegramEditor } from '@/lib/catministrator/editors'
+import { animalDraftRequest, DraftRequestError, featuredDraftRequest, leadDraftRequest } from '@/lib/catministrator/requests'
+
+function hasServiceKey(request: Request, key: string) {
+  const expected = Buffer.from('Bearer ' + key)
+  const actual = Buffer.from(request.headers.get('authorization') || '')
+  return expected.length === actual.length && timingSafeEqual(expected, actual)
+}
+
+function validatedDraft(draft: unknown) {
+  if (!draft || typeof draft !== 'object') throw new DraftRequestError('Send one draft request.')
+  const value = draft as Record<string, unknown>
+  if (value.action === 'lead') return leadDraftRequest(value.animal)
+  if (value.action === 'featured') return featuredDraftRequest(value.animals)
+  if (value.action === 'animal' && value.patch && typeof value.patch === 'object' && !Array.isArray(value.patch)) {
+    return animalDraftRequest(value.animal, value.patch as Record<string, unknown>)
+  }
+  throw new DraftRequestError('Send one supported draft request.')
+}
+
+export async function POST(request: Request) {
+  const key = process.env.CATMINISTRATOR_CMS_KEY
+  if (!key || key.length < 32 || !hasServiceKey(request, key)) return new Response(null, { status: 404 })
+  const text = await request.text()
+  if (text.length > 16000) return new Response(null, { status: 413 })
+  const body = await Promise.resolve().then(() => JSON.parse(text)).catch(() => null)
+  if (!body || !Number.isSafeInteger(body.id) || body.id < 1 || !Number.isSafeInteger(body.date) ||
+    !['linked', 'save', 'publish'].includes(body.action)) return new Response(null, { status: 400 })
+  try {
+    const payload = await getPayload({ config })
+    const editor = await linkedTelegramEditor(payload, body.id, body.date)
+    if (body.action === 'linked') return Response.json(Boolean(editor))
+    if (!editor) throw new DraftRequestError('This Telegram account can no longer edit the CMS.')
+    if (body.action === 'save') return Response.json(await saveCatministratorDraft(payload, editor, validatedDraft(body.draft)))
+    if (typeof body.token !== 'string') return new Response(null, { status: 400 })
+    return Response.json(await publishFeaturedDraft(payload, editor, body.token))
+  } catch (error) {
+    if (error instanceof DraftRequestError) return Response.json({ message: error.message }, { status: 422 })
+    console.error('The Catministrator CMS operation failed.')
+    return new Response(null, { status: 500 })
+  }
+}

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
 import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
-import { DraftRequestError, parseDraftCommand } from '../../src/lib/catministrator/requests'
+import { DeleteRequestError, DraftRequestError, parseDraftCommand } from '../../src/lib/catministrator/requests'
 import { replyToTelegram } from '../../src/lib/catministrator/telegram'
 
 test('Catministrator parses explicit changes and rejects fields outside its draft scope', () => {
@@ -14,6 +14,8 @@ test('Catministrator parses explicit changes and rejects fields outside its draf
   assert.deepEqual(parseDraftCommand('/featured First, Second, Third'), {
     action: 'featured', animals: ['First', 'Second', 'Third'],
   })
+  assert.deepEqual(parseDraftCommand('/lead Tiny'), { action: 'lead', animal: 'Tiny' })
+  assert.deepEqual(readModelDraftOutput('{"action":"lead","animal":"Tiny"}'), { action: 'lead', animal: 'Tiny' })
   assert.throws(() => parseDraftCommand('/edit Test Cat | _status=published'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured First, first'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured One, Two, Three, Four'), DraftRequestError)
@@ -75,4 +77,20 @@ test('a linked editor can send a draft command with a CMS review link', async ()
     onError: () => assert.fail('The request should have succeeded'),
   })
   assert.deepEqual(result, { chat: 123, text: 'Featured draft saved.\nReview in the CMS: https://example.invalid/admin/globals/homepage' })
+})
+
+
+test('deletion requests get the CMS login link and never save a draft', async () => {
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    save: async () => assert.fail('A delete request must never call the CMS'),
+    interpret: async () => { throw new DeleteRequestError() },
+    onError: () => assert.fail('A delete request should have a specific response'),
+  }
+  for (const text of ['/delete Fig', 'Please delete Fig', 'Can you remove Fig’s profile permanently?']) {
+    const result = await replyToTelegram({ ...message, text }, handlers)
+    assert.match(result?.text || '', /Deleting is currently unavailable in Catministrator/)
+    assert.match(result?.text || '', /https:\/\/example.invalid\/admin\/login/)
+  }
 })
