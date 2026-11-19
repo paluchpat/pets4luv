@@ -2,6 +2,7 @@
 
 import { SaveButton, useDocumentInfo, useDocumentTitle } from '@payloadcms/ui'
 import { useEffect } from 'react'
+import { telegramHelp } from '../../lib/admin-sections'
 
 /** Keep the create view descriptive while existing users retain their email title. */
 export function UserEditorTitle() {
@@ -25,6 +26,6 @@ export function UserEditorSaveButton() {
 
 export function TelegramIDDescription() {
   return <div className="field-description">
-    <span>Ask the user to send /start to the Telegram bot <strong>@Pets4LuvCatministratorBot</strong> and share the ID it returns. Clear this field and save to revoke access.</span>
+    <span>Ask the user to send /start to the Telegram bot <strong>{telegramHelp.username}</strong> and share the ID it returns. Clear this field and save to revoke access.</span>
   </div>
 }

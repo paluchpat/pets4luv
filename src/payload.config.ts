@@ -7,6 +7,7 @@ import { lexicalEditor, BoldFeature, ItalicFeature, ParagraphFeature, HeadingFea
 import sharp from 'sharp'
 import { sharedLinkFields } from './lib/shared-link-fields'
 import { cmsEnglishTranslations, cmsLexicalEnglishTranslations } from './lib/cms-translations'
+import { telegramHelp } from './lib/admin-sections'
 import { Users } from './collections/Users'
 import { Media } from './collections/Media'
 import { Animals } from './collections/Animals'
@@ -48,7 +49,25 @@ export default buildConfig({
   secret,
   serverURL,
   i18n: { translations: { en: cmsEnglishTranslations } },
-  admin: { user: 'users', meta: { titleSuffix: ' · Pets4Luv Admin' }, importMap: { baseDir: dirname }, components: { beforeNav: ['./components/admin/AdminBrand#AdminBrand'], graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' }, actions: ['./components/admin/AdminBrand#ViewWebsite'], views: { dashboard: { Component: './components/admin/DashboardContent#DashboardContent' } }, afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'] } },
+  admin: {
+    user: 'users',
+    meta: { titleSuffix: ' · Pets4Luv Admin' },
+    importMap: { baseDir: dirname },
+    components: {
+      beforeNav: ['./components/admin/AdminBrand#AdminBrand'],
+      graphics: { Icon: './components/admin/AdminBrand#AdminIcon', Logo: './components/admin/AdminBrand#AdminLogo' },
+      actions: ['./components/admin/AdminBrand#ViewWebsite'],
+      views: {
+        dashboard: { Component: './components/admin/DashboardContent#DashboardContent' },
+        telegramHelp: {
+          path: telegramHelp.path,
+          Component: './components/admin/TelegramHelp#TelegramHelp',
+          meta: { title: telegramHelp.label },
+        },
+      },
+      afterNavLinks: ['./components/admin/PagesNav#WebsiteNav'],
+    },
+  },
   collections: [Users, Animals, Pages, Media], globals: [HomepageIntro, Homepage, WebsiteSettings, MainMenu],
   editor: async args => {
     const editor = await lexicalEditor({ features: [FixedToolbarFeature(), ParagraphFeature(), HeadingFeature({ enabledHeadingSizes: ['h2', 'h3'] }), BoldFeature(), ItalicFeature(), LinkFeature({ enabledCollections: ['animals', 'pages'], fields: ({ defaultFields }) => sharedLinkFields(defaultFields) }), UnorderedListFeature(), OrderedListFeature()] })(args)

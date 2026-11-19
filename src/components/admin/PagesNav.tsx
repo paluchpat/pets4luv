@@ -2,7 +2,7 @@ import Link from 'next/link'
 import type { ServerProps } from 'payload'
 import { PREFERENCE_KEYS, formatAdminURL } from 'payload/shared'
 import { menuPageLabels, publicPageHref } from '../../lib/main-menu'
-import { websiteAdminSections } from '../../lib/admin-sections'
+import { telegramHelp, websiteAdminSections } from '../../lib/admin-sections'
 import { AdminNavGroup, AnimalsNavClient, PagesNavClient } from './PagesNavClient'
 
 type NavPreferences = { groups?: Record<string, { open?: boolean }> }
@@ -70,6 +70,11 @@ export async function WebsiteNav(props: ServerProps) {
       })
       return links.length ? <AdminNavGroup key={section.label} label={section.label} links={links} isOpen={navPreferences.groups?.[section.label]?.open} /> : null
     })}
+    <AdminNavGroup label="Help" isOpen={navPreferences.groups?.Help?.open ?? true} links={[{
+      id: 'nav-help-telegram-bot',
+      label: telegramHelp.label,
+      href: formatAdminURL({ adminRoute, path: telegramHelp.path }),
+    }]} />
     <div className="cms-account"><span className="cms-account-avatar" aria-hidden="true">{user.name?.trim().split(/\s+/).map(part => part[0]).slice(0, 2).join('').toUpperCase() || 'P4'}</span><Link href={formatAdminURL({ adminRoute, path: '/account' })}>{user.name || 'Pets4Luv team'}<small>{user.role === 'admin' ? 'Administrator' : 'Website editor'}</small></Link></div>
   </>
 }

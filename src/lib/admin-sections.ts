@@ -12,3 +12,9 @@ export const websiteAdminSections = [
     { type: 'collection', slug: 'users', label: 'Users', singular: 'user' },
   ] },
 ] as const
+
+export const telegramHelp = {
+  label: 'Telegram bot',
+  path: '/help/telegram-bot',
+  username: '@Pets4LuvCatministratorBot',
+} as const
