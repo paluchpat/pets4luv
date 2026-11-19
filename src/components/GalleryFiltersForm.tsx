@@ -20,7 +20,7 @@ const colorSwatches: Record<AnimalColor, string> = {
   orange: '#e47d37',
   red: '#b83f38',
   tan: '#c9a679',
-  tuxedo: 'linear-gradient(135deg, #242023 0% 55%, #ffffff 55% 100%)',
+  tuxedo: 'linear-gradient(90deg, #242023 50%, #ffffff 50%) no-repeat border-box',
   white: '#ffffff',
 }
 
