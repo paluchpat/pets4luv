@@ -59,6 +59,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             </dl>
             <p>For <code>/edit</code>, use <code>summary</code>, <code>description</code>, <code>breed</code>, or <code>status</code> as the field name. Status can be <strong>available</strong>, <strong>pending</strong>, or <strong>adopted</strong>.</p>
             <p><code>/featured</code> replaces the full list. Enter one to three published, available animals in homepage order. The first one gets the large photo.</p>
+            <p>If <code>/help</code> says plain-language requests are available, you can also send “Feature Fig first, then Frida and Rollo.”</p>
           </li>
           <li>
             <h2>Review and publish</h2>
@@ -70,6 +71,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <h2 id="telegram-admin-title">For administrators</h2>
           <p>In the local CMS, open {localAdministrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
           <p>To revoke access, clear <strong>Telegram ID</strong> and save again.</p>
+          <p>The plain-language pilot uses GPT-6 Luna at medium effort with Vercel AI Gateway. Confirm Gateway access and set a request limit before enabling it.</p>
         </section>
         <p className="cms-help-note">The Telegram pilot uses the local CMS. Open review links on the computer running it. If the bot is quiet, ask an administrator to check that the local bot process is running.</p>
       </article>

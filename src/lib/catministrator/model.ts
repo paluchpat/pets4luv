@@ -32,12 +32,18 @@ export function readModelDraftOutput(text: string): DraftRequest {
   throw new Error('Invalid model action')
 }
 
-export function openAIInterpreter({ apiKey, model, requestLimit, usageDirectory }: {
+export function openAIInterpreter({
+  apiKey, viaGateway = false, model = viaGateway ? 'openai/gpt-6-luna' : 'gpt-6-luna', requestLimit, usageDirectory,
+}: {
   apiKey: string
-  model: string
+  viaGateway?: boolean
+  model?: string
   requestLimit: number
   usageDirectory: string
 }) {
+  const endpoint = viaGateway ? 'https://ai-gateway.vercel.sh/v1/responses' : 'https://api.openai.com/v1/responses'
+  const reasoning = model === 'gpt-6-luna' || model === 'openai/gpt-6-luna' ? { effort: 'medium' } : undefined
+
   // Reserve before sending so concurrent requests and restarts share the pilot cap.
   async function reserve() {
     await mkdir(usageDirectory, { recursive: true, mode: 0o700 })
@@ -54,12 +60,12 @@ export function openAIInterpreter({ apiKey, model, requestLimit, usageDirectory 
 
   return async (message: string): Promise<DraftRequest> => {
     await reserve()
-    const response = await fetch('https://api.openai.com/v1/responses', {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
-        model, store: false, max_output_tokens: 1200,
+        model, reasoning, store: false, max_output_tokens: 1200,
         instructions: [
           'Extract one draft request for a cat and dog rescue CMS from the message.',
           'Supported actions are an edit to one existing animal, or replacing the entire featured list.',

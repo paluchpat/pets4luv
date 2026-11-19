@@ -66,10 +66,12 @@ async function poll(botToken: string) {
   await mkdir(stateDirectory, { recursive: true, mode: 0o700 })
   const offsetFile = path.join(stateDirectory, 'telegram-' + bot.id + '.offset')
   let offset = Number(await readState(offsetFile)) || 0
-  const { OPENAI_API_KEY: apiKey, CATMINISTRATOR_OPENAI_MODEL: model } = process.env
+  const gatewayKey = process.env.AI_GATEWAY_API_KEY?.trim()
+  const apiKey = gatewayKey || process.env.OPENAI_API_KEY
+  const model = gatewayKey ? undefined : process.env.CATMINISTRATOR_OPENAI_MODEL
   const requestLimit = Number(process.env.CATMINISTRATOR_AI_REQUEST_LIMIT)
-  const interpret = process.env.AI_ENABLED === 'true' && apiKey && model && Number.isSafeInteger(requestLimit) && requestLimit > 0
-    ? openAIInterpreter({ apiKey, model, requestLimit, usageDirectory: path.join(stateDirectory, 'model-requests') })
+  const interpret = process.env.AI_ENABLED === 'true' && apiKey && (gatewayKey || model) && Number.isSafeInteger(requestLimit) && requestLimit > 0
+    ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory: path.join(stateDirectory, 'model-requests') })
     : undefined
   const cmsOrigin = process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'
   console.log(`Listening for private messages to @${bot.username}. AI interpretation is ${interpret ? 'enabled' : 'disabled'}.`)

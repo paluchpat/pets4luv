@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
+import { mkdtemp, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import { test } from 'node:test'
-import { readModelDraftOutput } from '../../src/lib/catministrator/model'
+import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
 import { DraftRequestError, parseDraftCommand } from '../../src/lib/catministrator/requests'
 import { replyToTelegram } from '../../src/lib/catministrator/telegram'
 
@@ -21,6 +24,29 @@ test('Catministrator parses explicit changes and rejects fields outside its draf
 const message = {
   chat: { id: 123, type: 'private' }, from: { id: 123 }, date: 1000, text: 'Feature First and Second.',
 }
+
+test('the Vercel Gateway uses Luna at medium effort and respects the request cap', async t => {
+  const usageDirectory = await mkdtemp(path.join(tmpdir(), 'catministrator-model-'))
+  t.after(() => rm(usageDirectory, { recursive: true, force: true }))
+  const gateway = t.mock.method(globalThis, 'fetch', async (url: string, options?: RequestInit) => {
+    assert.equal(url, 'https://ai-gateway.vercel.sh/v1/responses')
+    assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer gateway-fixture-key')
+    const body = JSON.parse(String(options?.body))
+    assert.equal(body.model, 'openai/gpt-6-luna')
+    assert.deepEqual(body.reasoning, { effort: 'medium' })
+    assert.equal(body.input, message.text)
+    assert.equal(body.text.format.strict, true)
+    return Response.json({ status: 'completed', output: [{
+      type: 'message',
+      content: [{ type: 'output_text', text: JSON.stringify({ action: 'featured', animals: ['First', 'Second'] }) }],
+    }] })
+  })
+  const interpret = openAIInterpreter({ apiKey: 'gateway-fixture-key', viaGateway: true, requestLimit: 1, usageDirectory })
+  assert.deepEqual(await interpret(message.text), { action: 'featured', animals: ['First', 'Second'] })
+  await assert.rejects(() => interpret(message.text), /request limit/)
+  assert.equal(gateway.mock.callCount(), 1)
+})
+
 test('Telegram accounts must be linked and messages must be private before invoking AI or the CMS', async () => {
   const handlers = {
     cmsOrigin: 'https://example.invalid',

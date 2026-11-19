@@ -42,7 +42,7 @@ With the local CMS set up, run `./scripts/local.sh catministrator` in a separate
 
 Send `/help` for the direct draft commands. For example, `/edit Fig | summary=Sweet and playful.` drafts one animal edit, and `/featured Fig, Frida, Rollo` drafts the homepage list in that order. Open the draft in the local CMS to review and publish it.
 
-When API funding has been confirmed, enable plain-language interpretation by setting `AI_ENABLED=true`, `OPENAI_API_KEY`, `CATMINISTRATOR_OPENAI_MODEL`, and `CATMINISTRATOR_AI_REQUEST_LIMIT` in `.env.catministrator`. Choose the model and request cap based on the approved API allowance. The cap counts requests across local restarts. The direct commands remain available with AI disabled.
+Once API funding is confirmed, set `AI_GATEWAY_API_KEY`, `CATMINISTRATOR_AI_REQUEST_LIMIT`, and `AI_ENABLED=true` in `.env.catministrator` and restart the worker. The Gateway uses `openai/gpt-6-luna` at medium effort. The request cap counts model calls across local restarts, and slash commands work independently of it. A direct OpenAI pilot uses `OPENAI_API_KEY` and `CATMINISTRATOR_OPENAI_MODEL` when the Gateway key is unset.
 
 ## Search and social sharing
 
