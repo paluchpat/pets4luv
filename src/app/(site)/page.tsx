@@ -38,14 +38,14 @@ export default async function HomePage() {
           <RichContent value={homepage.intro} text={homepage.introText} />
         </div>
         {spotlight ? (
-          <Link className="spotlight weekly-profile-link" href={`/animals/${spotlight.slug}`}
+          <Link className="spotlight animal-profile-link" href={`/animals/${spotlight.slug}`}
             aria-label={`View ${spotlight.name}’s adoption profile`}
             aria-describedby={spotlight.summary ? 'spotlight-summary' : undefined}>
             <div className="portrait-photo spotlight-photo"><PortraitPhoto animal={spotlight} /></div>
             <div className="spotlight-caption">
               <h3>
-                <span className="weekly-profile-name">{spotlight.name}</span>
-                <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+                <span className="animal-profile-name">{spotlight.name}</span>
+                <span className="animal-profile-arrow" aria-hidden="true">→</span>
               </h3>
               {spotlight.summary && <p id="spotlight-summary">{spotlight.summary}</p>}
             </div>
@@ -54,14 +54,14 @@ export default async function HomePage() {
         {companions.length > 0 && (
           <div className="weekly-companions">
             {companions.map((animal, index) => (
-              <Link className="weekly-animal weekly-profile-link" key={animal.id} href={`/animals/${animal.slug}`}
+              <Link className="weekly-animal animal-profile-link" key={animal.id} href={`/animals/${animal.slug}`}
                 aria-label={`View ${animal.name}’s adoption profile`}
                 aria-describedby={animal.summary ? `weekly-summary-${index}` : undefined}>
                 <div className="portrait-photo weekly-animal-photo"><PortraitPhoto animal={animal} /></div>
                 <div>
                   <h3>
-                    <span className="weekly-profile-name">{animal.name}</span>
-                    <span className="weekly-profile-arrow" aria-hidden="true">→</span>
+                    <span className="animal-profile-name">{animal.name}</span>
+                    <span className="animal-profile-arrow" aria-hidden="true">→</span>
                   </h3>
                   {animal.summary && <p id={`weekly-summary-${index}`}>{animal.summary}</p>}
                 </div>

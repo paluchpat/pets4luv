@@ -13,5 +13,21 @@ export function PortraitPhoto({ animal }: { animal: AnimalDTO }) {
 }
 
 export function AnimalCard({ animal }: { animal: AnimalDTO }) {
-  return <article className="animal-card"><Link href={`/animals/${animal.slug}`} className="animal-card-photo portrait-photo"><PortraitPhoto animal={animal} /></Link><div className="animal-card-body"><p className="eyebrow">{animal.species === 'cat' ? 'Cat' : 'Dog'} · <span className="animal-age-label">{animal.ageLabel || animal.ageGroup}</span>{animal.size && <> · {animal.size}</>}</p><h2><Link href={`/animals/${animal.slug}`}>{animal.name}</Link></h2>{animal.summary && <p>{animal.summary}</p>}<Link className="text-link animal-meet-link" href={`/animals/${animal.slug}`}><span className="animal-meet-link-label">Meet {animal.name}</span>{' '}<span aria-hidden="true">→</span></Link></div></article>
+  const href = `/animals/${animal.slug}`
+
+  return (
+    <article className="animal-card">
+      <Link href={href} className="animal-profile-link" aria-label={`View ${animal.name}’s adoption profile`}>
+        <div className="animal-card-photo portrait-photo"><PortraitPhoto animal={animal} /></div>
+        <h2>
+          <span className="animal-profile-name">{animal.name}</span>
+          <span className="animal-profile-arrow" aria-hidden="true">→</span>
+        </h2>
+      </Link>
+      <div className="animal-card-body">
+        <p className="animal-card-age animal-age-label">{animal.ageLabel || animal.ageGroup}</p>
+        {animal.summary && <p>{animal.summary}</p>}
+      </div>
+    </article>
+  )
 }
