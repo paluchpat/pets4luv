@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import type { AnimalPhotoDTO } from '@/lib/public-content'
 import styles from './AnimalGallery.module.css'
 
@@ -12,6 +12,7 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
   const viewport = useRef<HTMLDivElement>(null)
   const thumbnails = useRef<HTMLDivElement>(null)
   const selectedRef = useRef(0)
+  const mouseDrag = useRef<AbortController | null>(null)
   const id = useId()
   const active = Math.min(selected, Math.max(0, photos.length - 1))
   const multiple = photos.length > 1
@@ -28,7 +29,12 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
       element.scrollTo({ left: selectedRef.current * element.clientWidth, behavior: 'instant' })
     })
     observer.observe(element)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      mouseDrag.current?.abort()
+      mouseDrag.current = null
+      delete element.dataset.dragging
+    }
   }, [photoSet])
 
   useEffect(() => {
@@ -48,6 +54,49 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
     const next = (index + photos.length) % photos.length
     element.scrollTo({ left: next * element.clientWidth, behavior: scrollBehavior() })
   }
+
+  function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || !event.isPrimary) return
+    const element = event.currentTarget
+    const { pointerId, clientX: startX, clientY: startY } = event
+    const startLeft = element.scrollLeft
+    let moved = false
+    mouseDrag.current?.abort()
+    const controller = new AbortController()
+    mouseDrag.current = controller
+
+    function move(pointer: PointerEvent) {
+      if (pointer.pointerId !== pointerId) return
+      const distance = pointer.clientX - startX
+      if (!moved) {
+        if (Math.abs(distance) < 6 || Math.abs(distance) <= Math.abs(pointer.clientY - startY)) return
+        moved = true
+        element.dataset.dragging = 'true'
+      }
+      element.scrollLeft = startLeft - distance
+    }
+
+    function finish(pointer?: PointerEvent) {
+      if (pointer && pointer.pointerId !== pointerId) return
+      controller.abort()
+      mouseDrag.current = null
+      const threshold = Math.min(56, element.clientWidth / 5)
+      delete element.dataset.dragging
+      if (!moved) return
+      const distance = pointer ? pointer.clientX - startX : 0
+      const step = pointer?.type === 'pointerup' && Math.abs(distance) >= threshold ? -Math.sign(distance) : 0
+      show(Math.max(0, Math.min(photos.length - 1, active + step)))
+    }
+
+    // Keep tracking until release, including when the pointer leaves the photo.
+    const options = { signal: controller.signal }
+    window.addEventListener('pointermove', move, options)
+    window.addEventListener('pointerup', finish, options)
+    window.addEventListener('pointercancel', finish, options)
+    window.addEventListener('blur', () => finish(), options)
+    element.setPointerCapture(pointerId)
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.altKey || event.ctrlKey || event.metaKey) return
     if (event.key === 'ArrowLeft') show(active - 1)
@@ -60,9 +109,10 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
 
   return <section className={styles.gallery} aria-label={`Photos of ${name}`} aria-roledescription={multiple ? 'carousel' : undefined}>
     <div className={styles.main}>
-      <div id={id} ref={viewport} className={styles.viewport} role="group" tabIndex={multiple ? 0 : undefined}
-        aria-label={multiple ? 'Swipe to browse photos, or use the left and right arrow keys.' : undefined}
+      <div id={id} ref={viewport} className={multiple ? `${styles.viewport} ${styles.draggable}` : styles.viewport} role="group" tabIndex={multiple ? 0 : undefined}
+        aria-label={multiple ? 'Drag or swipe to browse photos, or use the left and right arrow keys.' : undefined}
         onKeyDown={multiple ? onKeyDown : undefined}
+        onPointerDown={multiple ? startDrag : undefined}
         onScroll={event => {
           const element = event.currentTarget
           if (!element.clientWidth) return
