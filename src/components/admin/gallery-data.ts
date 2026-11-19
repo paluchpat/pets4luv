@@ -2,6 +2,7 @@ import type { Payload, Sort, TypedUser, Where } from 'payload'
 import { mergeListSearchAndWhere } from 'payload/shared'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../../lib/featured-animals'
 import { adminAnimalCard, type AdminAnimalCard } from '../../lib/admin-animal-gallery'
+import { defaultAdminAnimalSort } from '../../lib/admin-animal-sorts'
 
 function isStaff(user: TypedUser | null | undefined): user is TypedUser {
   return Boolean(user && ['admin', 'editor'].includes(String(user.role)))
@@ -42,15 +43,20 @@ type AdminGalleryQuery = { where?: Where; search?: string; sort?: Sort; page: nu
 /** Rank all matching IDs before pagination; only load photo/profile data for the visible page. */
 export async function loadAdminGalleryPageCards(payload: Payload, user: TypedUser | null | undefined, query: AdminGalleryQuery): Promise<AdminAnimalCard[]> {
   if (!isStaff(user)) return []
+  const sort = query.sort ?? defaultAdminAnimalSort
+  const featureFirst = sort.toString() === defaultAdminAnimalSort
   const [featured, matching] = await Promise.all([
     featuredAnimalIDs(payload, user),
     payload.find({ collection: 'animals', overrideAccess: false, user, draft: true, depth: 0, pagination: false, select: {},
       where: mergeListSearchAndWhere({ collectionConfig: payload.collections.animals.config, search: query.search || '', where: query.where }),
-      sort: query.sort || '-updatedAt',
+      sort: featureFirst ? ['-createdAt', '-id'] : sort,
     }),
   ])
-  const ranks = new Map(featured.map((id, index) => [id, index]))
-  const ordered = matching.docs.map(doc => doc.id).sort((a, b) => (ranks.get(a) ?? featured.length) - (ranks.get(b) ?? featured.length))
+  const ordered = matching.docs.map(doc => doc.id)
+  if (featureFirst) {
+    const ranks = new Map(featured.map((id, index) => [id, index]))
+    ordered.sort((a, b) => (ranks.get(a) ?? featured.length) - (ranks.get(b) ?? featured.length))
+  }
   const offset = (Math.max(1, query.page) - 1) * query.limit
   return cardsForIDs(payload, user, ordered.slice(offset, offset + query.limit), featured)
 }

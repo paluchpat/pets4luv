@@ -7,15 +7,8 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from 'reac
 import type { Where } from 'payload'
 import type { AdminAnimalCard } from '../../lib/admin-animal-gallery'
 import { adminAnimalFilters, adminAnimalFilterValue, updateAdminAnimalFilter } from '../../lib/admin-animal-filters'
+import { adminAnimalSortOptions, defaultAdminAnimalSort } from '../../lib/admin-animal-sorts'
 import { Icon } from '../Icons'
-
-const sortOptions = [
-  { value: '-updatedAt', label: 'Recently updated' },
-  { value: '-createdAt', label: 'Newest addition' },
-  { value: 'createdAt', label: 'Oldest addition' },
-  { value: 'name', label: 'Name (A–Z)' },
-  { value: '-name', label: 'Name (Z–A)' },
-]
 
 export function AnimalGalleryListClient({ cards, canCreate, nativeList }: { cards: AdminAnimalCard[]; canCreate: boolean; nativeList: ReactNode }) {
   const { isInDrawer } = useListDrawerContext()
@@ -34,7 +27,7 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
   const gallery = useRef<HTMLDivElement>(null)
   const previousPage = useRef(data?.page)
   const where = query.where as Where | undefined
-  const sort = query.sort || sortOptions[0].value
+  const sort = query.sort?.toString() || defaultAdminAnimalSort
   const selected = adminAnimalFilterValue(where, 'species') || 'all'
   const activeFilters = adminAnimalFilters.filter(filter => adminAnimalFilterValue(where, filter.field, filter.operator)).length
   const hasCriteria = Boolean(search.trim() || Object.keys(where || {}).length)
@@ -109,8 +102,8 @@ function AnimalGalleryWorkspace({ cards, canCreate }: { cards: AdminAnimalCard[]
             const nextSort = event.target.value
             startTransition(() => { void refineListData({ sort: nextSort, search: search.trim() || undefined, page: 1 }) })
           }}>
-            {!sortOptions.some(option => option.value === sort) && <option value={sort}>Saved sort</option>}
-            {sortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            {!adminAnimalSortOptions.some(option => option.value === sort) && <option value={sort}>Saved sort</option>}
+            {adminAnimalSortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select><ChevronDown aria-hidden="true" /></span>
         </label>
       </div>

@@ -2,6 +2,7 @@ import { sharedContentHooks } from '../hooks/shared-content'
 import { ValidationError, type CollectionConfig, type Field } from 'payload'
 import { isStaff, publishedOrStaff, slugField, slugSourceAdmin } from '../access'
 import { animalColorOptions } from '../lib/animal-colors'
+import { defaultAdminAnimalSort } from '../lib/admin-animal-sorts'
 import { adminAnimalSearchFields, expandAdminAnimalSearch } from '../lib/admin-animal-search'
 
 const weightMessage = 'Enter a number of pounds, including decimals, or leave this blank.'
@@ -16,8 +17,20 @@ const compatibility = (name: string, label: string): Field => ({
 })
 
 export const Animals: CollectionConfig = {
-  slug: 'animals', admin: { useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'], pagination: { defaultLimit: 12, limits: [12, 24, 48] }, listSearchableFields: adminAnimalSearchFields, components: { views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } } } },
-  defaultSort: '-updatedAt',
+  slug: 'animals',
+  admin: {
+    useAsTitle: 'name', group: false, defaultColumns: ['name', 'species', 'status', '_status'],
+    pagination: { defaultLimit: 12, limits: [12, 24, 48] },
+    listSearchableFields: adminAnimalSearchFields,
+    components: {
+      views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } },
+      edit: {
+        PublishButton: './components/admin/AnimalEditor#AnimalEditorPublishButton',
+        SaveDraftButton: './components/admin/AnimalEditor#AnimalEditorSaveDraftButton',
+      },
+    },
+  },
+  defaultSort: defaultAdminAnimalSort,
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   hooks: { beforeOperation: [({ args, operation, req }) => {

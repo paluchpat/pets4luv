@@ -623,18 +623,31 @@ test('admin animal gallery protects drafts and projects only the selected staff 
     recentIDs.push(recent.id)
   }
   const scope = { id: { in: [publishedID, draftID, ...recentIDs] } }
-  const first = await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 1, limit: 3 })
+  const first = await loadAdminGalleryPageCards(payload, editor, { where: scope, page: 1, limit: 3 })
   assert.equal(first[0].id, publishedID)
   assert.equal(first[0].featured, true)
   assert.deepEqual(first.slice(1).map(card => card.id), [...recentIDs].reverse().slice(0, 2))
   const rest = [
-    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 2, limit: 3 }),
-    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-id', page: 3, limit: 3 }),
+    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, page: 2, limit: 3 }),
+    ...await loadAdminGalleryPageCards(payload, editor, { where: scope, page: 3, limit: 3 }),
   ]
   const allIDs = [...first, ...rest].map(card => card.id)
   assert.equal(new Set(allIDs).size, 8)
   assert.deepEqual([...allIDs].sort((a, b) => a - b), [publishedID, draftID, ...recentIDs].sort((a, b) => a - b))
   assert.equal((await loadAdminGalleryCards(payload, editor))[0].id, publishedID)
+
+  // An edit to an older arrival changes Recently updated but not Featured or Newest addition.
+  await payload.update({ collection: 'animals', id: recentIDs[0], overrideAccess: false, user: editor, draft: true,
+    data: { internalNotes: 'Recently updated fixture' },
+  })
+  const recentlyUpdated = await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-updatedAt,-id', page: 1, limit: 3 })
+  assert.equal(recentlyUpdated[0].id, recentIDs[0])
+  const afterEdit = await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-updatedAt', page: 1, limit: 3 })
+  assert.deepEqual(afterEdit.map(card => card.id), first.map(card => card.id))
+
+  const newest = await loadAdminGalleryPageCards(payload, editor, { where: scope, sort: '-createdAt', page: 1, limit: 8 })
+  assert.equal(newest.at(-1)?.id, publishedID)
+  assert.equal(newest.at(-1)?.featured, true)
   const female = await loadAdminGalleryPageCards(payload, editor, { where: scope, search: 'female', page: 1, limit: 12 })
   assert.deepEqual(new Set(female.map(card => card.id)), new Set([publishedID, draftID]))
   const black = await loadAdminGalleryPageCards(payload, editor, { where: scope, search: 'black', page: 1, limit: 12 })
