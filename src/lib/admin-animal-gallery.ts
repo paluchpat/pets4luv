@@ -17,7 +17,7 @@ export type AdminAnimalCard = {
 
 /** Staff-only projection: gallery cards never need internal notes, source IDs, or media metadata. */
 export function adminAnimalCard(doc: Pick<Animal, 'id' | 'name' | 'species' | 'sex' | 'ageGroup' | 'estimatedBirthDate' | 'status' | 'photos' | 'updatedAt' | '_status'>, publishedIDs: ReadonlySet<string>, featuredIDs: ReadonlySet<string>): AdminAnimalCard {
-  const animal = animalDTO(doc, 'uncropped')
+  const animal = animalDTO(doc, 'uncropped', 'short')
   const updated = doc.updatedAt ? new Date(doc.updatedAt) : null
   return {
     id: doc.id, name: doc.name?.trim() || 'Untitled animal', age: animal.ageLabel,
