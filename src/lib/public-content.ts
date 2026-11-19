@@ -17,14 +17,13 @@ export type AnimalDTO = {
 export type HomepageIntroDTO = { heading: string; body: RichText; bodyText: string }
 export type HomepageDTO = { foundationIntro: HomepageIntroDTO; heading: string; intro: RichText | null; introText: string; featuredAnimals: AnimalDTO[] }
 export type AnimalFilters = { q?: string; species?: string; ageGroup?: string; size?: string; sex?: string; color?: string; goodWithDogs?: string | boolean; goodWithCats?: string | boolean; goodWithChildren?: string | boolean; page?: string | number }
-type AgeLabelStyle = 'full' | 'short'
 
 // Deliberately reconstruct DTOs. Never return raw CMS documents to visitor routes or future AI tools.
-export function animalDTO(doc: any, photoVariant: 'card' | 'uncropped' = 'card', ageStyle: AgeLabelStyle = 'full'): AnimalDTO {
+export function animalDTO(doc: any, photoVariant: 'card' | 'uncropped' = 'card'): AnimalDTO {
   const photo = doc.photos?.[0]?.photo
   return {
     id: doc.id, name: doc.name, slug: doc.slug, species: doc.species, sex: doc.sex,
-    ageGroup: doc.ageGroup, size: doc.size ?? null, breed: doc.breed || '', ageLabel: ageLabel(doc, ageStyle),
+    ageGroup: doc.ageGroup, size: doc.size ?? null, breed: doc.breed || '', ageLabel: ageLabel(doc),
     summary: doc.summary?.trim() || '', description: doc.description || '', careNeeds: doc.careNeeds || '', status: doc.status,
     photo: photo && typeof photo === 'object' && photo.url
       ? { url: photoVariant === 'card' ? photo.sizes?.card?.url || photo.url : photo.url, alt: photo.alt || doc.name }
@@ -46,13 +45,13 @@ export function animalProfileDTO(doc: any): AnimalProfileDTO {
   return { ...animalDTO(doc, 'uncropped'), photos, weight }
 }
 
-function ageLabel(doc: any, style: AgeLabelStyle) {
+function ageLabel(doc: any) {
   if (doc.estimatedBirthDate) {
     const months = Math.max(0, Math.floor((Date.now() - new Date(doc.estimatedBirthDate).getTime()) / (365.25 / 12 * 86400000)))
     if (Number.isFinite(months)) {
       const amount = months < 12 ? Math.max(1, months) : Math.floor(months / 12)
       const unit = months < 12 ? 'month' : 'year'
-      return `About ${amount} ${unit}${amount === 1 ? '' : 's'}${style === 'full' ? ' old' : ''}`
+      return `About ${amount} ${unit}${amount === 1 ? '' : 's'} old`
     }
   }
   return ({ baby: 'Baby', young: 'Young', adult: 'Adult', senior: 'Senior' } as Record<string, string>)[doc.ageGroup] || 'Age unknown'
