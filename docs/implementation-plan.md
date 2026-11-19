@@ -110,7 +110,7 @@ Keep the public assistant's tools read-only and limited to public fields. Admini
 
 ## AI delivery and subscription boundary
 
-The user selected AI conversations inside the website for the first local demo. Both visitor chat and the authenticated administrator assistant use the server-side API integration. The initial demo does not require an MCP connection or conversations in a separate ChatGPT/Codex interface.
+The visitor conversation is planned inside the website. The Catministrator pilot accepts editor messages through private Telegram chats and saves drafts in the local Payload CMS. A site administrator links each Telegram user ID to a CMS account. Both assistants can use a server-side model integration when funding is confirmed.
 
 ### Verify API credits before enabling AI
 
@@ -195,7 +195,7 @@ Manually test with the actual manager before treating the editor as ready. The k
 
 Choose hosting only after measuring the demo's requirements and the rescue's budget. Preserve database and storage adapters, stable IDs, environment-based configuration, and repeatable deployment so hosting remains a separate decision. Moving SQLite data to PostgreSQL is a migration task, not just changing a connection string. A production move also includes media transfer, private-file access, backups, authentication configuration, monitoring, and cost limits.
 
-Text/MMS, WhatsApp, Slack, or email intake can later feed the same submission and approval services. They will require channel setup, verified sender permissions, message-to-intake correlation, and retry handling. Keep the channel account and phone number owned by the rescue. Personal-dot texting is not assumed to provide a shared multi-staff inbox.
+Telegram is the first editor messaging channel. Text/MMS, WhatsApp, Slack, or email can later feed the same submission and approval services. They will require channel setup, verified sender permissions, message-to-intake correlation, and retry handling. Keep the channel account and phone number owned by the rescue. Personal-dot texting is not assumed to provide a shared multi-staff inbox.
 
 Defer donation/payment processing, adoption applications, volunteer scheduling, public accounts, external rescue-system synchronization, a mobile app, advanced semantic search, and general page building.
 

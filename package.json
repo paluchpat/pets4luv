@@ -17,6 +17,8 @@
     "typecheck": "tsc --noEmit",
     "seed": "node --env-file=.env --import tsx scripts/seed.ts",
     "seed:pages": "node --env-file=.env --import tsx scripts/seed-pages.ts",
+    "catministrator": "node --env-file=.env --env-file-if-exists=.env.catministrator --import tsx scripts/catministrator.ts",
+    "catministrator:setup": "bash scripts/catministrator-setup.sh",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
     "backup": "node scripts/backup.mjs",

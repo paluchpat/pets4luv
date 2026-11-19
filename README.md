@@ -34,6 +34,22 @@ Public pages, including Applications, read shared CMS settings on each request. 
 
 Builds do not create demo animals, upload fixture photos, or change animal colors. Those actions belong to the explicit `seed` command.
 
+## Catministrator Telegram pilot
+
+Create a bot with [Telegram’s BotFather](https://t.me/BotFather) using `/newbot`. In Terminal, run `./scripts/local.sh catministrator:setup` and enter the bot token at the hidden prompt. The setup stores it in the Git-ignored `.env.catministrator` file.
+
+With the local CMS set up, run `./scripts/local.sh catministrator` in a separate Terminal tab. Send `/start` in a private chat with the bot. It replies with your Telegram user ID. A site administrator can link that ID to an existing local Payload account from another Terminal tab.
+
+```sh
+./scripts/local.sh catministrator -- link 123456789 editor@example.invalid
+```
+
+Use the Payload account’s email in this command. Each editor’s Telegram ID needs its own link. `./scripts/local.sh catministrator -- unlink TELEGRAM_USER_ID` revokes a link. Keep the local process running to receive messages.
+
+Send `/help` for the direct draft commands. For example, `/edit Fig | summary=Sweet and playful.` drafts one animal edit, and `/featured Fig, Frida, Rollo` drafts the homepage list in that order. Open the draft in the local CMS to review and publish it.
+
+When API funding has been confirmed, enable plain-language interpretation by setting `AI_ENABLED=true`, `OPENAI_API_KEY`, `CATMINISTRATOR_OPENAI_MODEL`, and `CATMINISTRATOR_AI_REQUEST_LIMIT` in `.env.catministrator`. Choose the model and request cap based on the approved API allowance. The cap counts requests across local restarts. The direct commands remain available with AI disabled.
+
 ## Search and social sharing
 
 The protected demo and local development use `noindex`. At public launch, set `SITE_URL` to the site's final HTTPS origin in the production environment. This enables canonical URLs and the sitemap on production builds. Vercel previews keep `noindex` and omit sitemap entries.

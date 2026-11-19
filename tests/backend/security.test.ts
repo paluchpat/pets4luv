@@ -21,6 +21,8 @@ import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
+import { saveCatministratorDraft } from '../../src/lib/catministrator/drafts'
+import { parseDraftCommand } from '../../src/lib/catministrator/requests'
 import { validatePageSlug } from '../../src/collections/Pages'
 
 let payload: Payload
@@ -717,4 +719,41 @@ test('CMS document links follow published slugs and never reveal draft or delete
     assert.equal(((await resolveRichTextLinks(payload, source)) as any).root.children[0].fields.url, '')
     assert.deepEqual(await resolveRichTextLinks(payload, { root: { children: [] } }), { root: { children: [] } })
   } finally { await payload.delete({ collection: 'pages', id: target.id }).catch(() => {}) }
+})
+
+test('Catministrator saves profile and featured edits as drafts under an editor identity', async () => {
+  const createAnimal = (name: string, slug: string) => payload.create({
+    collection: 'animals', overrideAccess: false, user: editor,
+    data: {
+      name, slug, species: 'cat', sex: 'unknown', ageGroup: 'adult', status: 'available',
+      summary: 'Original summary', description: 'Original description', photos: [{ photo: publicPhotoID }],
+      compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' },
+      _status: 'published',
+    },
+  })
+  const first = await createAnimal('First Bot Fixture', 'first-bot-fixture')
+  const second = await createAnimal('Second Bot Fixture', 'second-bot-fixture')
+  const homepageBefore = await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 })
+  const edit = parseDraftCommand('/edit First Bot Fixture | summary=A proposed summary. | status=pending')!
+  const result = await saveCatministratorDraft(payload, editor, edit)
+  assert.equal(result.path, '/admin/collections/animals/' + first.id)
+  const visible = await payload.findByID({ collection: 'animals', id: first.id, overrideAccess: false, draft: false, depth: 0 })
+  const draft = await payload.findByID({ collection: 'animals', id: first.id, user: editor, overrideAccess: false, draft: true, depth: 0 })
+  assert.equal(visible.summary, first.summary)
+  assert.equal(visible.status, 'available')
+  assert.equal(draft.summary, 'A proposed summary.')
+  assert.equal(draft.status, 'on-hold')
+  assert.equal(draft._status, 'draft')
+  assert.equal(draft.description, first.description)
+  assert.deepEqual(draft.photos, visible.photos)
+  assert.match((await saveCatministratorDraft(payload, editor, edit)).message, /already has those values/)
+
+  const featured = parseDraftCommand('/featured Second Bot Fixture, first-bot-fixture')!
+  await saveCatministratorDraft(payload, editor, featured)
+  const homepageDraft = await payload.findGlobal({ slug: 'homepage', user: editor, overrideAccess: false, draft: true, depth: 0 })
+  assert.equal(homepageDraft._status, 'draft')
+  assert.deepEqual(homepageDraft.featuredAnimals?.map(row => row.animal), [second.id, first.id])
+  assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), homepageBefore)
+  await assert.rejects(() => saveCatministratorDraft(payload, editor, parseDraftCommand('/featured secret-draft')!), /published, available animal/)
+  await assert.rejects(() => saveCatministratorDraft(payload, { ...editor, role: undefined }, edit), /cannot edit/)
 })
