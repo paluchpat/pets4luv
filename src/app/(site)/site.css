@@ -634,6 +634,7 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
 .filter-select-options{position:absolute;z-index:40;top:calc(100% + 6px);left:0;width:100%;max-height:min(280px,40dvh);overflow-y:auto;overscroll-behavior:contain;scroll-behavior:auto;scroll-padding-block:4px;padding:4px;background:#fffdf9;color:var(--ink);border:1px solid var(--logo-red);border-radius:8px;box-shadow:0 5px 16px #3e11231a}
 .filter-select-option{min-height:44px;padding:10px 6px;display:flex;align-items:center;justify-content:space-between;gap:4px;line-height:1.3;font-size:18px;cursor:pointer;border-radius:4px;white-space:normal;text-transform:none;letter-spacing:normal;font-weight:400}
 .filter-select-age .filter-select-options{min-width:190px}
+.filter-select:has(> input[name=color]) .filter-select-options{min-width:170px}
 .filter-select-option[data-highlighted=true]{background:#f5e6e9;color:var(--burgundy)}
 .filter-select-option[aria-selected=true]{font-weight:700;color:var(--burgundy)}
 .filter-option-check{flex:none;width:14px;text-align:center}
@@ -689,6 +690,9 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
     --field-padding-inline: clamp(4px, calc((100% - 99px) / 2), 14px);
     --select-arrow-width: 10px;
     --select-arrow-gap: 2px;
+  }
+  .filter-select:has(> :is(input, select)[name=color]) {
+    --field-padding-inline: 4px;
   }
 }
 @media(max-width:380px){.filter-select-option{padding-inline:7px;gap:0}.filter-select-option:has(.filter-option-swatch){padding-inline:4px}.filter-select-option>span:first-child{white-space:nowrap}.filter-option-check{display:none}}

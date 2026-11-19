@@ -8,6 +8,7 @@ export const animalColorOptions = [
   { label: 'Orange', value: 'orange' },
   { label: 'Red', value: 'red' },
   { label: 'Tan', value: 'tan' },
+  { label: 'Tortoiseshell', value: 'tortoiseshell' },
   { label: 'Tuxedo', value: 'tuxedo' },
   { label: 'White', value: 'white' },
 ] as const

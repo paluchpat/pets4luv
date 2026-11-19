@@ -101,8 +101,8 @@ test('public phrase search combines exact traits with public profile text and fi
   assert.deepEqual(await search('"PRIVATE SENTINEL" or PRIVATE-1'), [])
 })
 
-test('Calico and Tuxedo can be saved and searched through public and CMS animal filters', async () => {
-  for (const color of ['calico', 'tuxedo'] as const) {
+test('Calico, Tortoiseshell, and Tuxedo can be saved and searched through public and CMS animal filters', async () => {
+  for (const color of ['calico', 'tortoiseshell', 'tuxedo'] as const) {
     const animal = await payload.create({ collection: 'animals', overrideAccess: false, user: editor, data: {
       name: 'Coat pattern fixture', slug: color + '-coat-pattern-fixture', species: 'cat', sex: 'female', ageGroup: 'adult', size: 'small',
       colors: [color, 'white'], description: 'Animal color filter fixture.', status: 'available',
