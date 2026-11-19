@@ -6,8 +6,8 @@ import { WeightField as WeightField_fb53697c6be8024df2e7e09cc61f71f2 } from '../
 import { PhotoUploadControls as PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c } from '../../../components/admin/PhotoUploadControls'
 import { AnimalPhotoPlaceholder as AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf } from '../../../components/admin/AnimalPhotoPlaceholder'
 import { ArrayRowLabel as ArrayRowLabel_2f0bfc0601580212a313c3173cf0b49f } from '../../../components/admin/ArrayRowLabel'
-import { AnimalEditorPublishButton as AnimalEditorPublishButton_dda6e2598add134f8d9549bce096e4ab } from '../../../components/admin/AnimalEditor'
-import { AnimalEditorSaveDraftButton as AnimalEditorSaveDraftButton_dda6e2598add134f8d9549bce096e4ab } from '../../../components/admin/AnimalEditor'
+import { DraftEditorPublishButton as DraftEditorPublishButton_8d3649dae973e7124b290673e40fe19a } from '../../../components/admin/DraftEditorControls'
+import { DraftEditorSaveDraftButton as DraftEditorSaveDraftButton_8d3649dae973e7124b290673e40fe19a } from '../../../components/admin/DraftEditorControls'
 import { AnimalGalleryList as AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca } from '../../../components/admin/AnimalGalleryList'
 import { RscEntryLexicalCell as RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
 import { RscEntryLexicalField as RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e } from '@payloadcms/richtext-lexical/rsc'
@@ -40,8 +40,8 @@ export const importMap = {
   "./components/admin/PhotoUploadControls#PhotoUploadControls": PhotoUploadControls_a8d30f68817678d15c6a1c517c9a975c,
   "./components/admin/AnimalPhotoPlaceholder#AnimalPhotoPlaceholder": AnimalPhotoPlaceholder_e28c038463ae986aceb057cd6f188aaf,
   "./components/admin/ArrayRowLabel#ArrayRowLabel": ArrayRowLabel_2f0bfc0601580212a313c3173cf0b49f,
-  "./components/admin/AnimalEditor#AnimalEditorPublishButton": AnimalEditorPublishButton_dda6e2598add134f8d9549bce096e4ab,
-  "./components/admin/AnimalEditor#AnimalEditorSaveDraftButton": AnimalEditorSaveDraftButton_dda6e2598add134f8d9549bce096e4ab,
+  "./components/admin/DraftEditorControls#DraftEditorPublishButton": DraftEditorPublishButton_8d3649dae973e7124b290673e40fe19a,
+  "./components/admin/DraftEditorControls#DraftEditorSaveDraftButton": DraftEditorSaveDraftButton_8d3649dae973e7124b290673e40fe19a,
   "./components/admin/AnimalGalleryList#AnimalGalleryList": AnimalGalleryList_29e285d53f5c87cec27e4bbbca2603ca,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalCell": RscEntryLexicalCell_44fe37237e0ebf4470c9990d8cb7b07e,
   "@payloadcms/richtext-lexical/rsc#RscEntryLexicalField": RscEntryLexicalField_44fe37237e0ebf4470c9990d8cb7b07e,

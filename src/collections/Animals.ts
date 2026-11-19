@@ -25,8 +25,11 @@ export const Animals: CollectionConfig = {
     components: {
       views: { list: { Component: './components/admin/AnimalGalleryList#AnimalGalleryList' } },
       edit: {
-        PublishButton: './components/admin/AnimalEditor#AnimalEditorPublishButton',
-        SaveDraftButton: './components/admin/AnimalEditor#AnimalEditorSaveDraftButton',
+        PublishButton: {
+          path: './components/admin/DraftEditorControls#DraftEditorPublishButton',
+          clientProps: { draftLabel: 'Publish animal' },
+        },
+        SaveDraftButton: './components/admin/DraftEditorControls#DraftEditorSaveDraftButton',
       },
     },
   },

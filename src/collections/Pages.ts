@@ -13,7 +13,20 @@ export function validatePageSlug(value: unknown): true | string {
 export const Pages: CollectionConfig = {
   slug: 'pages',
   labels: { singular: 'Page', plural: 'Pages' },
-  admin: { useAsTitle: 'title', group: false, description: 'Edit public pages, including adoption and volunteering information. Save a draft before publishing changes.' },
+  admin: {
+    useAsTitle: 'title',
+    group: false,
+    description: 'Edit public pages, including adoption and volunteering information. Save a draft before publishing changes.',
+    components: {
+      edit: {
+        PublishButton: {
+          path: './components/admin/DraftEditorControls#DraftEditorPublishButton',
+          clientProps: { draftLabel: 'Publish page' },
+        },
+        SaveDraftButton: './components/admin/DraftEditorControls#DraftEditorSaveDraftButton',
+      },
+    },
+  },
   access: { read: publishedOrStaff, create: isStaff, update: isStaff, delete: isStaff, readVersions: isStaff },
   versions: { drafts: { autosave: false }, maxPerDoc: 30 },
   fields: [
