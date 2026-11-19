@@ -38,7 +38,7 @@ Builds do not create demo animals, upload fixture photos, or change animal color
 
 The protected demo and local development use `noindex`. At public launch, set `SITE_URL` to the site's final HTTPS origin in the production environment. This enables canonical URLs and the sitemap on production builds. Vercel previews keep `noindex` and omit sitemap entries.
 
-Public pages supply Open Graph and large-image X cards. Animal profiles share their first approved photo when available, and other pages use the default image at `public/images/pets4luv-share.jpg`. Homepage structured data uses the published social profiles and contact information in **Settings → Website settings**.
+Public pages supply Open Graph and large-image X cards. Animal profiles share their first approved photo when available, and other pages use the default image at `public/images/pets4luv-share-slogan.jpg`. Homepage structured data uses the published social profiles and contact information in **Settings → Website settings**.
 
 ## Content editing
 

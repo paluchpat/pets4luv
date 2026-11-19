@@ -30,10 +30,10 @@ export const metadataBase = publicSiteOrigin
   ?? new URL('http://localhost:3000')
 
 const defaultImage = {
-  url: '/images/pets4luv-share.jpg',
+  url: '/images/pets4luv-share-slogan.jpg',
   width: 1200,
   height: 630,
-  alt: 'A golden dog and tabby cat resting together on a soft blanket',
+  alt: 'Bringing families together one rescue at a time. A golden dog and tabby cat resting together on a soft blanket.',
 }
 
 export function shortDescription(value: string, fallback: string): string {
