@@ -37,6 +37,11 @@
   scroll-snap-stop: always;
 }
 
+.slide:global(.portrait-photo) {
+  aspect-ratio: auto;
+  border-radius: 0;
+}
+
 .slide > img {
   display: block;
   width: 100%;

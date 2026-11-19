@@ -165,8 +165,9 @@ export function AnimalGallery({ name, photos }: { name: string; photos: AnimalPh
           selectedRef.current = index
           setSelected(index)
         }}>
-        {photos.length ? photos.map((photo, index) => <div key={photo.url} className={styles.slide}
+        {photos.length ? photos.map((photo, index) => <div key={photo.url} className={`${styles.slide} portrait-photo`}
           role="group" aria-roledescription="slide" aria-label={`Photo ${index + 1} of ${photos.length}`} aria-hidden={index !== active}>
+          <img className="portrait-photo-backdrop" src={photo.url} alt="" aria-hidden="true" loading={index === 0 ? 'eager' : 'lazy'} decoding="async" draggable={false} />
           <img src={photo.url} alt={photo.alt || name} loading={index === 0 ? 'eager' : 'lazy'} decoding="async" draggable={false} />
         </div>) : <div className={`${styles.slide} missing-photo`} role="img" aria-label={`Photo of ${name} not yet available`}>Photo coming soon</div>}
       </div>
