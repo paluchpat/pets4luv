@@ -676,6 +676,10 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   }
 }
 
+:is(.animal-card, .animal-facts) .animal-age-label {
+  text-transform: none;
+}
+
 /* Published information pages share the site's quiet editorial layout. */
 .content-page h1{overflow-wrap:anywhere}
 .donation-options {
