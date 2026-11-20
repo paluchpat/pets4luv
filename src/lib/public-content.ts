@@ -1,13 +1,13 @@
 import type { Where } from 'payload'
 import { animalAgeGroupWhere } from './animal-age'
-import { isAnimalColor } from './animal-colors'
+import { isAnimalColor, type AnimalColor } from './animal-colors'
 import { buildAnimalSearchWhere } from './animal-search'
 import { defaultHomepageIntro } from './homepage-intro'
 
 export type Assessment = 'yes' | 'no' | 'unknown' | 'conditional'
 export type RichText = { root: { children: unknown[]; [key: string]: unknown }; [key: string]: unknown }
 export type AnimalPhotoDTO = { url: string; alt: string }
-export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[]; weight: number | null }
+export type AnimalProfileDTO = AnimalDTO & { photos: AnimalPhotoDTO[]; weight: number | null; colors: AnimalColor[] }
 export type AnimalDTO = {
   id: number | string; name: string; slug: string; species: 'cat' | 'dog'; sex: 'female' | 'male' | 'unknown';
   ageGroup: 'baby' | 'young' | 'adult' | 'senior'; size: 'small' | 'medium' | 'large' | null; breed: string;
@@ -43,7 +43,9 @@ export function animalProfileDTO(doc: any): AnimalProfileDTO {
       : []
   })
   const weight = typeof doc.weight === 'number' && Number.isFinite(doc.weight) && doc.weight >= 0 ? doc.weight : null
-  return { ...animalDTO(doc, 'uncropped'), photos, weight }
+  const savedColors: unknown[] = Array.isArray(doc.colors) ? doc.colors : []
+  const colors = [...new Set(savedColors.filter(isAnimalColor))]
+  return { ...animalDTO(doc, 'uncropped'), photos, weight, colors }
 }
 
 function ageLabel(doc: any) {

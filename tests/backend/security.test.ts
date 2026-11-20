@@ -475,6 +475,9 @@ test('profile photos include all approved images without exposing media metadata
     { url: '/api/media/file/playing.webp', alt: 'Playing' },
   ])
   assert.equal(profile.photo?.url, profile.photos[0].url)
+  assert.deepEqual(profile.colors, [])
+  assert.deepEqual(animalProfileDTO({ colors: ['white', 'black', 'tuxedo', 'unrecognized', 'white'] }).colors,
+    ['white', 'black', 'tuxedo'])
   assert.ok(!JSON.stringify(profile).includes('PRIVATE PHOTO FIELD'))
 })
 
@@ -1112,6 +1115,7 @@ test('animal preview and publication are scoped to the reviewed revision and lin
     data: {
       name, slug: 'animal-review-fixture', species: 'cat', status: 'available', sex: 'female', ageGroup: 'young',
       summary: 'An adoptable cat.', description: 'Fictional first version.', photos: [{ photo: publicPhotoID }],
+      colors: ['white', 'black', 'tuxedo'],
       compatibility: { cats: 'yes', dogs: 'unknown', children: 'unknown' },
       rescueIntakeID: 'ANIMAL-REVIEW-PRIVATE', internalNotes: 'Staff-only animal review note', _status: 'draft',
     },
@@ -1123,6 +1127,7 @@ test('animal preview and publication are scoped to the reviewed revision and lin
   const preview = await previewAnimalDraft(payload, review.previewToken)
   assert.equal(preview?.description, 'Fictional first version.')
   assert.equal(preview?.photos.length, 1)
+  assert.deepEqual(preview?.colors, ['white', 'black', 'tuxedo'])
   assert.doesNotMatch(JSON.stringify(preview), /ANIMAL-REVIEW-PRIVATE|Staff-only animal review note/)
   assert.equal(await previewAnimalDraft(payload, approval), undefined)
   assert.equal(await previewAnimalDraft(payload, review.previewToken.replace(/^(a\.[^.]+)\.[^.]+/, '$1.0')), undefined)
@@ -1146,6 +1151,7 @@ test('animal preview and publication are scoped to the reviewed revision and lin
   assert.equal(visible._status, 'published')
   assert.equal(visible.description, 'Fictional second version.')
   assert.equal(visible.summary, 'Changed summary.')
+  assert.deepEqual(animalProfileDTO(visible).colors, ['white', 'black', 'tuxedo'])
   assert.equal(visible.compatibility.cats, 'yes')
   assert.equal(visible.photos.length, 1)
   assert.equal(visible.internalNotes, undefined)
