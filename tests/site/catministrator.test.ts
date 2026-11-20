@@ -32,14 +32,14 @@ const message = {
   chat: { id: 123, type: 'private' }, from: { id: 123 }, date: 1000, text: 'Feature First and Second.',
 }
 
-test('the Vercel Gateway uses Luna at medium effort and respects the request cap', async t => {
+test('the Vercel Gateway uses Terra at medium effort and respects the request cap', async t => {
   const usageDirectory = await mkdtemp(path.join(tmpdir(), 'catministrator-model-'))
   t.after(() => rm(usageDirectory, { recursive: true, force: true }))
   const gateway = t.mock.method(globalThis, 'fetch', async (url: string, options?: RequestInit) => {
     assert.equal(url, 'https://ai-gateway.vercel.sh/v1/responses')
     assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer gateway-fixture-key')
     const body = JSON.parse(String(options?.body))
-    assert.equal(body.model, 'openai/gpt-6-luna')
+    assert.equal(body.model, 'openai/gpt-6.1-terra')
     assert.deepEqual(body.reasoning, { effort: 'medium' })
     assert.equal(body.input, message.text)
     assert.equal(body.text.format.strict, true)

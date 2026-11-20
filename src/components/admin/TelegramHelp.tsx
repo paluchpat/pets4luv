@@ -89,7 +89,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <h2 id="telegram-admin-title">For administrators</h2>
           <p>In the CMS the bot uses, open {administrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
           <p>To revoke access, clear <strong>Telegram ID</strong> and save again.</p>
-          <p>With Vercel AI Gateway, GPT-6 Luna interprets text requests and GPT-6.1 Terra reads flyers. Both use medium effort and share the configured request limit. Photo intake currently saves to the local CMS.</p>
+          <p>With Vercel AI Gateway, GPT-6.1 Terra interprets text requests and reads flyers at medium effort. Both use the same request limit. Photo intake currently saves to the local CMS.</p>
         </section>
         <p className="cms-help-note">{hosted
           ? 'If your demo asks for Vercel sign-in, sign in to view the preview. If the bot is quiet, ask an administrator to check its connection.'
