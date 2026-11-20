@@ -28,7 +28,7 @@ export type DraftRequest =
   | { action: 'remove-coat-colors'; animal: string; colors: AnimalColor[] }
   | { action: 'featured'; animals: string[] }
   | { action: 'lead'; animal: string }
-  | { action: 'replace-featured'; animal: string; replacement: string }
+  | { action: 'replace-featured'; animal: string; replacement: string; source?: 'draft' | 'published' }
 
 function animalReference(value: unknown): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > 160) {
@@ -85,8 +85,11 @@ export function leadDraftRequest(animal: unknown): DraftRequest {
   return { action: 'lead', animal: animalReference(animal) }
 }
 
-export function featuredReplacementRequest(animal: unknown, replacement: unknown): DraftRequest {
-  return { action: 'replace-featured', animal: animalReference(animal), replacement: animalReference(replacement) }
+export function featuredReplacementRequest(animal: unknown, replacement: unknown, source?: unknown): DraftRequest {
+  if (source != null && source !== 'draft' && source !== 'published') {
+    throw new DraftRequestError('Choose the live homepage or the saved featured draft.')
+  }
+  return { action: 'replace-featured', animal: animalReference(animal), replacement: animalReference(replacement), ...(source && { source }) }
 }
 
 export function pageTextDraftRequest(page: unknown, before: unknown, after: unknown): DraftRequest {
@@ -104,7 +107,7 @@ export function validateDraftRequest(draft: unknown): DraftRequest {
   if (value.action === 'page-text') return pageTextDraftRequest(value.page, value.before, value.after)
   if (value.action === 'lead') return leadDraftRequest(value.animal)
   if (value.action === 'featured') return featuredDraftRequest(value.animals)
-  if (value.action === 'replace-featured') return featuredReplacementRequest(value.animal, value.replacement)
+  if (value.action === 'replace-featured') return featuredReplacementRequest(value.animal, value.replacement, value.source)
   if (value.action === 'remove-coat-colors') return removeCoatColorsDraftRequest(value.animal, value.colors)
   if (value.action === 'animal' && value.patch && typeof value.patch === 'object' && !Array.isArray(value.patch)) {
     return animalDraftRequest(value.animal, value.patch as Record<string, unknown>)

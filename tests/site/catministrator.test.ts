@@ -7,7 +7,7 @@ import { openAIInterpreter, readModelDecision, type ModelInput, type ModelDecisi
 import { AnimalNameError, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from '../../src/lib/catministrator/requests'
 import { readIntakeDetails } from '../../src/lib/catministrator/animal-intake'
 import { createPhotoFlow, type PhotoWork } from '../../src/lib/catministrator/photo-flow'
-import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
+import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, type ModelFollowUp, type NameFollowUp } from '../../src/lib/catministrator/telegram'
 
 test('Catministrator parses explicit changes and rejects fields outside its draft scope', () => {
   assert.deepEqual(parseDraftCommand('/edit Test Cat | status=pending | summary=A calm cat.'), {
@@ -62,6 +62,36 @@ test('the Vercel Gateway sends a caption and all five images to Luna together', 
     { action: 'create-animal', animal: undefined, details: {}, attachments: ['unknown', 'unknown'] })
   await assert.rejects(() => interpret(input), /request limit/)
   assert.equal(gateway.mock.callCount(), 1)
+})
+
+test('a featured swap can resume when the editor chooses the live order', async () => {
+  const original = { action: 'replace-featured', animal: 'Tiny', replacement: 'Rowan' } as const
+  const question = 'Should I use the live homepage or the saved draft for this swap?'
+  let pending: ModelFollowUp | undefined
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    modelFollowUps: {
+      load: async () => pending,
+      store: async (_id: number, value?: ModelFollowUp) => { pending = value },
+    },
+    interpret: async ({ text, context }: ModelInput) => {
+      if (text !== 'Use the live order') return original
+      assert.equal(context?.previousMessage, 'Replace Tiny with Rowan in the featured list.')
+      assert.equal(context?.previousReply, question)
+      return readModelDecision(JSON.stringify({ ...original, featuredSource: 'published' }))
+    },
+    save: async (_id: number, _date: number, request: DraftRequest) => {
+      if ('source' in request && request.source === 'published') {
+        assert.deepEqual(request, { ...original, source: 'published' })
+        return { message: 'Featured animals draft saved.', path: '/admin/globals/homepage' }
+      }
+      throw new DraftRequestError(question)
+    },
+    onError: () => assert.fail('Choosing an order should succeed'),
+  }
+  assert.equal((await replyToTelegram({ ...message, text: 'Remove Tiny from featured animals, replace with Rowan' }, handlers))?.text, question)
+  assert.match((await replyToTelegram({ ...message, text: 'Use the live order' }, handlers))?.text || '', /Featured animals draft saved/)
 })
 
 test('Luna sends a coat removal as a targeted edit without replacement colors', () => {

@@ -64,6 +64,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             </dl>
             <p>When you remove a coat color, Catministrator uses the animal’s current CMS draft or published profile and keeps the other colors in order.</p>
             <p>Choose up to three published, available animals when setting the full featured list. The first animal gets the large photo.</p>
+            <p>Catministrator checks the live homepage and the saved draft for featured swaps. If the two orders make the swap ambiguous, reply “Use the live order” or “Use the saved draft.”</p>
             <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” To clear the pending clarification, say “Never mind.”</p>
           </li>
           <li>

@@ -157,16 +157,31 @@ export async function saveCatministratorDraft(
         throw new DraftRequestError('The featured list changed while I was waiting for the name. Send a new featured request to start from the current list.')
       }
       const homepage = await payload.findGlobal({ ...options, slug: 'homepage' })
+      const live = await payload.findGlobal({ ...options, slug: 'homepage', draft: false })
       const existing = featuredAnimalIds(homepage.featuredAnimals)
       let ids: number[]
       let correction = ''
       if (request.action === 'replace-featured') {
-        const matches = existing.length
+        const published = featuredAnimalIds(live.featuredAnimals)
+        const ordersDiffer = existing.length !== published.length || existing.some((id, index) => id !== published[index])
+        const draftMatches = request.source !== 'published' && existing.length
           ? await findNamedAnimals(req, request.animal, false, { id: { in: existing } })
           : []
+        const publishedMatches = request.source !== 'draft' && published.length && (ordersDiffer || request.source === 'published')
+          ? await findNamedAnimals(req, request.animal, false, { id: { in: published } })
+          : []
+        if (draftMatches.length && publishedMatches.length) {
+          throw new DraftRequestError(`“${request.animal}” appears in two different featured orders. Should I use the live homepage or the saved draft for this swap?`)
+        }
+        const usingPublished = publishedMatches.length > 0
+        const matches = usingPublished ? publishedMatches : draftMatches
         if (!matches.length) {
-          const suggestions = existing.length ? await suggestNames(req, request.animal, false, { id: { in: existing } }) : []
-          throw new AnimalNameError(`“${request.animal}” isn’t in the featured list.`, { field: 'animal', reference: request.animal, suggestions })
+          const candidates = [...new Set(request.source === 'published' ? published
+            : request.source === 'draft' ? existing : [...existing, ...published])]
+          const suggestions = candidates.length ? await suggestNames(req, request.animal, false, { id: { in: candidates } }) : []
+          const location = request.source === 'draft' ? 'the saved featured draft'
+            : request.source === 'published' ? 'the live featured list' : 'the featured list'
+          throw new AnimalNameError(`“${request.animal}” isn’t in ${location}.`, { field: 'animal', reference: request.animal, suggestions })
         }
         if (matches.length > 1) {
           throw new AnimalNameError(`More than one featured animal matches “${request.animal}”.`, {
@@ -174,11 +189,22 @@ export async function saveCatministratorDraft(
           })
         }
         const [outgoing] = matches
+        const order = usingPublished ? published : existing
+        if (usingPublished && !request.source) {
+          const slot = published.indexOf(outgoing.id)
+          if (existing.length !== published.length ||
+              existing.some((id, index) => index !== slot && id !== published[index])) {
+            throw new DraftRequestError(`${outgoing.name} is on the live homepage, and the saved draft changes other slots. Should I start from the live order or make a different swap in the saved draft?`)
+          }
+        }
         const incoming = await findFeaturedReplacement(req, request.replacement)
-        ids = existing.map(id => id === outgoing.id ? incoming.id : id)
+        ids = order.map(id => id === outgoing.id ? incoming.id : id)
         const reference = request.replacement.toLowerCase()
         if (reference !== incoming.slug && reference !== 'slug:' + incoming.slug && reference !== incoming.name.trim().toLowerCase()) {
           correction = ` Matched “${request.replacement}” to ${incoming.name}.`
+        }
+        if (usingPublished) {
+          correction += ` Used ${outgoing.name}’s slot on the live homepage.`
         }
       } else if (request.action === 'lead') {
         const lead = await findAnimal(req, request.animal, false)
@@ -197,7 +223,6 @@ export async function saveCatministratorDraft(
         })
       }
       const latest = await latestFeaturedVersion(payload, req)
-      const live = await payload.findGlobal({ ...options, slug: 'homepage', draft: false })
       const review = latest?.version._status === 'draft' && isFeaturedOnlyChange(live, latest.version)
         ? featuredReviewTokens(payload.secret, latest, editor)
         : undefined

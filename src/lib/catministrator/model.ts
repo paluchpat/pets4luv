@@ -40,6 +40,7 @@ const properties = {
     ...draftActions, ...intakeActions, 'correct-name', 'confirm-intake', 'cancel', 'undo', 'undo-featured', 'delete', 'review-animal', 'reply',
   ] },
   animal: nullableText, replacement: nullableText, animals: { type: 'array', items: { type: 'string' } },
+  featuredSource: { type: ['string', 'null'], enum: ['draft', 'published', null] },
   page: nullableText, before: nullableText, after: nullableText, message: nullableText,
   ...intakeDetailProperties,
   removeColors: { type: 'array', items: { type: 'string', enum: animalColorOptions.map(color => color.value) } },
@@ -58,7 +59,7 @@ export function readModelDecision(text: string, imageCount = 0): ModelDecision {
   if (result.action === 'page-text') return pageTextDraftRequest(result.page, result.before, result.after)
   if (result.action === 'remove-coat-colors') return removeCoatColorsDraftRequest(result.animal, result.removeColors)
   if (result.action === 'lead') return leadDraftRequest(result.animal)
-  if (result.action === 'replace-featured') return featuredReplacementRequest(result.animal, result.replacement)
+  if (result.action === 'replace-featured') return featuredReplacementRequest(result.animal, result.replacement, result.featuredSource)
   if (result.action === 'featured') return featuredDraftRequest(result.animals)
   if (result.action === 'delete') throw new DeleteRequestError()
   if (result.action === 'create-animal' || result.action === 'update-animal-media' || result.action === 'read-images') {
@@ -144,6 +145,7 @@ export function openAIInterpreter({
           'Use animal to update the summary, description, reported breed, or adoption status of one existing animal. Copy the supplied name or slug and only the requested changes. Status is available, on-hold (pending), or adopted.',
           'Use remove-coat-colors for edits like “remove gray color from Rowan” or “take the gray tag off Rowan”. Put only the tags to remove in removeColors. The CMS reads the current list and keeps all other tags in order. No photo, confidence estimate, or list of remaining colors is needed. For a follow-up like “only remove gray”, use the animal from the pending request when clear.',
           'Use page-text to replace exact wording on an existing page. Copy its title or slug, the old wording, and the new wording. Use lead for the first or spotlight animal alone, replace-featured for a slot swap, or featured for a complete list of 1–' + featuredAnimalLimit + ' names in the requested order.',
+          'For replace-featured, set featuredSource only if the editor explicitly chooses the published homepage or the saved draft. If the previous reply asks which order to use, a reply like “use the live order” resumes the same swap with featuredSource set to published. Copy the original animal and replacement from context.',
           'If context shows a pending animal-name correction, use correct-name with the name the editor confirms. Copy the exact supplied name or one shown in suggestions. Choose a new action if the editor is giving a new request.',
           'Use cancel to clear pending work, undo for an explicit “undo last change,” and undo-featured if the editor explicitly asks to restore the previous featured publication. Never use these actions based on images alone.',
           'For content deletion, use delete so the bot directs the editor to the CMS. Featured slot swaps and removing specific coat tags are edits. When the editor asks to preview, review, or publish an animal draft, choose review-animal. Use the named animal or recentAnimalDraft from context. Leave the name null if it is unclear so the bot can ask. Only a signed Telegram button can publish. For a featured publication, direct the editor to Publish this draft in their featured preview. For other page drafts, direct them to the CMS rather than inventing a button.',

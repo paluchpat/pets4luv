@@ -340,6 +340,12 @@ export async function replyToTelegram(
         return answer(error.message + ' Send the full request again with the correct name or CMS slug.')
       }
     }
+    if (error instanceof DraftRequestError && attempt?.action === 'replace-featured') {
+      await handlers.modelFollowUps?.store(id, {
+        request: `Replace ${attempt.animal} with ${attempt.replacement} in the featured list.`,
+        reply: error.message, requestedAt: date, expiresAt: Date.now() + 30 * 60 * 1000,
+      }).catch(handlers.onError)
+    }
     if (!(error instanceof DraftRequestError)) handlers.onError()
     return answer(error instanceof DraftRequestError ? error.message
       : 'I couldn’t finish that request. Try again or use the CMS.')
