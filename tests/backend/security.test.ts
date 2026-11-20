@@ -27,6 +27,7 @@ import { publishFeaturedDraft, saveCatministratorDraft, reviewCatministratorAnim
 import { previewAnimalDraft, publishAnimalDraft } from '../../src/lib/catministrator/animal-review'
 import { savePhotoDraft } from '../../src/lib/catministrator/photo-drafts'
 import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
+import { readModelDecision } from '../../src/lib/catministrator/model'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
 import { AnimalNameError, correctAnimalReference, parseDraftCommand } from '../../src/lib/catministrator/requests'
@@ -780,6 +781,39 @@ test('CMS document links follow published slugs and never reveal draft or delete
     assert.equal(((await resolveRichTextLinks(payload, source)) as any).root.children[0].fields.url, '')
     assert.deepEqual(await resolveRichTextLinks(payload, { root: { children: [] } }), { root: { children: [] } })
   } finally { await payload.delete({ collection: 'pages', id: target.id }).catch(() => {}) }
+})
+
+test('Catministrator removes only the requested coat tag from the latest animal draft', async () => {
+  const published = await payload.create({
+    collection: 'animals', overrideAccess: false, user: editor,
+    data: {
+      name: 'Coat Edit Fixture', slug: 'coat-edit-fixture', species: 'cat', sex: 'unknown', ageGroup: 'young', status: 'available',
+      summary: 'Original summary', description: 'Original description', photos: [{ photo: publicPhotoID }],
+      compatibility: { cats: 'unknown', dogs: 'unknown', children: 'unknown' },
+      colors: ['black', 'gray', 'white', 'tuxedo'], _status: 'published',
+    },
+  })
+  const options = { collection: 'animals', id: published.id, depth: 0, overrideAccess: false, user: editor } as const
+  const existingDraft = await payload.update({
+    ...options, draft: true, data: {
+      colors: ['white', 'gray', 'black', 'tuxedo'], summary: 'New summary from an editor', _status: 'draft',
+    },
+  })
+  const request = readModelDecision(JSON.stringify({
+    action: 'remove-coat-colors', animal: published.name, removeColors: ['gray'],
+  }))
+  assert.equal(request.action, 'remove-coat-colors')
+  const result = await saveCatministratorDraft(payload, editor, request)
+  assert.match(result.message, /Removed Gray\. Remaining coat colors are White, Black, Tuxedo\./)
+  assert.equal(result.review?.kind, 'animal')
+  assert.equal(result.changed, true)
+  const draft = await payload.findByID({ ...options, draft: true })
+  assert.deepEqual(draft.colors, ['white', 'black', 'tuxedo'])
+  assert.equal(draft.summary, existingDraft.summary)
+  assert.equal(draft.description, published.description)
+  assert.deepEqual(draft.photos, existingDraft.photos)
+  assert.deepEqual((await payload.findByID({ ...options, draft: false })).colors, published.colors)
+  assert.equal((await saveCatministratorDraft(payload, editor, request)).changed, false)
 })
 
 test('Catministrator saves profile and featured edits as drafts under an editor identity', async () => {

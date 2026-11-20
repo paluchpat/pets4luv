@@ -1,3 +1,4 @@
+import { isAnimalColor, type AnimalColor } from '../animal-colors'
 import { featuredAnimalLimit } from '../featured-animals'
 
 export class DraftRequestError extends Error {}
@@ -24,6 +25,7 @@ export type AnimalPatch = { summary?: string; description?: string; breed?: stri
 export type DraftRequest =
   | { action: 'page-text'; page: string; before: string; after: string }
   | { action: 'animal'; animal: string; patch: AnimalPatch }
+  | { action: 'remove-coat-colors'; animal: string; colors: AnimalColor[] }
   | { action: 'featured'; animals: string[] }
   | { action: 'lead'; animal: string }
   | { action: 'replace-featured'; animal: string; replacement: string }
@@ -71,6 +73,14 @@ export function featuredDraftRequest(animals: unknown): DraftRequest {
   return { action: 'featured', animals: names }
 }
 
+export function removeCoatColorsDraftRequest(animal: unknown, colors: unknown): DraftRequest {
+  const reference = animalReference(animal)
+  if (!Array.isArray(colors) || !colors.length || !colors.every(isAnimalColor)) {
+    throw new DraftRequestError('Tell me which listed coat color to remove.')
+  }
+  return { action: 'remove-coat-colors', animal: reference, colors: [...new Set(colors)] }
+}
+
 export function leadDraftRequest(animal: unknown): DraftRequest {
   return { action: 'lead', animal: animalReference(animal) }
 }
@@ -95,6 +105,7 @@ export function validateDraftRequest(draft: unknown): DraftRequest {
   if (value.action === 'lead') return leadDraftRequest(value.animal)
   if (value.action === 'featured') return featuredDraftRequest(value.animals)
   if (value.action === 'replace-featured') return featuredReplacementRequest(value.animal, value.replacement)
+  if (value.action === 'remove-coat-colors') return removeCoatColorsDraftRequest(value.animal, value.colors)
   if (value.action === 'animal' && value.patch && typeof value.patch === 'object' && !Array.isArray(value.patch)) {
     return animalDraftRequest(value.animal, value.patch as Record<string, unknown>)
   }

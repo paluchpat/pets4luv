@@ -11,6 +11,7 @@ import { isEditor } from '../../lib/catministrator/editors'
 const examples = [
   { label: 'Update an animal’s short description', message: 'Set Fig’s summary to Sweet and playful.' },
   { label: 'Mark an animal as pending', message: 'Mark Tiny as pending.' },
+  { label: 'Remove a coat color tag', message: 'Remove the Gray tag from Rowan.' },
   { label: 'Set the homepage featured list', message: 'Feature Fig first, then Frida and Bandit.' },
   { label: 'Change the lead animal', message: 'Make Tiny the lead featured animal.' },
   { label: 'Replace one featured animal', message: 'Replace Tiny with Mochachina in the featured list.' },
@@ -61,6 +62,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
                 <dd><q>{message}</q></dd>
               </div>)}
             </dl>
+            <p>When you remove a coat color, Catministrator uses the animal’s current CMS draft or published profile and keeps the other colors in order.</p>
             <p>Choose up to three published, available animals when setting the full featured list. The first animal gets the large photo.</p>
             <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” To clear the pending clarification, say “Never mind.”</p>
           </li>

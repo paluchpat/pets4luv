@@ -64,6 +64,17 @@ test('the Vercel Gateway sends a caption and all five images to Luna together', 
   assert.equal(gateway.mock.callCount(), 1)
 })
 
+test('Luna sends a coat removal as a targeted edit without replacement colors', () => {
+  const decision = { action: 'remove-coat-colors', animal: 'Rowan', removeColors: ['gray'] }
+  assert.deepEqual(readModelDecision(JSON.stringify({ ...decision, colors: ['black'] })), {
+    action: 'remove-coat-colors', animal: 'Rowan', colors: ['gray'],
+  })
+  for (const removeColors of [[], ['unsupported-color'], null]) {
+    assert.throws(() => readModelDecision(JSON.stringify({ ...decision, removeColors })), DraftRequestError)
+  }
+  assert.throws(() => readModelDecision(JSON.stringify({ action: 'delete', animal: 'Rowan' })), DeleteRequestError)
+})
+
 test('Luna intake keeps supported coat tags with high confidence in the proposed order', () => {
   const decision = readModelDecision(JSON.stringify({
     action: 'create-animal', name: 'Willow', species: 'cat',

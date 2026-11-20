@@ -1,5 +1,6 @@
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest, type Where } from 'payload'
 import type { Animal, User } from '../../payload-types'
+import { animalColorOptions, type AnimalColor } from '../animal-colors'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
 import { animalReviewForDraft, publishAnimalDraft } from './animal-review'
 import { savePageTextDraft } from './page-drafts'
@@ -19,6 +20,10 @@ export type DraftReceipt = {
   undoToken?: string
 }
 
+function coatColorLabels(colors: readonly AnimalColor[]) {
+  return colors.map(tag => animalColorOptions.find(option => option.value === tag)?.label ?? tag).join(', ')
+}
+
 async function findNamedAnimals(req: PayloadRequest, reference: string, draft: boolean, filter?: Where) {
   const key = reference.toLowerCase()
   const explicitSlug = key.startsWith('slug:')
@@ -27,7 +32,7 @@ async function findNamedAnimals(req: PayloadRequest, reference: string, draft: b
     : { or: [{ slug: { equals: key } }, { name: { like: reference } }] }
   const { docs } = await req.payload.find({
     req, collection: 'animals', draft, depth: 0, overrideAccess: false, pagination: false,
-    select: { name: true, slug: true, status: true, _status: true, summary: true, description: true, breed: true },
+    select: { name: true, slug: true, status: true, _status: true, summary: true, description: true, breed: true, colors: true },
     where: { ...named, ...filter },
   })
   if (explicitSlug) return docs
@@ -111,24 +116,39 @@ export async function saveCatministratorDraft(
     let result: DraftReceipt
     if (request.action === 'page-text') {
       result = await savePageTextDraft(req, request)
-    } else if (request.action === 'animal') {
+    } else if (request.action === 'animal' || request.action === 'remove-coat-colors') {
       const animal = await findAnimal(req, request.animal, true)
-      const fields = Object.keys(request.patch) as (keyof typeof request.patch)[]
-      const changed = fields.filter(field => (animal[field] || '') !== request.patch[field])
-      const patch = Object.fromEntries(changed.map(field => [field, request.patch[field]]))
-      if (changed.length) {
+      let patch: Partial<Animal>
+      let message: string
+      if (request.action === 'remove-coat-colors') {
+        const current = animal.colors || []
+        const removed = current.filter(color => request.colors.includes(color))
+        const remaining = current.filter(color => !request.colors.includes(color))
+        patch = removed.length ? { colors: remaining } : {}
+        message = removed.length
+          ? `Draft saved for ${animal.name}. Removed ${coatColorLabels(removed)}. ` +
+            (remaining.length ? `Remaining coat colors are ${coatColorLabels(remaining)}.` : 'No coat colors remain.')
+          : `${animal.name}’s coat colors already exclude ${coatColorLabels(request.colors)}.`
+      } else {
+        const fields = Object.keys(request.patch) as (keyof typeof request.patch)[]
+        const changed = fields.filter(field => (animal[field] || '') !== request.patch[field])
+        patch = Object.fromEntries(changed.map(field => [field, request.patch[field]]))
+        message = changed.length
+          ? `Draft saved for ${animal.name}. Updated ${changed.map(field => field === 'status' ? 'adoption status' : field).join(', ')}.`
+          : `${animal.name} already has those values.`
+      }
+      const changed = Object.keys(patch).length > 0
+      if (changed) {
         await payload.update({
           ...options, collection: 'animals', id: animal.id, overrideLock: false,
           data: { ...patch, _status: 'draft' },
         })
       }
       result = {
-        message: changed.length
-          ? `Draft saved for ${animal.name}. Updated ${changed.map(field => field === 'status' ? 'adoption status' : field).join(', ')}.`
-          : `${animal.name} already has those values.`,
+        message,
         path: '/admin/collections/animals/' + animal.id,
         review: await animalReviewForDraft(req, animal.id, editor),
-        changed: changed.length > 0,
+        changed,
       }
     } else {
       const base = await latestFeaturedVersion(payload, req)
