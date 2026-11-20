@@ -42,7 +42,7 @@ With the local CMS set up, run `./scripts/local.sh catministrator` in a separate
 
 Describe your change in Telegram using everyday language. For example, “Set Fig’s summary to Sweet and playful” drafts a profile edit, and “Feature Fig first, then Frida and Bandit” drafts the homepage list. Open the draft in the CMS to review and publish it.
 
-Once API funding is confirmed, set `AI_GATEWAY_API_KEY`, `CATMINISTRATOR_AI_REQUEST_LIMIT`, and `AI_ENABLED=true` in `.env.catministrator` and restart the worker. The Gateway uses `openai/gpt-6.1-terra` at medium effort for text requests and image reading. The request cap counts model calls across local restarts. A direct OpenAI pilot uses `OPENAI_API_KEY` and `CATMINISTRATOR_OPENAI_MODEL` when the Gateway key is unset.
+Once API funding is confirmed, set `AI_GATEWAY_API_KEY`, `CATMINISTRATOR_AI_REQUEST_LIMIT`, and `AI_ENABLED=true` in `.env.catministrator` and restart the worker. The Gateway uses `openai/gpt-6-luna` at medium effort. After verifying the Telegram account belongs to a CMS editor or administrator, the worker sends the message and any supported images together to the model. You can send an album with both gallery photos and an intake sheet, then review the proposed draft in Telegram. The request cap counts model calls across local restarts. A direct OpenAI pilot uses `OPENAI_API_KEY` and `CATMINISTRATOR_OPENAI_MODEL` when the Gateway key is unset.
 
 Say “Set the first featured animal to Tiny” to change just the lead. Featured drafts can be reviewed in the homepage layout and published from the original Telegram reply. The signed preview and approval expire after 30 minutes, and publishing checks the current CMS role, draft version, and animal eligibility.
 

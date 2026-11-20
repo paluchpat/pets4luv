@@ -28,10 +28,6 @@ export type DraftRequest =
   | { action: 'lead'; animal: string }
   | { action: 'replace-featured'; animal: string; replacement: string }
 
-export function isCancelRequest(message: string) {
-  return /^(?:\/cancel|cancel(?: (?:that|this|the) (?:draft|intake|photo) request)?|never mind|start over)[.!?]*$/i.test(message.trim())
-}
-
 function animalReference(value: unknown): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > 160) {
     throw new DraftRequestError('Enter the animal’s exact name or CMS slug.')

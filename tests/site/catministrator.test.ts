@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
+import { openAIInterpreter, readModelDecision, type ModelInput, type ModelDecision } from '../../src/lib/catministrator/model'
 import { AnimalNameError, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from '../../src/lib/catministrator/requests'
 import { createPhotoFlow, type PhotoWork } from '../../src/lib/catministrator/photo-flow'
 import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
@@ -16,41 +16,50 @@ test('Catministrator parses explicit changes and rejects fields outside its draf
     action: 'featured', animals: ['First', 'Second', 'Third'],
   })
   assert.deepEqual(parseDraftCommand('/lead Tiny'), { action: 'lead', animal: 'Tiny' })
-  assert.deepEqual(readModelDraftOutput('{"action":"lead","animal":"Tiny"}'), { action: 'lead', animal: 'Tiny' })
+  assert.deepEqual(readModelDecision('{"action":"lead","animal":"Tiny"}'), { action: 'lead', animal: 'Tiny' })
   const replacement = { action: 'replace-featured', animal: 'Tiny', replacement: 'Mocachina' }
   assert.deepEqual(parseDraftCommand('/replace Tiny | Mocachina'), replacement)
-  assert.deepEqual(readModelDraftOutput(JSON.stringify(replacement)), replacement)
+  assert.deepEqual(readModelDecision(JSON.stringify(replacement)), replacement)
   assert.throws(() => parseDraftCommand('/replace Tiny'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/edit Test Cat | _status=published'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured First, first'), DraftRequestError)
   assert.throws(() => parseDraftCommand('/featured One, Two, Three, Four'), DraftRequestError)
-  assert.throws(() => readModelDraftOutput('{"action":"publish","animal":"Test Cat"}'))
-  assert.throws(() => readModelDraftOutput('{"action":"animal","animal":"Test Cat","status":"deleted"}'), DraftRequestError)
+  assert.throws(() => readModelDecision('{"action":"publish","animal":"Test Cat"}'))
+  assert.throws(() => readModelDecision('{"action":"animal","animal":"Test Cat","status":"deleted"}'), DraftRequestError)
 })
 
 const message = {
   chat: { id: 123, type: 'private' }, from: { id: 123 }, date: 1000, text: 'Feature First and Second.',
 }
 
-test('the Vercel Gateway uses Terra at medium effort and respects the request cap', async t => {
+test('the Vercel Gateway sends a caption and all five images to Luna together', async t => {
   const usageDirectory = await mkdtemp(path.join(tmpdir(), 'catministrator-model-'))
   t.after(() => rm(usageDirectory, { recursive: true, force: true }))
   const gateway = t.mock.method(globalThis, 'fetch', async (url: string, options?: RequestInit) => {
     assert.equal(url, 'https://ai-gateway.vercel.sh/v1/responses')
     assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer gateway-fixture-key')
     const body = JSON.parse(String(options?.body))
-    assert.equal(body.model, 'openai/gpt-6.1-terra')
+    assert.equal(body.model, 'openai/gpt-6-luna')
     assert.deepEqual(body.reasoning, { effort: 'medium' })
-    assert.equal(body.input, message.text)
+    const content = body.input[0].content
+    assert.equal(JSON.parse(content[0].text).message, 'add this cat')
+    assert.equal(content.filter((part: {type: string}) => part.type === 'input_image').length, 5)
     assert.equal(body.text.format.strict, true)
     return Response.json({ status: 'completed', output: [{
       type: 'message',
-      content: [{ type: 'output_text', text: JSON.stringify({ action: 'featured', animals: ['First', 'Second'] }) }],
+      content: [{ type: 'output_text', text: JSON.stringify({ action: 'create-animal', name: 'Willow', species: 'cat', attachments: ['photo', 'photo', 'photo', 'photo', 'reference'] }) }],
     }] })
   })
   const interpret = openAIInterpreter({ apiKey: 'gateway-fixture-key', viaGateway: true, requestLimit: 1, usageDirectory })
-  assert.deepEqual(await interpret(message.text), { action: 'featured', animals: ['First', 'Second'] })
-  await assert.rejects(() => interpret(message.text), /request limit/)
+  const photos = Array.from({ length: 5 }, (_, index) => ({ data: Buffer.from('test-' + index), digest: String(index) }))
+  const input = { text: 'add this cat', images: photos }
+  assert.deepEqual(await interpret(input), {
+    action: 'create-animal', animal: undefined, details: { name: 'Willow', species: 'cat' },
+    attachments: ['photo', 'photo', 'photo', 'photo', 'reference'],
+  })
+  assert.deepEqual(readModelDecision('{"action":"create-animal","attachments":["photo"]}', 2),
+    { action: 'create-animal', animal: undefined, details: {}, attachments: ['unknown', 'unknown'] })
+  await assert.rejects(() => interpret(input), /request limit/)
   assert.equal(gateway.mock.callCount(), 1)
 })
 
@@ -69,19 +78,25 @@ test('Telegram accounts must be linked and messages must be private before invok
   assert.equal(await replyToTelegram({ ...message, from: { id: 456 } }, handlers), undefined)
 })
 
-test('Catministrator introduces itself in plain language without spending a model request', async () => {
+test('Catministrator asks the model to respond to greetings, help, and check-ins', async () => {
   const handlers = {
     cmsOrigin: 'https://example.invalid',
     isLinked: async () => true,
-    interpret: async () => assert.fail('Greetings should not call the model'),
+    interpret: async ({ text }: ModelInput) => {
+      passed.push(text)
+      return { action: 'reply', message: 'What would you like to update?' } as const
+    },
     save: async () => assert.fail('Greetings should not save a draft'),
     onError: () => assert.fail('Greeting should succeed'),
   }
-  for (const text of ['/start', '/help', 'Hello!', 'What can you do?', 'Are you alive?']) {
+  const prompts = ['/start', '/help', 'Hello!', 'What can you do?', 'Are you alive?']
+  const passed: string[] = []
+  for (const text of prompts) {
     const reply = await replyToTelegram({ ...message, text }, handlers)
     assert.match(reply?.text || '', /Tell me what you’d like to update|What would you like to update/)
     assert.doesNotMatch(reply?.text || '', /\/[a-z]+/i)
   }
+  assert.deepEqual(passed, prompts)
 })
 
 test('Catministrator accepts a spoken-style edit and links to the CMS when text drafting is unavailable', async () => {
@@ -101,7 +116,7 @@ test('Catministrator accepts a spoken-style edit and links to the CMS when text 
   const ready = await replyToTelegram(input, {
     ...handlers,
     interpret: async request => {
-      assert.equal(request, text)
+      assert.equal(request.text, text)
       return draft
     },
   })
@@ -116,6 +131,10 @@ test('a linked editor can send a draft command with a CMS review link', async ()
   const result = await replyToTelegram({ ...message, text: '/featured First, Second' }, {
     cmsOrigin: 'https://example.invalid',
     isLinked: async (id, date) => id === 123 && date === 1000,
+    interpret: async ({ text }) => {
+      assert.equal(text, '/featured First, Second')
+      return { action: 'featured', animals: ['First', 'Second'] }
+    },
     save: async (id, date, command) => {
       assert.equal(id, 123)
       assert.equal(date, 1000)
@@ -151,6 +170,7 @@ test('local previews and review links use clickable loopback URLs', async () => 
   const { replyMarkup } = (await replyToTelegram({ ...message, text: '/lead Tiny' }, {
     cmsOrigin: 'http://localhost:3000',
     isLinked: async () => true,
+    interpret: async () => ({ action: 'lead', animal: 'Tiny' }),
     save: async () => ({
       message: 'Featured draft saved.', path: '/admin/globals/homepage',
       review: { previewToken: 'preview-token', publishToken: 'publish-token' },
@@ -166,13 +186,15 @@ test('local previews and review links use clickable loopback URLs', async () => 
 })
 
 
-test('the featured publication reply offers Undo and plain-language undo bypasses the model', async () => {
+test('typed undo is interpreted and publish approval requires a genuine Telegram callback', async () => {
   const requests: { token?: string; featured: boolean }[] = []
   const handlers = {
     cmsOrigin: 'https://example.invalid',
     isLinked: async (id: number) => id === 123,
     save: async () => assert.fail('Undo must not save an unrelated draft'),
-    interpret: async () => assert.fail('Undo should skip the model'),
+    interpret: async ({ text }: ModelInput): Promise<ModelDecision> => text.startsWith('/publish')
+      ? { action: 'reply', message: 'Tap Publish this draft on the proposal.' }
+      : { action: text === 'undo last action' ? 'undo' : 'undo-featured' },
     publish: async () => ({ message: 'Featured animals published.', path: '/', undoToken: 'signed-undo' }),
     undo: async (_id: number, _date: number, request: { token?: string; featured: boolean }) => {
       requests.push(request)
@@ -180,7 +202,10 @@ test('the featured publication reply offers Undo and plain-language undo bypasse
     },
     onError: () => assert.fail('The request should be handled'),
   }
-  const published = await replyToTelegram({ ...message, text: '/publish approval' }, handlers)
+  assert.match((await replyToTelegram({ ...message, text: '/publish approval' }, handlers))?.text || '', /Tap Publish/)
+  const published = await replyToTelegram(messageFromUpdate({
+    update_id: 0, callback_query: { id: 'publish', from: message.from, message, data: '/publish approval' },
+  }), handlers)
   const undoButton = published?.replyMarkup?.inline_keyboard[1]?.[0]
   assert.equal(undoButton?.text, 'Undo featured publish')
   for (const text of ['undo last action', 'undo publishing new featured animals order']) {
@@ -212,10 +237,12 @@ test('a suggested name or typed correction resumes the original draft in the sam
         else pending.delete(id)
       },
     },
-    interpret: async (text: string) => {
-      assert.equal(text, initial.text)
+    interpret: async ({ text, context }: ModelInput): Promise<ModelDecision> => {
       modelCalls++
-      return parseDraftCommand('/featured Fig, bandit, mocha')!
+      if (text === initial.text) return { action: 'featured', animals: ['Fig', 'bandit', 'mocha'] }
+      if (text === 'Never mind.') return { action: 'cancel' }
+      if (context?.nameCorrection) return { action: 'correct-name', animal: 'slug:mochachina' }
+      return { action: 'reply', message: 'Send the draft request again.' }
     },
     save: async (_id: number, _date: number, request: DraftRequest, version?: string | null) => {
       if (version === undefined) throw new AnimalNameError('I couldn’t find “mocha”.', {
@@ -234,133 +261,122 @@ test('a suggested name or typed correction resumes the original draft in the sam
 
   const other = { ...message, from: { id: 456 }, chat: { id: 456, type: 'private' }, text: 'I meant Mochachina' }
   assert.match((await replyToTelegram(other, handlers))?.text || '', /Send the draft request again/)
-  assert.match((await replyToTelegram({ ...message, text: '/name stale 0' }, handlers))?.text || '', /out of date/)
+  assert.match((await replyToTelegram(messageFromUpdate({
+    update_id: 8, callback_query: { id: 'old', from: message.from, message, data: '/name stale 0' },
+  }), handlers))?.text || '', /out of date/)
   const completed = await replyToTelegram({ ...message, text: 'I meant mochachina' }, handlers)
   assert.match(completed?.text || '', /draft saved/)
   assert.deepEqual(saves, [{ action: 'featured', animals: ['Fig', 'bandit', 'slug:mochachina'] }])
-  assert.equal(modelCalls, 1)
+  assert.equal(modelCalls, 3)
   assert.equal(pending.size, 0)
 
   const retry = await replyToTelegram(initial, handlers)
   const callback = { id: 'tap', from: message.from, message, data: retry?.replyMarkup?.inline_keyboard[0][0].callback_data }
   assert.match((await replyToTelegram(messageFromUpdate({ update_id: 9, callback_query: callback }), handlers))?.text || '', /draft saved/)
   assert.equal(saves.length, 2)
-  assert.equal(modelCalls, 2)
+  assert.equal(modelCalls, 4)
   await replyToTelegram(initial, handlers)
-  assert.match((await replyToTelegram({ ...message, text: 'Never mind.' }, handlers))?.text || '', /clarification canceled/)
+  assert.match((await replyToTelegram({ ...message, text: 'Never mind.' }, handlers))?.text || '', /cleared the pending request/)
   assert.equal(pending.size, 0)
 })
 
 
-test('a textless Telegram album gets a reply and the chosen profile is saved only after confirmation', async () => {
+test('the mixed album goes to the model after authorization and only its public photos are saved', async () => {
+  const files = Array.from({ length: 5 }, (_, index) => ({ file_id: 'file-' + index, file_unique_id: 'photo-' + index }))
   const original = { chat: message.chat, from: message.from, date: message.date }
-  const first = { file_id: 'large-1', file_unique_id: 'photo-1' }
-  const second = { file_id: 'large-2', file_unique_id: 'photo-2' }
-  const [album] = combinePhotoUpdates([
-    { update_id: 1, message: { ...original, media_group_id: 'album', photo: [{ file_id: 'small', file_unique_id: 'small-1' }, first] } },
-    { update_id: 2, message: { ...original, media_group_id: 'album', photo: [second] } },
-  ])
-  assert.equal(album.update_id, 2)
+  const [album] = combinePhotoUpdates(files.map((file, index) => ({
+    update_id: index + 1,
+    message: { ...original, media_group_id: 'album', photo: [file],
+      ...(index === 0 && { caption: 'add this cat' }) },
+  })))
+  assert.equal(album.update_id, 5)
   let stored: PhotoWork | undefined
-  const downloaded: string[] = []
   let allowed = false
+  let saved = false
+  let calls = 0
+  const downloaded: string[] = []
   const photoFlow = createPhotoFlow({
-    load: async () => stored,
+    load: async () => {
+      assert.ok(allowed, 'Unlinked messages must not read photo state')
+      return stored
+    },
     store: async (_id, work) => { stored = work },
     isLinked: async () => allowed,
-    find: async (_id, _date, name) => {
-      assert.equal(name, 'Fig')
-      return { id: 7, name }
-    },
+    find: async () => assert.fail('New intake must not search for an existing animal'),
     download: async file => {
+      assert.ok(allowed, 'Unlinked messages must not download images')
       downloaded.push(file.file_id)
       return { digest: file.file_id, data: Buffer.from(file.file_id) }
     },
     save: async (_id, _date, plan, images) => {
-      assert.deepEqual(plan, { kind: 'update', id: 7, name: 'Fig', fields: undefined })
-      assert.deepEqual(images.map(image => image.digest), ['large-1', 'large-2'])
-      return { message: 'Draft saved for Fig.', path: '/admin/collections/animals/7' }
+      assert.deepEqual(plan, { kind: 'create', fields: { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.' } })
+      assert.deepEqual(images.map(image => image.digest), ['file-0', 'file-1', 'file-2', 'file-3'])
+      saved = true
+      return { message: 'Draft saved for Willow.', path: '/admin/collections/animals/7' }
     },
-    onError: () => assert.fail('Photo flow failed'),
   })
   const handlers = {
     cmsOrigin: 'https://example.invalid', photoFlow,
     isLinked: async () => allowed,
-    save: async () => assert.fail('Expected the photo flow to handle this request'),
+    interpret: async ({ text, images }: ModelInput): Promise<ModelDecision> => {
+      assert.ok(allowed, 'Unlinked messages must not use AI')
+      assert.equal(text, 'add this cat')
+      assert.deepEqual(images.map(image => image.digest), files.map(file => file.file_id))
+      calls++
+      return { action: 'create-animal', details: { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.' },
+        attachments: ['photo', 'photo', 'photo', 'photo', 'reference'] }
+    },
+    save: async () => assert.fail('Expected the intake flow'),
     onError: () => assert.fail('Telegram request failed'),
   }
   assert.match((await replyToTelegram(messageFromUpdate(album), handlers))?.text || '', /Give it to a Pets4Luv administrator/)
+  assert.equal(calls, 0)
   assert.equal(stored, undefined)
-  allowed = true
-  const receipt = await replyToTelegram(messageFromUpdate(album), handlers)
-  assert.match(receipt?.text || '', /received 2 photos.*animal’s name/)
-  const proposed = await replyToTelegram({ ...original, text: 'Can you add these photos to Fig’s profile?' }, handlers)
-  assert.match(proposed?.text || '', /Save to Fig’s draft/)
   assert.deepEqual(downloaded, [])
+  allowed = true
+  const proposed = await replyToTelegram(messageFromUpdate(album), handlers)
+  assert.match(proposed?.text || '', /Create an animal draft for Willow/)
+  assert.match(proposed?.text || '', /Website photos: 1, 2, 3, 4/)
+  assert.match(proposed?.text || '', /Reference images kept out of the gallery: 5/)
+  assert.equal(saved, false)
   const button = proposed?.replyMarkup?.inline_keyboard[0][0]
-  assert.equal(button?.text, 'Save animal draft')
   const result = await replyToTelegram(messageFromUpdate({
-    update_id: 3, callback_query: { id: 'save', from: original.from, message: original, data: button?.callback_data },
+    update_id: 6, callback_query: { id: 'save', from: original.from, message: original, data: button?.callback_data },
   }), handlers)
-  assert.match(result?.text || '', /Draft saved for Fig/)
-  assert.equal(result?.replyMarkup?.inline_keyboard[0][0].url, 'https://example.invalid/admin/collections/animals/7')
+  assert.match(result?.text || '', /Draft saved for Willow/)
+  assert.equal(calls, 1)
+  assert.equal(saved, true)
   assert.equal(stored, undefined)
+  assert.deepEqual(downloaded, [...files.map(file => file.file_id), 'file-0', 'file-1', 'file-2', 'file-3'])
 })
 
-test('reading an intake flyer extracts facts without uploading the reference image', async () => {
+test('replying with a missing name resumes the same intake with the album still in context', async () => {
   let stored: PhotoWork | undefined
-  const flow = createPhotoFlow({
+  const photoFlow = createPhotoFlow({
     load: async () => stored,
     store: async (_id, work) => { stored = work },
     isLinked: async () => true,
-    find: async () => { throw new AnimalNameError('Unknown animal', { reference: 'Willow', field: 'animal', suggestions: [] }) },
-    download: async () => ({ digest: 'flyer', data: Buffer.from('reference image') }),
-    read: async images => {
-      assert.equal(images[0].digest, 'flyer')
-      return { name: 'Willow', species: 'cat', sex: 'female', summary: 'A gentle kitten.' }
-    },
-    save: async (_id, _date, plan, images) => {
-      assert.deepEqual(plan, { kind: 'create', fields: { name: 'Willow', species: 'cat', sex: 'female', summary: 'A gentle kitten.' } })
-      assert.deepEqual(images, [])
-      return { message: 'Draft saved for Willow.', path: '/admin/collections/animals/1' }
-    },
-    onError: () => assert.fail('Photo flow failed'),
+    download: async file => ({ digest: file.file_id, data: Buffer.from(file.file_id) }),
+    save: async () => assert.fail('Intake still needs approval'),
   })
-  const photo = { id: 123, date: 1000, text: '', photos: [{ file_id: 'flyer', file_unique_id: 'flyer' }] }
-  const received = await flow(photo)
-  assert.ok(received && 'text' in received)
-  const read = received.buttons?.[0][0]
-  assert.equal(read?.text, 'Read details from image')
-  const details = await flow({ ...photo, text: read!.callback_data, photos: [] })
-  assert.ok(details && 'text' in details)
-  assert.match(details.text, /Willow.*female[\s\S]*gentle kitten/)
-  assert.deepEqual(stored?.files, [])
-  const save = details.buttons?.[0][0]
-  assert.equal(save?.text, 'Create animal draft')
-  const result = await flow({ ...photo, text: save!.callback_data, photos: [] })
-  assert.ok(result && 'draft' in result)
-  assert.match(result.draft.message, /Draft saved for Willow/)
-})
-
-
-test('natural-language intake and cancellation work without AI or slash commands', async () => {
-  let stored: PhotoWork | undefined
-  const flow = createPhotoFlow({
-    load: async () => stored,
-    store: async (_id, work) => { stored = work },
+  const handlers = {
+    cmsOrigin: 'https://example.invalid', photoFlow,
     isLinked: async () => true,
-    find: async () => assert.fail('New intake should not look up an existing animal'),
-    download: async () => assert.fail('There are no images in this intake'),
-    save: async () => assert.fail('Intake requires confirmation'),
-    onError: () => assert.fail('Intake should be understood'),
-  })
-  const input = { id: 123, date: 1000, photos: [] }
-  const reply = await flow({ ...input, text: 'Could you add a cat named Willow?' })
-  assert.ok(reply && 'text' in reply)
-  assert.match(reply.text, /Create an animal draft for Willow/)
-  assert.equal(reply.buttons?.[0][0].text, 'Create animal draft')
-  const canceled = await flow({ ...input, text: 'Never mind.' })
-  assert.ok(canceled && 'text' in canceled)
-  assert.match(canceled.text, /canceled/)
-  assert.equal(stored, undefined)
+    interpret: async ({ text, images, context }: ModelInput): Promise<ModelDecision> => {
+      assert.equal(images.length, 1)
+      if (!text) return { action: 'reply', message: 'What would you like me to do with this photo?' }
+      if (text === 'Add this cat') return { action: 'create-animal', details: { species: 'cat' }, attachments: ['photo'] }
+      assert.equal(text, 'Her name is Willow')
+      assert.deepEqual((context?.photoIntake as {details?: unknown}).details, { species: 'cat' })
+      return { action: 'create-animal', details: { name: 'Willow', species: 'cat' }, attachments: ['photo'] }
+    },
+    save: async () => assert.fail('Expected intake'),
+    onError: () => assert.fail('Telegram request failed'),
+  }
+  const { text: _text, ...original } = message
+  assert.match((await replyToTelegram({ ...original, photo: [{ file_id: 'cat', file_unique_id: 'cat' }] }, handlers))?.text || '', /this photo/)
+  assert.match((await replyToTelegram({ ...original, text: 'Add this cat' }, handlers))?.text || '', /cat’s name/)
+  const proposal = await replyToTelegram({ ...original, text: 'Her name is Willow' }, handlers)
+  assert.match(proposal?.text || '', /Create an animal draft for Willow/)
+  assert.equal(proposal?.replyMarkup?.inline_keyboard[0][0].text, 'Create animal draft')
 })

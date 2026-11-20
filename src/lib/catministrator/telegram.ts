@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto'
 import type { DraftReceipt } from './drafts'
-import type { createPhotoFlow } from './photo-flow'
+import type { ModelInput, ModelDecision } from './model'
+import type { PhotoReply, PhotoWork, createPhotoFlow } from './photo-flow'
 import type { TelegramFile } from './photo-input'
 import {
-  AnimalNameError, correctAnimalReference, DeleteRequestError, DraftRequestError, isCancelRequest,
-  parseDraftCommand, type AnimalNameIssue, type DraftRequest,
+  AnimalNameError, correctAnimalReference, DeleteRequestError, DraftRequestError,
+  validateDraftRequest, type AnimalNameIssue, type DraftRequest,
 } from './requests'
 
 type TelegramMessage = {
@@ -12,6 +13,7 @@ type TelegramMessage = {
   date?: number
   from?: { id: number; is_bot?: boolean }
   text?: string
+  button?: string
   caption?: string
   photo?: TelegramFile[]
   document?: TelegramFile
@@ -41,7 +43,7 @@ export function messageFromUpdate(update: TelegramUpdate): TelegramMessage | und
   const callback = update.callback_query
   if (!/^(?:\/publish|\/undo|\/name|\/photo-action) /.test(callback?.data || '') || !callback?.message?.chat) return
   return {
-    chat: callback.message.chat, from: callback.from, date: Math.floor(Date.now() / 1000), text: callback.data,
+    chat: callback.message.chat, from: callback.from, date: Math.floor(Date.now() / 1000), button: callback.data,
   }
 }
 
@@ -104,18 +106,6 @@ function homepageReply(chat: number, result: DraftReceipt, cmsOrigin: string): T
   }
 }
 
-function undoRequest(text: string): { token?: string; featured: boolean } | undefined {
-  const phrase = text.trim().replace(/\s+/g, ' ').replace(/[.!?]+$/, '')
-    .replace(/^(?:(?:can|could|would) you )?(?:please )?/i, '')
-  const command = /^\/undo(?:\s+(\S+))?$/i.exec(phrase)
-  if (command) return { token: command[1], featured: true }
-  if (/^undo(?: (?:the |my )?last (?:action|change))?$/i.test(phrase)) return { featured: false }
-  if (/^restore (?:the )?previous featured(?: animals)? order$/i.test(phrase)) return { featured: true }
-  if (/^(?:undo|revert) (?:(?:the |my )?(?:last |latest )?featured(?: animals)? (?:publish|publication)|publishing (?:the )?(?:new )?featured animals(?: order)?)$/i.test(phrase)) {
-    return { featured: true }
-  }
-}
-
 export type NameFollowUp = {
   draft: DraftRequest
   issue: AnimalNameIssue
@@ -143,9 +133,11 @@ function nameFollowUpReply(chat: number, pending: NameFollowUp): TelegramReply {
   }
 }
 
-function typedCorrection(text: string) {
-  return /^(?:i meant|i mean|actually,? (?:i meant|use))\s+(.+?)[.!?]?$/i.exec(text.trim())?.[1]
-    .trim().replace(/^[“"]|[”"]$/g, '')
+export type ModelFollowUp = {
+  request: string
+  reply: string
+  requestedAt: number
+  expiresAt: number
 }
 
 export async function replyToTelegram(
@@ -157,9 +149,13 @@ export async function replyToTelegram(
       load: (id: number) => Promise<NameFollowUp | undefined>
       store: (id: number, pending?: NameFollowUp) => Promise<void>
     }
+    modelFollowUps?: {
+      load: (id: number) => Promise<ModelFollowUp | undefined>
+      store: (id: number, pending?: ModelFollowUp) => Promise<void>
+    }
     publish?: (id: number, date: number, token: string) => Promise<DraftReceipt>
     undo?: (id: number, date: number, request: { token?: string; featured: boolean }) => Promise<DraftReceipt>
-    interpret?: (text: string) => Promise<DraftRequest>
+    interpret?: (input: ModelInput) => Promise<ModelDecision>
     cmsOrigin: string
     photoFlow?: ReturnType<typeof createPhotoFlow>
     onError: () => void
@@ -168,114 +164,126 @@ export async function replyToTelegram(
   const { chat, date, from } = message || {}
   if (!message || chat?.type !== 'private' || !from || from.is_bot || chat.id !== from.id || !Number.isSafeInteger(from.id) || from.id < 1 ||
       typeof date !== 'number' || !Number.isSafeInteger(date)) return undefined
-  const text = message.text || message.caption || ''
-  const photos = messagePhotos(message)
   const id = from.id
-  const phrase = text.trim().replace(/[.!?]+$/, '').trim().toLowerCase()
-  const answer = (reply: string) => ({ chat: id, text: reply })
-  const undo = undoRequest(text)
+  const answer = (text: string) => ({ chat: id, text })
+  const { button } = message
+  const photos = messagePhotos(message)
+  const photoFlow = handlers.photoFlow
+  let text = message.text || message.caption || ''
   let pending: NameFollowUp | undefined
   let attempt: DraftRequest | undefined
   let requestedAt = date
-  const clearFollowUp = async () => {
-    if (pending) await handlers.nameFollowUps?.store(id)
-    pending = undefined
+  let work: PhotoWork | undefined
+  const photoReply = (reply: PhotoReply): TelegramReply =>
+    'draft' in reply ? reviewReply(id, reply.draft, handlers.cmsOrigin, false)
+      : { ...answer(reply.text), ...(reply.buttons?.length && { replyMarkup: { inline_keyboard: reply.buttons } }) }
+
+  async function resumeWithName(reference: string, receivedAt: number) {
+    if (!pending || receivedAt < pending.requestedAt || !await handlers.isLinked(id, pending.requestedAt)) {
+      return answer('Tell me the original request again with the animal’s correct name.')
+    }
+    const version = pending.issue.featuredVersion
+    requestedAt = pending.requestedAt
+    attempt = correctAnimalReference(pending.draft, pending.issue.field, reference)
+    await handlers.nameFollowUps?.store(id)
+    const result = await handlers.save(id, receivedAt, attempt, version)
+    return reviewReply(id, result, handlers.cmsOrigin, Boolean(handlers.publish))
   }
+
   try {
-    const linked = await handlers.isLinked(id, date)
-    if (!linked) {
+    // Check the CMS role and Telegram link before reading state, downloading files, or using AI.
+    if (!await handlers.isLinked(id, date)) {
       return answer(`Your Telegram user ID is ${id}. Give it to a Pets4Luv administrator to link your editor account.`)
     }
-    if (text.length > 3500) return answer('Please send a shorter draft request.')
-    if (!photos.length && !message.document) {
-      if (/^(?:are you (?:there|online|alive|working|up)|are you still there)$/.test(phrase)) {
-        return answer('I’m here. What would you like to update?')
-      }
-      if (/^(?:\/(?:start|help)|(?:hi|hey|hello)(?: catministrator)?|help|what can you (?:do|help(?: me)? with)|how (?:do|can) i use (?:you|this bot|catministrator))$/.test(phrase)) {
-        const greeting = handlers.interpret
-          ? 'Hi! Tell me what you’d like to update and I’ll prepare a draft for review. Try “Mark Tiny as pending” or “Feature Fig first, then Frida and Bandit.”'
-          : 'Hi! I’m here. Text drafting is currently unavailable. You can edit the site in the CMS.'
-        const photoHelp = handlers.photoFlow
-          ? '\n\nYou can also send an animal photo with its name, or send a flyer and choose Read details from image.'
-          : ''
-        return answer(greeting + photoHelp)
-      }
-    }
-    const mediaReply = await handlers.photoFlow?.({ id, date, text, photos })
-    if (mediaReply) {
-      if ('draft' in mediaReply) return reviewReply(id, mediaReply.draft, handlers.cmsOrigin, false)
-      return { ...answer(mediaReply.text), ...(mediaReply.buttons?.length && {
-        replyMarkup: { inline_keyboard: mediaReply.buttons },
-      }) }
-    }
-    if (photos.length) {
-      return {
-        ...answer('Photo handling is unavailable for this CMS connection. You can add photos in the CMS.'),
-        replyMarkup: { inline_keyboard: [[linkButton('Open the animals CMS', '/admin/collections/animals', handlers.cmsOrigin)]] },
-      }
-    }
-    if (!message.text || message.document) return answer('Send a photo, a JPG, PNG, or WebP file, or describe the change you’d like to make.')
+    if (text.length > 3500) return answer('Please send a shorter request.')
     pending = await handlers.nameFollowUps?.load(id)
-    if (pending && (!Number.isSafeInteger(pending.requestedAt) || !Number.isFinite(pending.expiresAt) || pending.expiresAt <= Date.now())) await clearFollowUp()
-    if (isCancelRequest(text)) {
-      const reply = pending ? 'Name clarification canceled. Send a new draft request when you’re ready.' : 'There’s no pending name clarification.'
-      await clearFollowUp()
-      return answer(reply)
+    if (pending && (!Number.isSafeInteger(pending.requestedAt) || !Number.isFinite(pending.expiresAt)
+        || pending.expiresAt <= Date.now() || date < pending.requestedAt || !await handlers.isLinked(id, pending.requestedAt))) {
+      await handlers.nameFollowUps?.store(id)
+      pending = undefined
     }
-    if (/^(?:please\s+)?(?:\/delete|(?:permanently\s+)?delete)(?:\s|$)/i.test(text.trim())) throw new DeleteRequestError()
+
+    // Only genuine Telegram button callbacks can supply approval or selection tokens.
+    const publish = button && /^\/publish (\S+)$/.exec(button)
+    if (publish && handlers.publish) {
+      const result = await handlers.publish(id, date, publish[1])
+      await handlers.nameFollowUps?.store(id)
+      await handlers.modelFollowUps?.store(id)
+      return result.review ? reviewReply(id, result, handlers.cmsOrigin, true) : homepageReply(id, result, handlers.cmsOrigin)
+    }
+    const undo = button && /^\/undo (\S+)$/.exec(button)
     if (undo && handlers.undo) {
-      const result = await handlers.undo(id, date, undo)
-      await clearFollowUp()
+      return homepageReply(id, await handlers.undo(id, date, { token: undo[1], featured: true }), handlers.cmsOrigin)
+    }
+    const choice = button && /^\/name (\S+) ([0-2])$/.exec(button)
+    if (choice) {
+      const match = pending?.nonce === choice[1] && pending.issue.suggestions[Number(choice[2])]
+      return match ? await resumeWithName('slug:' + match.slug, date) : answer('That choice is out of date. Use the most recent suggestion.')
+    }
+    work = await photoFlow?.load(id, date)
+    const photoChoice = button && /^\/photo-action ([\w-]+) (read|save)$/.exec(button)
+    if (photoChoice && photoFlow) {
+      if (!work || work.nonce !== photoChoice[1]) return answer('That choice is out of date. Use the most recent reply.')
+      if (photoChoice[2] === 'save') return photoReply(await photoFlow.confirm(id, date, work, photoChoice[1]))
+      text = 'Read the intake sheet or flyer in these images without updating the CMS.'
+    } else if (button) {
+      return answer('That choice is unavailable. Tell me what you’d like to update.')
+    }
+    if (!handlers.interpret) {
+      return {
+        ...answer('AI assistance is currently unavailable. You can make your update in the CMS.'),
+        replyMarkup: { inline_keyboard: [[linkButton('Open the CMS', '/admin', handlers.cmsOrigin)]] },
+      }
+    }
+    if (photoFlow && photos.length) work = await photoFlow.collect(id, date, work, photos)
+    const images = await photoFlow?.download(work) || []
+    const recent = await handlers.modelFollowUps?.load(id)
+    const validRecent = recent && Number.isFinite(recent.expiresAt) && recent.expiresAt > Date.now()
+      && date >= recent.requestedAt && await handlers.isLinked(id, recent.requestedAt)
+    const decision = await handlers.interpret({
+      text, images,
+      context: {
+        canSaveIntake: photoFlow?.canSave || false,
+        newAttachments: work?.files.flatMap((file, index) => photos.some(photo => photo.file_unique_id === file.file_unique_id)
+          ? [index + 1] : []),
+        unsupportedAttachment: Boolean(message.document && !photos.length || !text && !photos.length && !button),
+        photoIntake: work && { intent: work.intent, animal: work.animal, details: work.details,
+          attachmentTypes: work.attachments, proposedDraft: work.plan && { kind: work.plan.kind,
+            name: work.plan.kind === 'create' ? work.plan.fields.name : work.plan.name } },
+        nameCorrection: pending && { originalRequest: pending.draft, reference: pending.issue.reference,
+          suggestions: pending.issue.suggestions },
+        ...(validRecent && { previousMessage: recent.request, previousReply: recent.reply }),
+      },
+    })
+    if (decision.action === 'reply') {
+      await handlers.modelFollowUps?.store(id, { request: text, reply: decision.message, requestedAt: date, expiresAt: Date.now() + 30 * 60 * 1000 })
+      return answer(decision.message)
+    }
+    await handlers.modelFollowUps?.store(id)
+    if (decision.action === 'correct-name') return await resumeWithName(decision.animal, date)
+    if (decision.action === 'cancel') {
+      await handlers.nameFollowUps?.store(id)
+      await photoFlow?.clear(id)
+      return answer(pending || work ? 'I cleared the pending request.' : 'There’s no pending request to cancel.')
+    }
+    if (decision.action === 'undo' || decision.action === 'undo-featured') {
+      if (!text.trim() || photos.length || !handlers.undo) return answer('Tell me in a text message which change you want to undo.')
+      const result = await handlers.undo(id, date, { featured: decision.action === 'undo-featured' })
+      await handlers.nameFollowUps?.store(id)
       return homepageReply(id, result, handlers.cmsOrigin)
     }
-    const publication = /^\/publish(?:\s+(\S+))?$/i.exec(text.trim())
-    if (publication) {
-      if (!handlers.publish || !publication[1]) return answer('Use Publish this draft in a recent featured draft reply.')
-      const result = await handlers.publish(id, date, publication[1])
-      if (result.review) return reviewReply(id, result, handlers.cmsOrigin, true)
-      await clearFollowUp()
-      return homepageReply(id, result, handlers.cmsOrigin)
+    if (decision.action === 'confirm-intake') {
+      if (!photoFlow || !text.trim() || photos.length) return answer('Open the latest intake proposal to review and save the draft.')
+      return photoReply(await photoFlow.confirm(id, date, work, undefined, images))
     }
-    const choice = /^\/name (\S+) ([0-2])$/.exec(text.trim())
-    const typed = typedCorrection(text)
-    if ((choice || typed) && !pending) return answer('Send the draft request again so I know which animal to correct.')
-    if (choice && choice[1] !== pending?.nonce) return answer('That choice is out of date. Use the most recent name suggestion.')
-    const key = (typed || text).trim().toLowerCase()
-    const suggestions = pending?.issue.suggestions || []
-    const matching = suggestions.filter(({ name, slug }) => slug === key || name.toLowerCase() === key)
-    const confirmed = /^(?:yes|correct|that’s right|that's right)[.!]?$/.test(key)
-    let selected = matching.length === 1 ? matching[0] : undefined
-    if (choice) selected = suggestions[Number(choice[2])]
-    else if (confirmed && suggestions.length === 1) selected = suggestions[0]
-    const corrected = selected ? 'slug:' + selected.slug : typed
-    let featuredVersion: string | null | undefined
-    if (pending && corrected) {
-      if (date < pending.requestedAt || !await handlers.isLinked(id, pending.requestedAt)) {
-        await clearFollowUp()
-        return answer('This name clarification has expired. Send a new draft request.')
-      }
-      const current = pending
-      requestedAt = current.requestedAt
-      featuredVersion = current.issue.featuredVersion
-      attempt = correctAnimalReference(current.draft, current.issue.field, corrected)
-      await clearFollowUp()
-    } else {
-      if (pending && (choice || matching.length > 1 || confirmed || /^no[.!]?$/.test(key))) {
-        return nameFollowUpReply(id, pending)
-      }
-      const command = parseDraftCommand(text)
-      if (!command && (text.startsWith('/') || !handlers.interpret)) {
-        if (pending) return nameFollowUpReply(id, pending)
-        if (handlers.interpret) return answer('Tell me what you’d like to change, for example, “Make Tiny the lead featured animal.”')
-        return {
-          ...answer('Text drafting is currently unavailable. You can make the update in the CMS.'),
-          replyMarkup: { inline_keyboard: [[linkButton('Open the CMS', '/admin', handlers.cmsOrigin)]] },
-        }
-      }
-      attempt = command ?? await handlers.interpret!(text)
-      await clearFollowUp()
+    if (decision.action === 'create-animal' || decision.action === 'update-animal-media' || decision.action === 'read-images') {
+      if (!photoFlow) return answer('Animal intake is unavailable on this connection. Open the CMS to add the animal.')
+      return photoReply(await photoFlow.propose(id, date, work, decision))
     }
-    const result = await handlers.save(id, date, attempt, featuredVersion)
+
+    attempt = validateDraftRequest(decision)
+    await handlers.nameFollowUps?.store(id)
+    const result = await handlers.save(id, date, attempt)
     return reviewReply(id, result, handlers.cmsOrigin, Boolean(handlers.publish))
   } catch (error) {
     if (error instanceof DeleteRequestError) {
@@ -297,17 +305,9 @@ export async function replyToTelegram(
         return answer(error.message + ' Send the full request again with the correct name or CMS slug.')
       }
     }
-    if (pending && !attempt && !undo && !text.startsWith('/') && error instanceof DraftRequestError) {
-      return nameFollowUpReply(id, pending)
-    }
     if (!(error instanceof DraftRequestError)) handlers.onError()
-    const reply = error instanceof DraftRequestError ? error.message : undo
-      ? 'I couldn’t undo that publication. Try again, or review it in the CMS.'
-      : 'I couldn’t save that draft. Try again, or use the CMS.'
-    return undo ? {
-      ...answer(reply),
-      replyMarkup: { inline_keyboard: [[linkButton('Review in the CMS', '/admin/globals/homepage', handlers.cmsOrigin)]] },
-    } : answer(reply)
+    return answer(error instanceof DraftRequestError ? error.message
+      : 'I couldn’t finish that request. Try again or use the CMS.')
   }
 }
 

@@ -65,11 +65,10 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” To clear the pending clarification, say “Never mind.”</p>
           </li>
           <li>
-            <h2>Add photos or read an intake flyer</h2>
-            <p>Send one or more photos. Caption them “Photos for Fig” or reply with the animal’s name. Tap <strong>Save animal draft</strong> to add them to the profile.</p>
-            <p>To start a profile, say “Add a cat named Willow” with a photo or by itself. Add any missing details in the CMS before publishing.</p>
-            <p>For a flyer or screenshot, tap <strong>Read details from image</strong> and check the extracted facts before saving. Send clean animal photos separately for the gallery.</p>
-            <p>Say “Cancel the photo request” to start over. Photo choices expire after 30 minutes.</p>
+            <h2>Send photos and intake details together</h2>
+            <p>Send an album with the animal’s photos and any intake sheet. A caption like “Add this cat” starts a new profile. To update a profile, say which animal the photos are for.</p>
+            <p>Catministrator reads the images and shows which ones it plans to use in the gallery. Check the extracted details and answer any follow-up questions, then tap <strong>Create animal draft</strong> or <strong>Save animal draft</strong>.</p>
+            <p>You can also ask it to read an intake sheet on its own. Say “Never mind” to clear pending work. Draft proposals expire after 30 minutes.</p>
           </li>
           <li>
             <h2>Review and publish</h2>
@@ -85,7 +84,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <h2 id="telegram-admin-title">For administrators</h2>
           <p>In the CMS the bot uses, open {administrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
           <p>To revoke access, clear <strong>Telegram ID</strong> and save again.</p>
-          <p>With Vercel AI Gateway, GPT-6.1 Terra interprets text requests and reads flyers at medium effort. Both use the same request limit. Photo intake currently saves to the local CMS.</p>
+          <p>Catministrator checks the sender against the CMS before sending their message and attachments to GPT-6 Luna through Vercel AI Gateway. The configured request limit covers all model calls. Photo intake currently saves to the local CMS.</p>
         </section>
         <p className="cms-help-note">{hosted
           ? 'If your demo asks for Vercel sign-in, sign in to view the preview. If the bot is quiet, ask an administrator to check its connection.'

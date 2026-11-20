@@ -1,157 +1,145 @@
 import { randomBytes } from 'node:crypto'
-import { readIntakeDetails, type IntakeDetails } from './animal-intake'
+import type { IntakeDetails } from './animal-intake'
 import type { DraftReceipt } from './drafts'
+import type { AttachmentKind, IntakeDecision } from './model'
 import type { PhotoPlan } from './photo-drafts'
 import type { PreparedImage, TelegramFile } from './photo-input'
-import { AnimalNameError, DraftRequestError, isCancelRequest } from './requests'
+import { AnimalNameError, DraftRequestError } from './requests'
 
 export type PhotoWork = {
   files: TelegramFile[]
   startedAt: number
   expiresAt: number
   nonce: string
+  intent?: IntakeDecision['action']
+  animal?: string
   details?: IntakeDetails
+  attachments?: AttachmentKind[]
   plan?: PhotoPlan
 }
 
-type PhotoReply = { text: string; buttons?: { text: string; callback_data: string }[][] } | { draft: DraftReceipt }
+export type PhotoReply = { text: string; buttons?: { text: string; callback_data: string }[][] } | { draft: DraftReceipt }
 
 type PhotoFlowOptions = {
   load: (id: number) => Promise<PhotoWork | undefined>
   store: (id: number, work?: PhotoWork) => Promise<void>
   isLinked: (id: number, date: number) => Promise<boolean>
-  find: (id: number, date: number, name: string) => Promise<{ id: number; name: string }>
+  find?: (id: number, date: number, name: string) => Promise<{ id: number; name: string }>
   download: (file: TelegramFile) => Promise<PreparedImage>
-  read?: (images: PreparedImage[]) => Promise<IntakeDetails>
-  save: (id: number, date: number, plan: PhotoPlan, images: PreparedImage[]) => Promise<DraftReceipt>
-  onError: () => void
+  save?: (id: number, date: number, plan: PhotoPlan, images: PreparedImage[]) => Promise<DraftReceipt>
 }
 
-function photoPrompt(work: PhotoWork, prefix = ''): PhotoReply {
-  const count = work.files.length
-  const plan = work.plan
-  const buttons: { text: string; callback_data: string }[][] = []
-  const lines = prefix ? [prefix] : []
-  if (count) lines.push(count === 1 ? 'I received 1 photo.' : `I received ${count} photos.`)
-  if (plan) {
-    const name = plan.kind === 'create' ? plan.fields.name : plan.name
-    const action = plan.kind === 'create' ? `Create an animal draft for ${name}` : `Save to ${name}’s draft`
-    lines.push(`${action}?`)
-    if (count) lines.push('Use clean animal photos here. Choose Read details from image for flyers.')
-    buttons.push([{ text: plan.kind === 'create' ? 'Create animal draft' : 'Save animal draft', callback_data: `/photo-action ${work.nonce} save` }])
-  } else {
-    lines.push(work.details
-      ? 'Reply “Use details for Fig” to update an existing animal, or “New cat Willow” to create a draft.'
-      : 'Reply with the animal’s name, or say “New cat Willow” to start a draft.')
-  }
-  if (count) buttons.push([{ text: 'Read details from image', callback_data: `/photo-action ${work.nonce} read` }])
-  return { text: lines.join(' '), buttons }
+function pictureList(kinds: AttachmentKind[], kind: AttachmentKind) {
+  return kinds.flatMap((value, i) => value === kind ? [i + 1] : []).join(', ')
 }
 
-function describeDetails(details: IntakeDetails) {
-  const { name, species, sex, ageGroup, breed, summary, description } = details
+function reviewDetails(details?: IntakeDetails) {
+  if (!details) return []
   return [
-    'I read these details from the image.',
-    [name, species, sex, ageGroup, breed].filter(Boolean).join(' · '),
-    summary, description === summary ? '' : description,
-    'The image was used for reference. Send clean photos separately for the website.',
-  ].filter(Boolean).join('\n')
+    [details.name, details.species, details.sex, details.ageGroup, details.breed].filter(Boolean).join(' · '),
+    details.summary,
+    details.description !== details.summary ? details.description : undefined,
+  ].filter((line): line is string => Boolean(line))
 }
 
 export function createPhotoFlow(options: PhotoFlowOptions) {
-  return async ({ id, date, text, photos }: { id: number; date: number; text: string; photos: TelegramFile[] }): Promise<PhotoReply | undefined> => {
-    let work = await options.load(id)
+  async function load(id: number, date: number) {
+    const work = await options.load(id)
     if (work && (work.expiresAt <= Date.now() || date < work.startedAt || !await options.isLinked(id, work.startedAt))) {
       await options.store(id)
-      work = undefined
-    }
-    const message = text.trim().replace(/^(?:please\s+|(?:can|could|would) you (?:please )?)/i, '')
-    const choice = /^\/photo-action ([\w-]+) (read|save)$/.exec(text.trim())
-    const newAnimal = /^(?:\/new|new|(?:add|create)(?: a)?(?: new)?)\s+(cat|dog)\s+(?:(?:named|called)\s+)?(.+?)[.!?]?$/i.exec(message)
-    const target = /^(?:\/photos|this is|(?:her |his )?name is|it['’]s|photos? (?:of|for)|(?:add|attach) (?:(?:these |this |the )?(?:photos?|pictures?|images?) )?to|use (?:the )?details for)\s+(.+?)(?:['’]s (?:profile|draft|gallery))?[.!?]?$/i.exec(message)?.[1]
-    const read = /^(?:read|extract) (?:(?:the )?(?:text|details) (?:from|on) )?(?:the |this )?(?:image|photo|flyer|screenshot)[.!]?$/i.test(text.trim())
-    if (isCancelRequest(text) && work) {
-      await options.store(id)
-      return { text: 'Photo and intake request canceled.' }
-    }
-    if (!photos.length && !work && !newAnimal) {
-      if (choice || target && text.startsWith('/photos') || read) return { text: 'Send the photo or flyer first so I can help.' }
       return
     }
-    if (choice && (!work || choice[1] !== work.nonce)) return { text: 'That photo choice is out of date. Use the latest reply.' }
-    const bareName = !choice && !newAnimal && !read && (work || photos.length > 0) && !work?.plan && !target &&
-      /^(?!feature\b|replace\b|edit\b|set\b|mark\b|change\b|update\b|delete\b|undo\b|can\b|please\b|what\b|how\b)[\p{L}\p{N}][\p{L}\p{N} .'’-]{0,69}$/iu.test(text.trim())
-      ? text.trim() : ''
-    if (!photos.length && !choice && !newAnimal && !target && !read && !bareName) return
+    return work
+  }
 
-    const original = work
-    work ||= { files: [], startedAt: date, expiresAt: 0, nonce: '' }
-    try {
-      if (photos.length) {
-        const files = [...new Map([...work.files, ...photos].map(file => [file.file_unique_id, file])).values()]
-        if (files.length > 10) throw new DraftRequestError('I can keep up to 10 photos at a time. Save the current set or say “Cancel the photo request” to start over.')
-        work = { ...work, files }
-      }
-      const remember = async (pending: PhotoWork) => {
-        const next = { ...pending, expiresAt: Date.now() + 30 * 60 * 1000, nonce: randomBytes(6).toString('base64url') }
-        await options.store(id, next)
-        return next
-      }
-      if (photos.length) work = await remember(work)
+  async function remember(id: number, work: PhotoWork) {
+    const next = { ...work, expiresAt: Date.now() + 30 * 60 * 1000, nonce: randomBytes(6).toString('base64url') }
+    await options.store(id, next)
+    return next
+  }
 
-      if (choice?.[2] === 'save') {
-        if (!work.plan) throw new DraftRequestError('Tell me which animal to use first.')
-        // Download everything before making any CMS changes.
-        const images = []
-        for (const file of work.files) images.push(await options.download(file))
-        const draft = await options.save(id, date, work.plan, images)
-        await options.store(id)
-        return { draft }
+  async function collect(id: number, date: number, work: PhotoWork | undefined, photos: TelegramFile[]) {
+    if (!photos.length) return work
+    const newFiles = [...new Map(photos.map(file => [file.file_unique_id, file])).values()]
+    const files = [...new Map([...(work?.files || []), ...newFiles].map(file => [file.file_unique_id, file])).values()]
+    if (newFiles.length > 10) throw new DraftRequestError('Send up to 10 images in an album.')
+    if (files.length > 10) return remember(id, { files: newFiles, startedAt: date, expiresAt: 0, nonce: '' })
+    const attachments = files.map((_, index) => work?.attachments?.[index] || 'unknown')
+    return remember(id, { ...work, files, attachments, startedAt: work?.startedAt ?? date, expiresAt: 0, nonce: '', plan: undefined })
+  }
+
+  async function download(work?: PhotoWork) {
+    return Promise.all((work?.files || []).map(options.download))
+  }
+
+  async function propose(id: number, date: number, work: PhotoWork | undefined, decision: IntakeDecision): Promise<PhotoReply> {
+    const files = work?.files || []
+    const attachments = files.map((_, index) => work?.attachments?.[index] === 'reference'
+      ? 'reference' : decision.attachments[index] || 'unknown')
+    const pending = {
+      files, attachments, startedAt: work?.startedAt ?? date, expiresAt: 0, nonce: '',
+      intent: decision.action, details: decision.details, animal: decision.animal,
+    }
+    const { name, species, ...details } = decision.details
+    const facts = reviewDetails(decision.details)
+    const website = pictureList(attachments, 'photo')
+    const reference = pictureList(attachments, 'reference')
+    const unknown = pictureList(attachments, 'unknown')
+    const pictureNotes = [
+      website && 'Website photos: ' + website + '.',
+      reference && 'Reference images kept out of the gallery: ' + reference + '.',
+      unknown && 'Unclear images kept out of the gallery: ' + unknown + '.',
+    ].filter(Boolean)
+    let plan: PhotoPlan | undefined
+    let nextQuestion = ''
+    if (decision.action === 'read-images') {
+      if (!files.length) return { text: 'Send the intake sheet or flyer you’d like me to read.' }
+      nextQuestion = 'Would you like these details in a new profile or an existing animal’s draft?'
+      if (!facts.length) nextQuestion = 'I couldn’t verify profile details from the images. You can send a clearer sheet or tell me the details.'
+    } else if (!options.save) {
+      return { text: 'I can review these details, but this CMS connection currently cannot create an intake or upload photos.' }
+    } else if (decision.action === 'create-animal') {
+      if (name && species) plan = { kind: 'create', fields: { name, species, ...details } }
+      else nextQuestion = name ? `Is ${name} a cat or a dog?`
+        : species ? `What’s the ${species}’s name?` : 'What’s the animal’s name, and is it a cat or a dog?'
+    } else if (!decision.animal) {
+      nextQuestion = 'Which animal should I use for this update?'
+    } else if (!website && !Object.keys(details).length) {
+      nextQuestion = 'Send a clean animal photo or tell me the profile details you’d like to add.'
+    } else if (!options.find) {
+      nextQuestion = 'I couldn’t look up that animal. Open the CMS to review the profile.'
+    } else {
+      try {
+        const animal = await options.find(id, date, decision.animal)
+        plan = { kind: 'update', ...animal, fields: details }
+      } catch (error) {
+        if (!(error instanceof AnimalNameError)) throw error
+        const choices = error.issue.suggestions.map(animal => animal.name).join(', ')
+        nextQuestion = error.message + (choices ? ` Did you mean ${choices}?` : ' Which animal should I use?')
       }
-      if (read || choice?.[2] === 'read') {
-        if (!work.files.length) throw new DraftRequestError('Send the flyer or screenshot you want me to read.')
-        if (!options.read) throw new DraftRequestError('Image reading is unavailable. You can still attach photos and create drafts with a name and species.')
-        if (work.files.length > 3) throw new DraftRequestError('Say “Cancel the photo request,” then send up to three flyer images to read together.')
-        const images = []
-        for (const file of work.files) images.push(await options.download(file))
-        const details = await options.read(images)
-        if (!Object.keys(details).length) return photoPrompt(work, 'I couldn’t find readable animal details in those images.')
-        work = await remember({ ...work, files: [], details, plan: undefined })
-        if (details.name) {
-          try {
-            const animal = await options.find(id, date, details.name)
-            work = await remember({ ...work, plan: { kind: 'update', ...animal, fields: details } })
-          } catch (error) {
-            if (!(error instanceof AnimalNameError)) throw error
-            if (!error.issue.suggestions.length && details.species) {
-              work = await remember({ ...work, plan: { kind: 'create', fields: { ...details, name: details.name, species: details.species } } })
-            }
-          }
-        }
-        return photoPrompt(work, describeDetails(details))
-      }
-      if (newAnimal) {
-        const details = readIntakeDetails({ ...work.details, name: newAnimal[2], species: newAnimal[1].toLowerCase() })
-        if (!details.name || !details.species) throw new DraftRequestError('Send “New cat” or “New dog” followed by the animal’s name.')
-        work = await remember({ ...work, plan: { kind: 'create', fields: { ...details, name: details.name, species: details.species } } })
-      } else if (target || bareName) {
-        if (!work.files.length && !work.details) return { text: 'Send the photos or flyer first.' }
-        const reference = (target || bareName).trim().replace(/^(?:i meant|use)\s+/i, '')
-        if (work.plan) work = await remember({ ...work, plan: undefined })
-        const animal = await options.find(id, date, reference)
-        work = await remember({ ...work, plan: { kind: 'update', ...animal, fields: work.details } })
-      }
-      return photoPrompt(work)
-    } catch (error) {
-      if (error instanceof AnimalNameError) {
-        const suggestions = error.issue.suggestions.map(animal => animal.name).join(', ')
-        return photoPrompt({ ...work, plan: undefined }, error.message + (suggestions ? ` Try ${suggestions}.` : ''))
-      }
-      if (error instanceof DraftRequestError) return { text: error.message }
-      options.onError()
-      return { text: original || photos.length
-        ? 'I couldn’t finish that photo request. Try again, say “Cancel the photo request,” or open the CMS.'
-        : 'I couldn’t set up that intake draft. Try again or use the CMS.' }
+    }
+
+    const next = await remember(id, { ...pending, plan })
+    if (!plan) return {
+      text: [...facts, ...pictureNotes, nextQuestion].join('\n'),
+    }
+    const heading = plan.kind === 'create' ? `Create an animal draft for ${plan.fields.name}?` : `Save to ${plan.name}’s draft?`
+    return {
+      text: [heading, ...facts, ...pictureNotes].join('\n'),
+      buttons: [[{ text: plan.kind === 'create' ? 'Create animal draft' : 'Save animal draft', callback_data: `/photo-action ${next.nonce} save` }]],
     }
   }
+
+  async function confirm(id: number, date: number, work?: PhotoWork, nonce?: string, prepared?: PreparedImage[]): Promise<PhotoReply> {
+    if (!options.save || !work?.plan || !work.attachments || work.attachments.length !== work.files.length || (nonce && work.nonce !== nonce)) {
+      return { text: 'I don’t have a current animal draft proposal to save. Tell me what you’d like to add.' }
+    }
+    const photos = await Promise.all(work.files.flatMap((file, index) => work.attachments?.[index] === 'photo'
+      ? [prepared?.[index] || options.download(file)] : []))
+    const draft = await options.save(id, date, work.plan, photos)
+    await options.store(id)
+    return { draft }
+  }
+
+  return { load, collect, download, propose, confirm, clear: (id: number) => options.store(id), canSave: Boolean(options.save) }
 }
