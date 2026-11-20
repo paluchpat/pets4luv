@@ -64,6 +64,22 @@ test('the Vercel Gateway sends a caption and all five images to Luna together', 
   assert.equal(gateway.mock.callCount(), 1)
 })
 
+test('Luna intake keeps supported coat tags with high confidence in the proposed order', () => {
+  const decision = readModelDecision(JSON.stringify({
+    action: 'create-animal', name: 'Willow', species: 'cat',
+    colors: [
+      { tag: 'white', confidence: 'high', evidence: 'White belly and legs in photo 1.' },
+      { tag: 'gray', confidence: 'uncertain', evidence: 'Highlight on black fur in photo 1.' },
+      { tag: 'black', confidence: 'high', evidence: 'Black patches across the back in photo 1.' },
+      { tag: 'brown', confidence: 'high', evidence: ' ' },
+      { tag: 'tuxedo', confidence: 'high', evidence: 'Intake form explicitly reports a tuxedo pattern.' },
+      'tan',
+    ],
+  }))
+  assert.ok('details' in decision)
+  assert.deepEqual(decision.details.colors, ['white', 'black', 'tuxedo'])
+})
+
 test('intake values use CMS choices and preserve only valid fields', () => {
   assert.deepEqual(readIntakeDetails({
     name: ' Will ', estimatedBirthDate: '2026-04-10', weight: 6.8, size: 'small', status: 'available',

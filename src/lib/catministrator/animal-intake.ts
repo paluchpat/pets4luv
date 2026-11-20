@@ -48,7 +48,19 @@ export const intakeDetailProperties = {
   status: nullableChoice(statuses),
   estimatedBirthDate: nullableText,
   weight: { type: ['number', 'null'] },
-  colors: { type: 'array', items: { type: 'string', enum: animalColorOptions.map(color => color.value) } },
+  colors: {
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        tag: { type: 'string', enum: animalColorOptions.map(color => color.value) },
+        confidence: { type: 'string', enum: ['high', 'uncertain'] },
+        evidence: { type: 'string' },
+      },
+      required: ['tag', 'confidence', 'evidence'],
+      additionalProperties: false,
+    },
+  },
   compatibility: {
     type: 'object',
     properties: Object.fromEntries(compatibilityFields.map(field => [field, nullableChoice(compatibility)])),
