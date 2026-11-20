@@ -67,15 +67,16 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <li>
             <h2>Send photos and intake details together</h2>
             <p>Send an album with the animal’s photos and any intake sheet. A caption like “Add this cat” starts a new profile. To update a profile, say which animal the photos are for.</p>
-            <p>Catministrator reads the intake sheet and shows the details it found, including age, coat, weight, and compatibility when the form includes them. The rescue intake ID and medical notes go into staff-only CMS fields. Check the details and planned gallery photos, then tap <strong>Create animal draft</strong> or <strong>Save animal draft</strong>.</p>
+            <p>Catministrator reads the intake sheet and shows the details it found, including age, coat, weight, and compatibility when the form includes them. The rescue intake ID and medical notes go into staff-only CMS fields. Unreadable or unreported values are left blank. Check the details and planned gallery photos, then tap <strong>Create animal draft</strong> or <strong>Save animal draft</strong>.</p>
             <p>If the print is too small, send a close-up of the sheet or attach the original as a file. You can ask it to add those details to an existing animal’s draft. Say “Never mind” to clear pending work. Draft proposals expire after 30 minutes.</p>
           </li>
           <li>
             <h2>Review and publish</h2>
+            <p>Open <strong>Preview animal page</strong> to see the draft as it will appear on the site. You can also ask for an existing draft by name, such as “Preview Rowan.” For a complete profile, tap <strong>Publish this draft</strong> in Telegram after reviewing.</p>
             <p>For featured animals, open <strong>Preview homepage</strong>, then tap <strong>Publish this draft</strong> in Telegram when it’s ready. The links expire after 30 minutes. If the draft changes, review the new preview before publishing.</p>
             <p>After publishing featured animals, tap <strong>Undo featured publish</strong> or say “undo last action” to restore the previous live order. Undo applies to your publication while it’s still current. Review any newer featured draft in the CMS first.</p>
             <p>To discard a saved featured draft, open <strong>Review in the CMS</strong> and choose <strong>Discard draft</strong> from the three-dot menu.</p>
-            <p>For animal and article drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
+            <p>For article drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
             <p>To delete content, sign in to the CMS. Catministrator sends the login link when you ask to delete something.</p>
           </li>
         </ol>

@@ -2,6 +2,7 @@ import { commitTransaction, createLocalReq, initTransaction, killTransaction, ty
 import type { User } from '../../payload-types'
 import { fillEmptySlug } from '../slug'
 import { readIntakeDetails, type IntakeDetails } from './animal-intake'
+import { animalReviewForDraft } from './animal-review'
 import { findAnimal, type DraftReceipt } from './drafts'
 import { isEditor } from './editors'
 import type { PreparedImage } from './photo-input'
@@ -71,9 +72,10 @@ export async function savePhotoDraft(payload: Payload, editor: User, plan: Photo
 
     if (current && !added && !compatibility && !Object.keys(details).length) {
       const message = images.length ? 'These photos are already on the profile.' : 'Send a clean photo or more profile details to add.'
+      const review = await animalReviewForDraft(req, current.id, editor)
       if (started) await commitTransaction(req)
       saved = true
-      return { message, path: '/admin/collections/animals/' + current.id, changed: false }
+      return { message, path: '/admin/collections/animals/' + current.id, review, changed: false }
     }
     const values = {
       ...details,
@@ -87,6 +89,7 @@ export async function savePhotoDraft(payload: Payload, editor: User, plan: Photo
     const animal = current
       ? await payload.update({ ...options, collection: 'animals', id: current.id, draft: true, overrideLock: false, data: values })
       : await payload.create({ ...options, collection: 'animals', draft: true, data: { ...values, name, species } })
+    const review = await animalReviewForDraft(req, animal.id, editor)
     if (started) await commitTransaction(req)
     saved = true
     const photoCount = added === 1 ? 'Added 1 photo.' : added > 1 ? `Added ${added} photos.` : ''
@@ -95,7 +98,7 @@ export async function savePhotoDraft(payload: Payload, editor: User, plan: Photo
         !current && !photos.length ? 'Send a clean photo to add it to this draft.' : '',
         !current && !animal.ageGroup ? 'Add an age group before publishing.' : ''].filter(Boolean).join(' '),
       path: '/admin/collections/animals/' + animal.id,
-      changed: true,
+      review, changed: true,
     }
   } finally {
     if (!saved) {

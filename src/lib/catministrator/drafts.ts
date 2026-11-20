@@ -1,6 +1,7 @@
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest, type Where } from 'payload'
 import type { Animal, User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
+import { animalReviewForDraft, publishAnimalDraft } from './animal-review'
 import { savePageTextDraft } from './page-drafts'
 import { isEditor } from './editors'
 import {
@@ -12,7 +13,8 @@ import { AnimalNameError, DraftRequestError, validateDraftRequest, type AnimalNa
 export type DraftReceipt = {
   message: string
   path: string
-  review?: ReturnType<typeof featuredReviewTokens>
+  review?: ReturnType<typeof featuredReviewTokens> & { kind?: never }
+    | { kind: 'animal'; animal: string; previewToken: string; publishToken?: string; missing: string[] }
   changed?: boolean
   undoToken?: string
 }
@@ -125,6 +127,7 @@ export async function saveCatministratorDraft(
           ? `Draft saved for ${animal.name}. Updated ${changed.map(field => field === 'status' ? 'adoption status' : field).join(', ')}.`
           : `${animal.name} already has those values.`,
         path: '/admin/collections/animals/' + animal.id,
+        review: await animalReviewForDraft(req, animal.id, editor),
         changed: changed.length > 0,
       }
     } else {
@@ -192,6 +195,19 @@ export async function saveCatministratorDraft(
     if (started) await killTransaction(req)
     throw error
   }
+}
+
+export async function reviewCatministratorAnimal(payload: Payload, editor: User, reference: string): Promise<DraftReceipt> {
+  if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot review animal drafts.')
+  const req = await createLocalReq({ user: { ...editor, collection: 'users' } }, payload)
+  const animal = await findAnimal(req, reference, true)
+  const review = await animalReviewForDraft(req, animal.id, editor)
+  if (!review) throw new DraftRequestError(`${animal.name} has no pending draft to preview.`)
+  return { message: `Here’s the draft for ${animal.name}.`, path: '/admin/collections/animals/' + animal.id, review }
+}
+
+export function publishCatministratorDraft(payload: Payload, editor: User, token: string) {
+  return token.startsWith('a.') ? publishAnimalDraft(payload, editor, token) : publishFeaturedDraft(payload, editor, token)
 }
 
 export async function publishFeaturedDraft(payload: Payload, editor: User, token: string): Promise<DraftReceipt> {

@@ -24,6 +24,7 @@ export type IntakeDecision = {
 export type ModelDecision = DraftRequest | IntakeDecision
   | { action: 'reply'; message: string }
   | { action: 'correct-name'; animal: string }
+  | { action: 'review-animal'; animal?: string }
   | { action: 'cancel' | 'confirm-intake' | 'undo' | 'undo-featured' }
 
 export type ModelInput = {
@@ -35,7 +36,7 @@ export type ModelInput = {
 const nullableText = { type: ['string', 'null'] }
 const properties = {
   action: { type: 'string', enum: [
-    ...draftActions, ...intakeActions, 'correct-name', 'confirm-intake', 'cancel', 'undo', 'undo-featured', 'delete', 'reply',
+    ...draftActions, ...intakeActions, 'correct-name', 'confirm-intake', 'cancel', 'undo', 'undo-featured', 'delete', 'review-animal', 'reply',
   ] },
   animal: nullableText, replacement: nullableText, animals: { type: 'array', items: { type: 'string' } },
   page: nullableText, before: nullableText, after: nullableText, message: nullableText,
@@ -67,6 +68,10 @@ export function readModelDecision(text: string, imageCount = 0): ModelDecision {
       animal: typeof result.animal === 'string' && result.animal.trim().length <= 160 ? result.animal.trim() : undefined,
       details: readIntakeDetails(result), attachments,
     }
+  }
+  if (result.action === 'review-animal') {
+    const animal = typeof result.animal === 'string' ? result.animal.trim() : ''
+    return { action: 'review-animal', animal: animal && animal.length <= 160 ? animal : undefined }
   }
   if (result.action === 'reply') {
     const message = typeof result.message === 'string' ? result.message.trim() : ''
@@ -123,7 +128,7 @@ export function openAIInterpreter({
           'Use create-animal for requests like “add this cat” with photos, even without a name. Never put the whole caption in a name field. Use update-animal-media if the editor clearly wants to use photos or reference facts on an existing animal; put its supplied name or slug in animal.',
           'Use read-images for a request to read a sheet without saving, or to read a sheet when intent is unclear. An album alone can provide facts, but does not give permission to choose an existing profile or create a new one.',
           'For an intake or image action, classify every numbered attachment in the provided order. Use photo for a clean animal photo intended for the public gallery, reference for a flyer, document, cage card, screenshot, or image containing records or identifying text, and unknown if unsure. Do not mark the document as a photo even if it includes a portrait. The context lists positions of newly attached images. If a new album is for a different animal, omit the old intake details and classify unrelated pictures as unknown.',
-          'For an intake, examine every legible row, checkbox and note on reference images, including small print. Extract facts from the editor’s words and legible reference details. You may identify cat or dog from a clear photo. Leave unreadable, ambiguous, unchecked and unreported values empty. Do not guess age, sex, breed, status or history from a photo.',
+          'For an intake, examine every legible row, checkbox and note on reference images, including small print. Extract facts from the editor’s words and legible reference details. You may identify cat or dog from a clear photo. Populate every explicitly supported CMS field. Leave unreadable, inconsistent, ambiguous, unchecked and unreported values empty. Do not infer undocumented circumstances or insert defaults in a draft proposal. Do not guess age, sex, breed, status or history from a photo.',
           'Capture clearly reported breed, coat colors, size, adoption status, weight in pounds, and date of birth in YYYY-MM-DD only when a complete birth date is stated. Convert explicitly labeled kilograms to pounds rounded to one decimal place. A bare number without a unit is insufficient for weight. A form date is not a birth date. For reported age, use baby for under one year, young for one through three years, adult for over three through eight years, and senior for over eight years. Also preserve a specific reported age in internalNotes.',
           'Capture documented compatibility with cats, dogs and children. Use yes, no or conditional only when stated. Enter stated adoption-relevant context in compatibilityNotes. Write a short summary and a factual public description if the form provides personality, temperament, litter or house training, or adoption information. Use careNeeds for care explicitly described for an adopter.',
           'Put the shelter’s animal intake number in rescueIntakeID and intake date, vaccinations, spay/neuter, test results, and other documented animal care or shelter notes in internalNotes. Keep those facts out of public description, summary, careNeeds and compatibilityNotes. Omit personal names, addresses, contact details, signatures, and unrelated account numbers. Do not confuse a microchip number or an appointment number with the shelter intake ID.',
@@ -133,7 +138,7 @@ export function openAIInterpreter({
           'Use page-text to replace exact wording on an existing page. Copy its title or slug, the old wording, and the new wording. Ask for any missing detail. Use lead for the first or spotlight animal alone, replace-featured for a slot swap, or featured for a complete list of 1–' + featuredAnimalLimit + ' names in the requested order.',
           'If context shows a pending animal-name correction, use correct-name with the name the editor confirms. Copy the exact supplied name or one shown in suggestions. Choose a new action if the editor is giving a new request.',
           'Use cancel to clear pending work, undo for an explicit “undo last change,” and undo-featured if the editor explicitly asks to restore the previous featured publication. Never use these actions based on images alone.',
-          'For content deletion, use delete so the bot directs the editor to the CMS. A featured slot swap is not deletion. For a publish request, use reply and direct the editor to their review or Publish this draft button.',
+          'For content deletion, use delete so the bot directs the editor to the CMS. A featured slot swap is not deletion. When the editor asks to preview, review, or publish an animal draft, choose review-animal. Use the named animal or recentAnimalDraft from context. Leave the name null if it is unclear so the bot can ask. Only a signed Telegram button can publish. For a featured publication, direct the editor to Publish this draft in their featured preview. For other page drafts, direct them to the CMS rather than inventing a button.',
           'Use a clarifying reply for ambiguous requests and send the smallest question needed. Keep all unanswered text or number fields null, unused lists empty and unused compatibility values null. Slash text like /start or /help is onboarding, not a draft.',
         ].join(' '),
         input: [{ role: 'user', content: [

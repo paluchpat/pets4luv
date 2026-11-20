@@ -12,7 +12,7 @@ import { homeDescription, homeTitle, metadataBase, noIndex, publicSiteOrigin } f
 import './site.css'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const preview = (await draftMode()).isEnabled || (await headers()).has('x-pets4luv-featured-preview')
+  const preview = (await draftMode()).isEnabled || (await headers()).has('x-pets4luv-shared-preview')
   return {
     metadataBase,
     title: { default: homeTitle, template: '%s · Pets4Luv' },
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
-  const sharedPreview = (await headers()).has('x-pets4luv-featured-preview')
+  const sharedPreview = (await headers()).has('x-pets4luv-shared-preview')
   const [mode, settings, menu] = await Promise.all([draftMode(), getWebsiteSettings(sharedPreview), getMainMenu(sharedPreview)])
   const preview = mode.isEnabled && !sharedPreview
   return <html lang="en" data-scroll-behavior="smooth"><body>

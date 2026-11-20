@@ -406,3 +406,39 @@ test('replying with a missing name resumes the same intake with the album still 
   assert.match(proposal?.text || '', /Create an animal draft for Willow/)
   assert.equal(proposal?.replyMarkup?.inline_keyboard[0][0].text, 'Create animal draft')
 })
+
+
+test('an editor can ask for an existing animal preview and publish only using its signed button', async () => {
+  let published = 0
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    interpret: async (input: ModelInput): Promise<ModelDecision> => {
+      assert.match(input.text, /Rowan|publish/)
+      return { action: 'review-animal', animal: 'Rowan' }
+    },
+    reviewAnimal: async (_id: number, _date: number, name: string) => {
+      assert.equal(name, 'Rowan')
+      return { message: 'Here’s the draft for Rowan.', path: '/admin/collections/animals/9',
+        review: { kind: 'animal' as const, animal: 'Rowan', previewToken: 'preview', publishToken: 'approval', missing: [] } }
+    },
+    save: async () => assert.fail('Preview does not save a draft'),
+    publish: async (_id: number, _date: number, token: string) => {
+      assert.equal(token, 'approval')
+      published++
+      return { message: 'Rowan’s profile is published.', path: '/animals/rowan' }
+    },
+    onError: () => assert.fail('Animal review error'),
+  }
+  const reply = await replyToTelegram({ ...message, text: 'Preview Rowan' }, handlers)
+  assert.equal(reply?.replyMarkup?.inline_keyboard[0][0].url, 'https://example.invalid/preview/animal/preview')
+  const publish = reply?.replyMarkup?.inline_keyboard[1][0]
+  assert.equal(publish?.text, 'Publish this draft')
+  await replyToTelegram({ ...message, text: '/publish approval' }, handlers)
+  assert.equal(published, 0)
+  const result = await replyToTelegram(messageFromUpdate({
+    update_id: 1, callback_query: { id: 'tap', from: message.from, message, data: publish?.callback_data },
+  }), handlers)
+  assert.equal(published, 1)
+  assert.deepEqual(result?.replyMarkup?.inline_keyboard, [[{ text: 'View animal profile', url: 'https://example.invalid/animals/rowan' }]])
+})

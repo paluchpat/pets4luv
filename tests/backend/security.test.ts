@@ -23,7 +23,8 @@ import { seedMainMenu } from '../../scripts/main-menu-seed'
 import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
-import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../../src/lib/catministrator/drafts'
+import { publishFeaturedDraft, saveCatministratorDraft, reviewCatministratorAnimal, undoFeaturedPublication } from '../../src/lib/catministrator/drafts'
+import { previewAnimalDraft, publishAnimalDraft } from '../../src/lib/catministrator/animal-review'
 import { savePhotoDraft } from '../../src/lib/catministrator/photo-drafts'
 import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
@@ -807,7 +808,7 @@ test('Catministrator saves profile and featured edits as drafts under an editor 
 
   const featured = parseDraftCommand('/featured Second Bot Fixture, first-bot-fixture')!
   const original = await saveCatministratorDraft(payload, editor, featured)
-  assert.ok(original.review)
+  assert.ok(original.review && original.review.kind !== 'animal')
   assert.deepEqual(await previewFeaturedAnimals(payload, original.review.previewToken), [second.id, first.id])
   const homepageDraft = await payload.findGlobal({ slug: 'homepage', user: editor, overrideAccess: false, draft: true, depth: 0 })
   assert.equal(homepageDraft._status, 'draft')
@@ -819,19 +820,19 @@ test('Catministrator saves profile and featured edits as drafts under an editor 
   await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead Third Bot Fixture')!)
   const current = await publishFeaturedDraft(payload, editor, original.review.publishToken)
   assert.match(current.message, /draft changed/)
-  assert.ok(current.review)
+  assert.ok(current.review && current.review.kind !== 'animal')
   assert.equal(await previewFeaturedAnimals(payload, original.review.previewToken), undefined)
   assert.deepEqual(await previewFeaturedAnimals(payload, current.review.previewToken), [third.id, first.id])
   assert.deepEqual(await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 }), homepageBefore)
-  await assert.rejects(() => publishFeaturedDraft(payload, admin, current.review!.publishToken), /another editor/)
+  await assert.rejects(() => publishFeaturedDraft(payload, admin, current.review!.publishToken!), /another editor/)
   await assert.rejects(() => publishFeaturedDraft(payload, editor, current.review!.previewToken), /another editor/)
   const promoted = await saveCatministratorDraft(payload, editor, parseDraftCommand('/lead First Bot Fixture')!)
-  assert.ok(promoted.review)
+  assert.ok(promoted.review && promoted.review.kind !== 'animal')
   assert.deepEqual(await previewFeaturedAnimals(payload, promoted.review.previewToken), [first.id, third.id])
   const published = await publishFeaturedDraft(payload, editor, promoted.review.publishToken)
   assert.match(published.message, /published/)
   assert.equal(await previewFeaturedAnimals(payload, promoted.review.previewToken), undefined)
-  await assert.rejects(() => publishFeaturedDraft(payload, editor, promoted.review!.publishToken), /no longer pending/)
+  await assert.rejects(() => publishFeaturedDraft(payload, editor, promoted.review!.publishToken!), /no longer pending/)
   const live = await payload.findGlobal({ slug: 'homepage', draft: false, depth: 0 })
   assert.deepEqual(live.featuredAnimals?.map(row => row.animal), [first.id, third.id])
   assert.equal(live.heading, homepageBefore.heading)
@@ -868,7 +869,7 @@ test('staff can discard the saved featured draft while preserving published cont
   const pending = await payload.findGlobal({ slug: 'homepage', draft: true, depth: 0 })
   const discardedVersion = await latestFeaturedVersion(payload)
   const { review } = await saveCatministratorDraft(payload, editor, selection)
-  assert.ok(review)
+  assert.ok(review && review.kind !== 'animal')
 
   const discard = async (user: typeof editor | null, updatedAt: string) => discardFeaturedDraft(await createLocalReq({
     user,
@@ -928,7 +929,7 @@ test('featured undo restores only the previous published selection and protects 
 
   async function publish(order: string, actor = editor) {
     const { review } = await saveCatministratorDraft(payload, actor, parseDraftCommand('/featured ' + order)!)
-    assert.ok(review)
+    assert.ok(review && review.kind !== 'animal')
     const { undoToken } = await publishFeaturedDraft(payload, actor, review.publishToken)
     assert.ok(undoToken)
     assert.ok(Buffer.byteLength('/undo ' + undoToken) <= 64)
@@ -1101,6 +1102,62 @@ test('Catministrator puts legible intake facts in structured draft fields and ke
   assert.equal(next.compatibility.cats, 'yes')
   assert.equal(next.internalNotes, 'Fictional vaccination note.\n\nFictional follow-up note.')
   await assert.rejects(() => payload.findByID({ collection: 'animals', id: intake.id, overrideAccess: false }))
+})
+
+test('animal preview and publication are scoped to the reviewed revision and linked editor', async () => {
+  const versionEditor = { ...editor, telegramUserId: '1234567', telegramLinkedAt: '2026-11-01T12:00:00.000Z' }
+  const name = 'Animal Review Fixture'
+  const draft = await payload.create({
+    collection: 'animals', draft: true, user: editor, overrideAccess: false,
+    data: {
+      name, slug: 'animal-review-fixture', species: 'cat', status: 'available', sex: 'female', ageGroup: 'young',
+      summary: 'An adoptable cat.', description: 'Fictional first version.', photos: [{ photo: publicPhotoID }],
+      compatibility: { cats: 'yes', dogs: 'unknown', children: 'unknown' },
+      rescueIntakeID: 'ANIMAL-REVIEW-PRIVATE', internalNotes: 'Staff-only animal review note', _status: 'draft',
+    },
+  })
+  const { review } = await reviewCatministratorAnimal(payload, versionEditor, name)
+  assert.ok(review?.kind === 'animal' && review.publishToken)
+  const approval = review.publishToken
+  assert.ok(Buffer.byteLength('/publish ' + approval) <= 64)
+  const preview = await previewAnimalDraft(payload, review.previewToken)
+  assert.equal(preview?.description, 'Fictional first version.')
+  assert.equal(preview?.photos.length, 1)
+  assert.doesNotMatch(JSON.stringify(preview), /ANIMAL-REVIEW-PRIVATE|Staff-only animal review note/)
+  assert.equal(await previewAnimalDraft(payload, approval), undefined)
+  assert.equal(await previewAnimalDraft(payload, review.previewToken.replace(/^(a\.[^.]+)\.[^.]+/, '$1.0')), undefined)
+  await assert.rejects(() => payload.findByID({ collection: 'animals', id: draft.id, overrideAccess: false }))
+  await assert.rejects(() => publishAnimalDraft(payload, versionEditor, review.previewToken), /link has changed/)
+  await assert.rejects(() => publishAnimalDraft(payload, admin, approval), /link has changed/)
+  await assert.rejects(() => publishAnimalDraft(payload, { ...versionEditor, telegramLinkedAt: '2026-11-02T00:00:00Z' }, approval), /link has changed/)
+
+  await payload.update({
+    collection: 'animals', id: draft.id, draft: true, data: {
+      _status: 'draft', summary: 'Changed summary.', description: 'Fictional second version.',
+    },
+  })
+  assert.equal(await previewAnimalDraft(payload, review.previewToken), undefined)
+  await assert.rejects(() => publishAnimalDraft(payload, versionEditor, approval), /draft or editor link has changed/)
+  const refreshed = (await reviewCatministratorAnimal(payload, versionEditor, name)).review
+  assert.ok(refreshed?.publishToken)
+  const published = await publishAnimalDraft(payload, versionEditor, refreshed.publishToken)
+  assert.equal(published.path, '/animals/animal-review-fixture')
+  const visible = await payload.findByID({ collection: 'animals', id: draft.id, overrideAccess: false })
+  assert.equal(visible._status, 'published')
+  assert.equal(visible.description, 'Fictional second version.')
+  assert.equal(visible.summary, 'Changed summary.')
+  assert.equal(visible.compatibility.cats, 'yes')
+  assert.equal(visible.photos.length, 1)
+  assert.equal(visible.internalNotes, undefined)
+  assert.equal(await previewAnimalDraft(payload, refreshed.previewToken), undefined)
+})
+
+test('an incomplete animal gets a website preview with the missing fields listed', async () => {
+  const result = await savePhotoDraft(payload, editor, { kind: 'create', fields: { name: 'Incomplete Review Fixture', species: 'cat' } }, [])
+  assert.ok(result.review?.kind === 'animal')
+  assert.deepEqual(result.review.missing, ['age group', 'description', 'at least one photo'])
+  assert.equal(result.review.publishToken, undefined)
+  assert.equal((await previewAnimalDraft(payload, result.review.previewToken))?.name, 'Incomplete Review Fixture')
 })
 
 test('Catministrator replaces exact article wording in a draft only', async () => {

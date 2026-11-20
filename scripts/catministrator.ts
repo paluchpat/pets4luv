@@ -3,7 +3,7 @@ import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { setTimeout as pause } from 'node:timers/promises'
 import type { SQLiteAdapter } from '@payloadcms/db-sqlite'
 import { getPayload } from 'payload'
-import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../src/lib/catministrator/drafts'
+import { publishCatministratorDraft, reviewCatministratorAnimal, saveCatministratorDraft, undoFeaturedPublication } from '../src/lib/catministrator/drafts'
 import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/catministrator/editors'
 import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
 import { openAIInterpreter } from '../src/lib/catministrator/model'
@@ -53,7 +53,7 @@ async function writeState(filename: string, value: string) {
   await rename(pending, filename)
 }
 
-type UndoState = { origin: string; token: string; lastAction: 'publish' | 'draft' }
+type UndoState = { origin: string; token: string; lastAction: 'publish' | 'draft' | 'animal-publish' }
 
 async function recordLink(id: string, address: string) {
   const { docs: [editor] } = await payload.find({
@@ -101,9 +101,11 @@ async function poll(botToken: string) {
         const editor = await requireEditor(id, date)
         return saveCatministratorDraft(payload, editor, request, featuredVersion)
       },
+      reviewAnimal: async (id: number, date: number, animal: string) =>
+        reviewCatministratorAnimal(payload, await requireEditor(id, date), animal),
       publish: async (id: number, date: number, approval: string) => {
         const editor = await requireEditor(id, date)
-        return publishFeaturedDraft(payload, editor, approval)
+        return publishCatministratorDraft(payload, editor, approval)
       },
       undo: async (id: number, date: number, approval: string) => {
         const editor = await requireEditor(id, date)
@@ -117,7 +119,7 @@ async function poll(botToken: string) {
       if (!contents) return
       const data = JSON.parse(contents) as Partial<UndoState> | null
       if (data?.origin === cms.cmsOrigin && typeof data.token === 'string' &&
-          (data.lastAction === 'publish' || data.lastAction === 'draft')) {
+          (data.lastAction === 'publish' || data.lastAction === 'draft' || data.lastAction === 'animal-publish')) {
         return { origin: data.origin, token: data.token, lastAction: data.lastAction }
       }
     } catch {
@@ -198,12 +200,19 @@ async function poll(botToken: string) {
     publish: async (id, date, approval) => {
       const result = await cms.publish(id, date, approval)
       if (result.undoToken) await remember(id, { origin: cms.cmsOrigin, token: result.undoToken, lastAction: 'publish' })
+      else if (result.path.startsWith('/animals/')) {
+        const prior = await recall(id)
+        if (prior) await remember(id, { ...prior, lastAction: 'animal-publish' })
+      }
       return result
     },
     undo: async (id, date, { token, featured }) => {
       const saved = await recall(id)
       if (!token && !featured && saved?.lastAction === 'draft') {
         throw new DraftRequestError('Your last change was a draft. Open the CMS to review or discard it.')
+      }
+      if (!token && !featured && saved?.lastAction === 'animal-publish') {
+        throw new DraftRequestError('Your last change was an animal publication. Open Versions in the CMS to review it.')
       }
       const approval = token || saved?.token
       if (!approval) {
