@@ -37,7 +37,7 @@ export function readModelDraftOutput(text: string): DraftRequest {
   if (result.action === 'featured') return featuredDraftRequest(result.animals)
   if (result.action === 'delete') throw new DeleteRequestError()
   if (result.action === 'clarify') {
-    throw new DraftRequestError('Tell me the change you want and name the animal. For example, “Make Tiny the lead featured animal” or “Set Fig’s summary to Sweet and playful.”')
+    throw new DraftRequestError('I can help with animal profiles, featured animals, or wording on a page. Tell me what you’d like to change.')
   }
   throw new Error('Invalid model action')
 }
@@ -53,7 +53,7 @@ async function reserve(usageDirectory: string, requestLimit: number) {
       if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
     }
   }
-  throw new DraftRequestError('The AI pilot has reached its request limit. Use /help for the direct draft commands.')
+  throw new DraftRequestError('I’ve reached my AI request limit. You can make this change in the CMS.')
 }
 
 export function openAIInterpreter({
@@ -81,14 +81,14 @@ export function openAIInterpreter({
           'Extract one draft request for a cat and dog rescue CMS from the message.',
           'Supported actions are editing one existing animal, setting the lead featured animal, replacing one featured animal in its current slot, replacing the entire featured list, or replacing exact wording on an existing website page.',
           'For an edit, use the exact animal name or slug supplied by the editor. Supported fields are summary, description, reported breed, and adoption status.',
-          'For a page edit, use page-text. Copy the page title or slug, the exact old text (before), and the requested new wording (after). If any are missing, ask for them using clarify. No publishing or deletion.',
+          'For a page edit, use page-text. Copy the page title or slug, the exact old text (before), and the requested new wording (after). When the request is clearly for a page edit, use page-text even if some details are missing so the bot can ask for the page title and exact wording. No publishing or deletion.',
           'Only include fields the editor explicitly asks to change. Use the text they supplied. Never invent facts or rewrite other fields.',
           'Use available, on-hold, or adopted for status. Pending means on-hold.',
           'When the editor asks to set or change the first, lead, or spotlight animal alone, use lead and put that name in animal. For example, “set first featured animal to be Tiny” is a lead request with animal Tiny.',
           'Use replace-featured for a request to swap one named featured animal for another, keeping the other positions. For example, “replace Tiny with Mocachina in featured list” uses Tiny in animal and Mocachina in replacement. Copy both names as supplied, including any typos. Do not invent a full list.',
           `For a full featured list, require 1–${featuredAnimalLimit} exact names or slugs in the requested homepage order.`,
           'If the editor asks to delete any stored content, including an animal, page, or photo, use delete even if other edits were requested. Updating the featured list is not deleting a record.',
-          'For an ambiguous, incomplete, unsupported, or multi-action request, use clarify. Use null for unused fields and an empty array for unused animals.',
+          'Use clarify when the requested action is ambiguous, unsupported, or involves multiple targets. For a clear supported action with missing details, choose that action and use null for missing or unused fields. Use an empty array when no featured list is supplied.',
         ].join(' '),
         input: message,
         text: { format: { type: 'json_schema', name: 'catministrator_draft', strict: true, schema } },

@@ -63,10 +63,53 @@ test('Telegram accounts must be linked and messages must be private before invok
     onError: () => assert.fail('Authorization should not call the model or CMS'),
   }
   const denied = await replyToTelegram(message, handlers)
-  assert.match(denied?.text || '', /needs to be linked/)
+  assert.match(denied?.text || '', /Give it to a Pets4Luv administrator/)
   assert.match((await replyToTelegram({ ...message, text: '/start' }, handlers))?.text || '', /user ID is 123/)
   assert.equal(await replyToTelegram({ ...message, chat: { ...message.chat, type: 'group' } }, handlers), undefined)
   assert.equal(await replyToTelegram({ ...message, from: { id: 456 } }, handlers), undefined)
+})
+
+test('Catministrator introduces itself in plain language without spending a model request', async () => {
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    interpret: async () => assert.fail('Greetings should not call the model'),
+    save: async () => assert.fail('Greetings should not save a draft'),
+    onError: () => assert.fail('Greeting should succeed'),
+  }
+  for (const text of ['/start', '/help', 'Hello!', 'What can you do?', 'Are you alive?']) {
+    const reply = await replyToTelegram({ ...message, text }, handlers)
+    assert.match(reply?.text || '', /Tell me what you’d like to update|What would you like to update/)
+    assert.doesNotMatch(reply?.text || '', /\/[a-z]+/i)
+  }
+})
+
+test('Catministrator accepts a spoken-style edit and links to the CMS when text drafting is unavailable', async () => {
+  const text = 'Could you mark Tiny as pending?'
+  const receipt = { message: 'Draft saved for Tiny.', path: '/admin/collections/animals/8' }
+  const draft = { action: 'animal', animal: 'Tiny', patch: { status: 'on-hold' } } as const
+  const handlers = {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    save: async (_id: number, _date: number, request: DraftRequest) => {
+      assert.deepEqual(request, draft)
+      return receipt
+    },
+    onError: () => assert.fail('Draft reply should succeed'),
+  }
+  const input = { ...message, text }
+  const ready = await replyToTelegram(input, {
+    ...handlers,
+    interpret: async request => {
+      assert.equal(request, text)
+      return draft
+    },
+  })
+  assert.equal(ready?.text, receipt.message)
+  const unavailable = await replyToTelegram(input, handlers)
+  assert.match(unavailable?.text || '', /currently unavailable/)
+  assert.doesNotMatch(unavailable?.text || '', /\/[a-z]+/i)
+  assert.equal(unavailable?.replyMarkup?.inline_keyboard[0][0].url, 'https://example.invalid/admin')
 })
 
 test('a linked editor can send a draft command with a CMS review link', async () => {
@@ -204,7 +247,7 @@ test('a suggested name or typed correction resumes the original draft in the sam
   assert.equal(saves.length, 2)
   assert.equal(modelCalls, 2)
   await replyToTelegram(initial, handlers)
-  assert.match((await replyToTelegram({ ...message, text: '/cancel' }, handlers))?.text || '', /clarification canceled/)
+  assert.match((await replyToTelegram({ ...message, text: 'Never mind.' }, handlers))?.text || '', /clarification canceled/)
   assert.equal(pending.size, 0)
 })
 
@@ -246,7 +289,7 @@ test('a textless Telegram album gets a reply and the chosen profile is saved onl
     save: async () => assert.fail('Expected the photo flow to handle this request'),
     onError: () => assert.fail('Telegram request failed'),
   }
-  assert.match((await replyToTelegram(messageFromUpdate(album), handlers))?.text || '', /needs to be linked/)
+  assert.match((await replyToTelegram(messageFromUpdate(album), handlers))?.text || '', /Give it to a Pets4Luv administrator/)
   assert.equal(stored, undefined)
   allowed = true
   const receipt = await replyToTelegram(messageFromUpdate(album), handlers)
@@ -297,4 +340,27 @@ test('reading an intake flyer extracts facts without uploading the reference ima
   const result = await flow({ ...photo, text: save!.callback_data, photos: [] })
   assert.ok(result && 'draft' in result)
   assert.match(result.draft.message, /Draft saved for Willow/)
+})
+
+
+test('natural-language intake and cancellation work without AI or slash commands', async () => {
+  let stored: PhotoWork | undefined
+  const flow = createPhotoFlow({
+    load: async () => stored,
+    store: async (_id, work) => { stored = work },
+    isLinked: async () => true,
+    find: async () => assert.fail('New intake should not look up an existing animal'),
+    download: async () => assert.fail('There are no images in this intake'),
+    save: async () => assert.fail('Intake requires confirmation'),
+    onError: () => assert.fail('Intake should be understood'),
+  })
+  const input = { id: 123, date: 1000, photos: [] }
+  const reply = await flow({ ...input, text: 'Could you add a cat named Willow?' })
+  assert.ok(reply && 'text' in reply)
+  assert.match(reply.text, /Create an animal draft for Willow/)
+  assert.equal(reply.buttons?.[0][0].text, 'Create animal draft')
+  const canceled = await flow({ ...input, text: 'Never mind.' })
+  assert.ok(canceled && 'text' in canceled)
+  assert.match(canceled.text, /canceled/)
+  assert.equal(stored, undefined)
 })

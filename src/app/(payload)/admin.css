@@ -328,7 +328,7 @@
   .cms-help-examples { display: grid; gap: 12px; margin: 14px 0; }
   .cms-help-examples dt { margin-bottom: 4px; font-size: 14px; font-weight: 600; }
   .cms-help-examples dd { margin: 0; }
-  .cms-help-examples code { display: block; padding: 8px 11px; border: 1px solid var(--cms-line); border-radius: 6px; background: var(--cms-bg); white-space: pre-wrap; }
+  .cms-help-examples q { display: block; padding: 8px 11px; border: 1px solid var(--cms-line); border-radius: 6px; background: var(--cms-bg); white-space: pre-wrap; }
   .cms-help-admin { margin-top: 16px; padding: 18px 24px; }
   .cms-help-admin a { color: var(--cms-accent-text); text-decoration: underline; }
   .cms-help-article .cms-help-note { margin-top: 14px; color: var(--cms-muted); font-size: 13px; }

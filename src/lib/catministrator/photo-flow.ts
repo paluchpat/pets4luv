@@ -3,7 +3,7 @@ import { readIntakeDetails, type IntakeDetails } from './animal-intake'
 import type { DraftReceipt } from './drafts'
 import type { PhotoPlan } from './photo-drafts'
 import type { PreparedImage, TelegramFile } from './photo-input'
-import { AnimalNameError, DraftRequestError } from './requests'
+import { AnimalNameError, DraftRequestError, isCancelRequest } from './requests'
 
 export type PhotoWork = {
   files: TelegramFile[]
@@ -67,10 +67,10 @@ export function createPhotoFlow(options: PhotoFlowOptions) {
     }
     const message = text.trim().replace(/^(?:please\s+|(?:can|could|would) you (?:please )?)/i, '')
     const choice = /^\/photo-action ([\w-]+) (read|save)$/.exec(text.trim())
-    const newAnimal = /^(?:(?:\/new|new)|(?:add|create) (?:a )?(?:new )?)\s+(cat|dog)\s+(?:(?:named|called)\s+)?(.+?)[.!?]?$/i.exec(message)
+    const newAnimal = /^(?:\/new|new|(?:add|create)(?: a)?(?: new)?)\s+(cat|dog)\s+(?:(?:named|called)\s+)?(.+?)[.!?]?$/i.exec(message)
     const target = /^(?:\/photos|this is|(?:her |his )?name is|it['’]s|photos? (?:of|for)|(?:add|attach) (?:(?:these |this |the )?(?:photos?|pictures?|images?) )?to|use (?:the )?details for)\s+(.+?)(?:['’]s (?:profile|draft|gallery))?[.!?]?$/i.exec(message)?.[1]
     const read = /^(?:read|extract) (?:(?:the )?(?:text|details) (?:from|on) )?(?:the |this )?(?:image|photo|flyer|screenshot)[.!]?$/i.test(text.trim())
-    if (text.trim() === '/cancel' && work) {
+    if (isCancelRequest(text) && work) {
       await options.store(id)
       return { text: 'Photo and intake request canceled.' }
     }
@@ -89,7 +89,7 @@ export function createPhotoFlow(options: PhotoFlowOptions) {
     try {
       if (photos.length) {
         const files = [...new Map([...work.files, ...photos].map(file => [file.file_unique_id, file])).values()]
-        if (files.length > 10) throw new DraftRequestError('I can keep up to 10 photos at a time. Save the current set or send /cancel to start over.')
+        if (files.length > 10) throw new DraftRequestError('I can keep up to 10 photos at a time. Save the current set or say “Cancel the photo request” to start over.')
         work = { ...work, files }
       }
       const remember = async (pending: PhotoWork) => {
@@ -111,7 +111,7 @@ export function createPhotoFlow(options: PhotoFlowOptions) {
       if (read || choice?.[2] === 'read') {
         if (!work.files.length) throw new DraftRequestError('Send the flyer or screenshot you want me to read.')
         if (!options.read) throw new DraftRequestError('Image reading is unavailable. You can still attach photos and create drafts with a name and species.')
-        if (work.files.length > 3) throw new DraftRequestError('Send /cancel and resend up to three flyer images to read together.')
+        if (work.files.length > 3) throw new DraftRequestError('Say “Cancel the photo request,” then send up to three flyer images to read together.')
         const images = []
         for (const file of work.files) images.push(await options.download(file))
         const details = await options.read(images)
@@ -150,7 +150,7 @@ export function createPhotoFlow(options: PhotoFlowOptions) {
       if (error instanceof DraftRequestError) return { text: error.message }
       options.onError()
       return { text: original || photos.length
-        ? 'I couldn’t finish that photo request. You can try again, send /cancel, or use the CMS.'
+        ? 'I couldn’t finish that photo request. Try again, say “Cancel the photo request,” or open the CMS.'
         : 'I couldn’t set up that intake draft. Try again or use the CMS.' }
     }
   }

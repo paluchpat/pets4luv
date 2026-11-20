@@ -3,7 +3,7 @@ import type { DraftReceipt } from './drafts'
 import type { createPhotoFlow } from './photo-flow'
 import type { TelegramFile } from './photo-input'
 import {
-  AnimalNameError, commandHelp, correctAnimalReference, DeleteRequestError, DraftRequestError,
+  AnimalNameError, correctAnimalReference, DeleteRequestError, DraftRequestError, isCancelRequest,
   parseDraftCommand, type AnimalNameIssue, type DraftRequest,
 } from './requests'
 
@@ -171,6 +171,7 @@ export async function replyToTelegram(
   const text = message.text || message.caption || ''
   const photos = messagePhotos(message)
   const id = from.id
+  const phrase = text.trim().replace(/[.!?]+$/, '').trim().toLowerCase()
   const answer = (reply: string) => ({ chat: id, text: reply })
   const undo = undoRequest(text)
   let pending: NameFollowUp | undefined
@@ -183,11 +184,23 @@ export async function replyToTelegram(
   try {
     const linked = await handlers.isLinked(id, date)
     if (!linked) {
-      return answer(text.trim() === '/start'
-        ? `Your Telegram user ID is ${id}. Give it to a Pets4Luv administrator to link your editor account.`
-        : 'This Telegram account needs to be linked by a Pets4Luv administrator. Send /start to see your user ID.')
+      return answer(`Your Telegram user ID is ${id}. Give it to a Pets4Luv administrator to link your editor account.`)
     }
     if (text.length > 3500) return answer('Please send a shorter draft request.')
+    if (!photos.length && !message.document) {
+      if (/^(?:are you (?:there|online|alive|working|up)|are you still there)$/.test(phrase)) {
+        return answer('I’m here. What would you like to update?')
+      }
+      if (/^(?:\/(?:start|help)|(?:hi|hey|hello)(?: catministrator)?|help|what can you (?:do|help(?: me)? with)|how (?:do|can) i use (?:you|this bot|catministrator))$/.test(phrase)) {
+        const greeting = handlers.interpret
+          ? 'Hi! Tell me what you’d like to update and I’ll prepare a draft for review. Try “Mark Tiny as pending” or “Feature Fig first, then Frida and Bandit.”'
+          : 'Hi! I’m here. Text drafting is currently unavailable. You can edit the site in the CMS.'
+        const photoHelp = handlers.photoFlow
+          ? '\n\nYou can also send an animal photo with its name, or send a flyer and choose Read details from image.'
+          : ''
+        return answer(greeting + photoHelp)
+      }
+    }
     const mediaReply = await handlers.photoFlow?.({ id, date, text, photos })
     if (mediaReply) {
       if ('draft' in mediaReply) return reviewReply(id, mediaReply.draft, handlers.cmsOrigin, false)
@@ -201,19 +214,13 @@ export async function replyToTelegram(
         replyMarkup: { inline_keyboard: [[linkButton('Open the animals CMS', '/admin/collections/animals', handlers.cmsOrigin)]] },
       }
     }
-    if (!message.text || message.document) return answer('Send a photo, a JPG, PNG, or WebP file, or a text request. Send /help for examples.')
+    if (!message.text || message.document) return answer('Send a photo, a JPG, PNG, or WebP file, or describe the change you’d like to make.')
     pending = await handlers.nameFollowUps?.load(id)
     if (pending && (!Number.isSafeInteger(pending.requestedAt) || !Number.isFinite(pending.expiresAt) || pending.expiresAt <= Date.now())) await clearFollowUp()
-    if (text.trim() === '/cancel') {
+    if (isCancelRequest(text)) {
       const reply = pending ? 'Name clarification canceled. Send a new draft request when you’re ready.' : 'There’s no pending name clarification.'
       await clearFollowUp()
       return answer(reply)
-    }
-    if (['/start', '/help'].includes(text.trim())) {
-      return answer('Catministrator saves drafts for review in the CMS.\n\n' + commandHelp +
-        (handlers.undo ? '\n\n/undo — undo your latest featured publish.' : '') +
-        (handlers.photoFlow ? '\n\nSend photos and name the animal, or choose Read details from image for a flyer. /new cat Willow starts an animal draft.' : '') +
-        (handlers.interpret ? '\n\nYou can also describe a single change in plain language.' : ''))
     }
     if (/^(?:please\s+)?(?:\/delete|(?:permanently\s+)?delete)(?:\s|$)/i.test(text.trim())) throw new DeleteRequestError()
     if (undo && handlers.undo) {
@@ -258,7 +265,12 @@ export async function replyToTelegram(
       }
       const command = parseDraftCommand(text)
       if (!command && (text.startsWith('/') || !handlers.interpret)) {
-        return pending ? nameFollowUpReply(id, pending) : answer(commandHelp)
+        if (pending) return nameFollowUpReply(id, pending)
+        if (handlers.interpret) return answer('Tell me what you’d like to change, for example, “Make Tiny the lead featured animal.”')
+        return {
+          ...answer('Text drafting is currently unavailable. You can make the update in the CMS.'),
+          replyMarkup: { inline_keyboard: [[linkButton('Open the CMS', '/admin', handlers.cmsOrigin)]] },
+        }
       }
       attempt = command ?? await handlers.interpret!(text)
       await clearFollowUp()

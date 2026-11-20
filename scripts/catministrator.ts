@@ -67,7 +67,7 @@ async function recordLink(id: string, address: string) {
   const existing = await payload.count({ collection: 'users', where: { telegramUserId: { equals: id } }, overrideAccess: true })
   if (existing.totalDocs) throw new Error('This Telegram ID is already linked to a different account.')
   await payload.update({ collection: 'users', id: editor.id, overrideAccess: true, data: { telegramUserId: id } })
-  console.log('Telegram account linked. Send a new /help to the bot to see the available commands.')
+  console.log('Telegram account linked. Say hello to Catministrator to get started.')
 }
 
 async function poll(botToken: string) {

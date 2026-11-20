@@ -28,19 +28,9 @@ export type DraftRequest =
   | { action: 'lead'; animal: string }
   | { action: 'replace-featured'; animal: string; replacement: string }
 
-export const commandHelp = [
-  'Draft an animal edit:',
-  '/edit Fig | summary=Sweet and playful.',
-  '/edit Tiny | status=pending',
-  '',
-  'Draft a featured list in homepage order:',
-  '/featured Fig, Frida, Rollo',
-  '/lead Tiny — change the lead animal',
-  '/replace Tiny | Mochachina — replace one featured animal',
-  '',
-  'Draft a page edit:',
-  '/page Contact | old wording | new wording',
-].join('\n')
+export function isCancelRequest(message: string) {
+  return /^(?:\/cancel|cancel(?: (?:that|this|the) (?:draft|intake|photo) request)?|never mind|start over)[.!?]*$/i.test(message.trim())
+}
 
 function animalReference(value: unknown): string {
   if (typeof value !== 'string' || !value.trim() || value.trim().length > 160) {
@@ -134,19 +124,19 @@ export function parseDraftCommand(message: string): DraftRequest | undefined {
   if (command[1].toLowerCase() === 'lead') return leadDraftRequest(text)
   if (command[1].toLowerCase() === 'page') {
     const parts = text.split('|')
-    if (parts.length !== 3) throw new DraftRequestError('Use /page Page title | old wording | new wording.')
+    if (parts.length !== 3) throw new DraftRequestError('Tell me the page title, the exact text to replace, and the new wording.')
     return pageTextDraftRequest(parts[0], parts[1], parts[2])
   }
   if (command[1].toLowerCase() === 'replace') {
     const parts = text.split('|')
-    if (parts.length !== 2) throw new DraftRequestError('Use /replace followed by the current animal, a |, and the replacement.')
+    if (parts.length !== 2) throw new DraftRequestError('Tell me the name of the featured animal to replace and the animal to put in that spot.')
     return featuredReplacementRequest(parts[0], parts[1])
   }
   const [animal, ...fields] = text.split('|')
   const pairs = new Map<string, string>()
   for (const field of fields) {
     const equals = field.indexOf('=')
-    if (equals < 0) throw new DraftRequestError('Use field=value for each edit.')
+    if (equals < 0) throw new DraftRequestError('Tell me what you want to change about the animal and give me the new wording or value.')
     const name = field.slice(0, equals).trim().toLowerCase()
     if (pairs.has(name)) throw new DraftRequestError('Include each field once.')
     pairs.set(name, field.slice(equals + 1))

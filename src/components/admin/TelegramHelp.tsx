@@ -9,12 +9,12 @@ import { telegramHelp } from '../../lib/admin-sections'
 import { isEditor } from '../../lib/catministrator/editors'
 
 const examples = [
-  { label: 'Update an animal’s short description', command: '/edit Fig | summary=Sweet and playful.' },
-  { label: 'Mark an animal as pending', command: '/edit Tiny | status=pending' },
-  { label: 'Set the homepage featured list', command: '/featured Fig, Frida, Rollo' },
-  { label: 'Change the lead photo', command: '/lead Tiny' },
-  { label: 'Replace one featured animal', command: '/replace Tiny | Mochachina' },
-  { label: 'Replace wording on a page', command: '/page Contact | old wording | new wording' },
+  { label: 'Update an animal’s short description', message: 'Set Fig’s summary to Sweet and playful.' },
+  { label: 'Mark an animal as pending', message: 'Mark Tiny as pending.' },
+  { label: 'Set the homepage featured list', message: 'Feature Fig first, then Frida and Bandit.' },
+  { label: 'Change the lead animal', message: 'Make Tiny the lead featured animal.' },
+  { label: 'Replace one featured animal', message: 'Replace Tiny with Mochachina in the featured list.' },
+  { label: 'Replace wording on a page', message: 'On the Contact page, change “Visit on Saturday” to “Visit on Sunday.”' },
 ]
 
 export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions }: AdminViewServerProps) {
@@ -50,35 +50,31 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
         <ol className="cms-help-steps" role="list">
           <li>
             <h2>Link your Telegram account</h2>
-            <p>Open a private chat with <strong>{telegramHelp.username}</strong> and send <code>/start</code>. Share the numeric ID in the reply with a Pets4Luv administrator, who can link it to your CMS account.</p>
+            <p>Open a private chat with <strong>{telegramHelp.username}</strong> and tap <strong>Start</strong>. Share the numeric ID in the reply with a Pets4Luv administrator, who can link it to your CMS account.</p>
           </li>
           <li>
-            <h2>Send a command</h2>
-            <p>Once linked, send <code>/help</code> to see the commands. Use the animal’s exact name or its CMS slug.</p>
+            <h2>Describe what you’d like to change</h2>
+            <p>Once linked, message Catministrator as you would a coworker. Include the animal’s name or the page title and describe the change you want.</p>
             <dl className="cms-help-examples">
-              {examples.map(({ label, command }) => <div key={command}>
+              {examples.map(({ label, message }) => <div key={label}>
                 <dt>{label}</dt>
-                <dd><code>{command}</code></dd>
+                <dd><q>{message}</q></dd>
               </div>)}
             </dl>
-            <p>For <code>/edit</code>, use <code>summary</code>, <code>description</code>, <code>breed</code>, or <code>status</code> as the field name. Status can be <strong>available</strong>, <strong>pending</strong>, or <strong>adopted</strong>.</p>
-            <p><code>/featured</code> replaces the full list. Enter one to three published, available animals in homepage order. The first one gets the large photo.</p>
-            <p><code>/lead</code> changes the first slot. If the animal is already featured, it moves to the front.</p>
-            <p><code>/replace</code> changes one slot and keeps the other animals in order.</p>
-            <p>If <code>/help</code> says plain-language requests are available, try “Replace Tiny with Mochachina in the featured list.”</p>
-            <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” The bot picks up the original request. Send <code>/cancel</code> to clear the pending clarification.</p>
+            <p>Choose up to three published, available animals when setting the full featured list. The first animal gets the large photo.</p>
+            <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” To clear the pending clarification, say “Never mind.”</p>
           </li>
           <li>
             <h2>Add photos or read an intake flyer</h2>
             <p>Send one or more photos. Caption them “Photos for Fig” or reply with the animal’s name. Tap <strong>Save animal draft</strong> to add them to the profile.</p>
-            <p>To start a profile, send “New cat Willow” with a photo or by itself. Add any missing details in the CMS before publishing.</p>
+            <p>To start a profile, say “Add a cat named Willow” with a photo or by itself. Add any missing details in the CMS before publishing.</p>
             <p>For a flyer or screenshot, tap <strong>Read details from image</strong> and check the extracted facts before saving. Send clean animal photos separately for the gallery.</p>
-            <p>Send <code>/cancel</code> to start over. Photo choices expire after 30 minutes.</p>
+            <p>Say “Cancel the photo request” to start over. Photo choices expire after 30 minutes.</p>
           </li>
           <li>
             <h2>Review and publish</h2>
             <p>For featured animals, open <strong>Preview homepage</strong>, then tap <strong>Publish this draft</strong> in Telegram when it’s ready. The links expire after 30 minutes. If the draft changes, review the new preview before publishing.</p>
-            <p>After publishing featured animals, tap <strong>Undo featured publish</strong> or say “undo last action” to restore the previous live order. You can also send <code>/undo</code>. Undo applies to your publication while it’s still current. Review any newer featured draft in the CMS first.</p>
+            <p>After publishing featured animals, tap <strong>Undo featured publish</strong> or say “undo last action” to restore the previous live order. Undo applies to your publication while it’s still current. Review any newer featured draft in the CMS first.</p>
             <p>To discard a saved featured draft, open <strong>Review in the CMS</strong> and choose <strong>Discard draft</strong> from the three-dot menu.</p>
             <p>For animal and article drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
             <p>To delete content, sign in to the CMS. Catministrator sends the login link when you ask to delete something.</p>
