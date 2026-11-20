@@ -67,13 +67,13 @@ test('the Vercel Gateway sends a caption and all five images to Luna together', 
 test('intake values use CMS choices and preserve only valid fields', () => {
   assert.deepEqual(readIntakeDetails({
     name: ' Will ', estimatedBirthDate: '2026-04-10', weight: 6.8, size: 'small', status: 'available',
-    colors: ['black', 'white', 'black', 'unsupported-color'],
+    colors: ['white', 'black', 'tuxedo', 'white', 'unsupported-color'],
     compatibility: { cats: 'yes', dogs: null, children: 'unknown' },
     rescueIntakeID: ' FIXTURE-2001 ', internalNotes: 'Vaccination record verified.',
     careNeeds: 'Offer unscented litter.', compatibilityNotes: 'Friendly with other cats.',
   }, new Date('2026-11-20T12:00:00Z')), {
     name: 'Will', estimatedBirthDate: '2026-04-10', ageGroup: 'baby', weight: 6.8, size: 'small', status: 'available',
-    colors: ['black', 'white'], compatibility: { cats: 'yes' },
+    colors: ['white', 'black', 'tuxedo'], compatibility: { cats: 'yes' },
     rescueIntakeID: 'FIXTURE-2001', internalNotes: 'Vaccination record verified.',
     careNeeds: 'Offer unscented litter.', compatibilityNotes: 'Friendly with other cats.',
   })
@@ -315,7 +315,7 @@ test('the mixed album goes to the model after authorization and only its public 
   let saved = false
   let calls = 0
   const details = { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.', weight: 6.8,
-    colors: ['black', 'white'], compatibility: { cats: 'yes' }, internalNotes: 'Vaccination record verified.',
+    colors: ['white', 'black', 'tuxedo'], compatibility: { cats: 'yes' }, internalNotes: 'Vaccination record verified.',
     rescueIntakeID: 'FIXTURE-2001' } satisfies IntakeDecision['details']
   const downloaded: string[] = []
   const photoFlow = createPhotoFlow({
@@ -361,6 +361,7 @@ test('the mixed album goes to the model after authorization and only its public 
   assert.match(proposed?.text || '', /Create an animal draft for Willow/)
   assert.match(proposed?.text || '', /Website photos: 1, 2, 3, 4/)
   assert.match(proposed?.text || '', /Reference images kept out of the gallery: 5/)
+  assert.match(proposed?.text || '', /Coat: White, Black, Tuxedo/)
   assert.match(proposed?.text || '', /6.8 lb/)
   assert.match(proposed?.text || '', /Compatibility: cats yes/)
   assert.match(proposed?.text || '', /Staff only · Intake ID: FIXTURE-2001/)

@@ -35,7 +35,7 @@ function pictureList(kinds: AttachmentKind[], kind: AttachmentKind) {
 }
 
 function reviewDetails(details: IntakeDetails) {
-  const colors = animalColorOptions.filter(option => details.colors?.includes(option.value)).map(option => option.label)
+  const colors = details.colors?.map(color => animalColorOptions.find(option => option.value === color)?.label || color) || []
   const compatibility = compatibilityFields.flatMap(group => {
     const assessment = details.compatibility?.[group]
     return assessment ? [group + ' ' + assessment] : []

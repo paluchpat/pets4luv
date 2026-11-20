@@ -1071,7 +1071,7 @@ test('Catministrator puts legible intake facts in structured draft fields and ke
   const status = 'available'
   const fields = {
     name, status, species: 'cat', size: 'small', estimatedBirthDate: '2026-04-10',
-    weight: 6.8, colors: ['black', 'white'], compatibility: { cats: 'yes' },
+    weight: 6.8, colors: ['white', 'black', 'tuxedo'], compatibility: { cats: 'yes' },
     rescueIntakeID: 'CATMIN-FIXTURE-2001', internalNotes: 'Fictional vaccination note.',
     summary: 'Quiet and affectionate.', description: 'Willow enjoys quiet afternoons.',
   } as const
@@ -1083,7 +1083,7 @@ test('Catministrator puts legible intake facts in structured draft fields and ke
   assert.equal(intake._status, 'draft')
   assert.equal(intake.estimatedBirthDate?.slice(0, 10), fields.estimatedBirthDate)
   assert.equal(intake.weight, 6.8)
-  assert.deepEqual(intake.colors, ['black', 'white'])
+  assert.deepEqual(intake.colors, ['white', 'black', 'tuxedo'])
   assert.equal(intake.compatibility.cats, 'yes')
   assert.equal(intake.rescueIntakeID, fields.rescueIntakeID)
   assert.equal(intake.internalNotes, fields.internalNotes)
