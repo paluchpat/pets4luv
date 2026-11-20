@@ -19,6 +19,11 @@ function ageCutoffs(now: Date) {
   return [birthday(1), birthday(3), birthday(8, -1)]
 }
 
+export function animalAgeGroupAtBirthDate(birthDate: Date, now = new Date()) {
+  const index = ageCutoffs(now).filter(cutoff => birthDate <= cutoff).length
+  return animalAgeGroups[index].value
+}
+
 export function animalAgeGroupWhere(group: string | undefined, now = new Date()): Where | undefined {
   const index = animalAgeGroups.findIndex(option => option.value === group)
   if (index < 0) return undefined

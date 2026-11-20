@@ -3,8 +3,9 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { openAIInterpreter, readModelDecision, type ModelInput, type ModelDecision } from '../../src/lib/catministrator/model'
+import { openAIInterpreter, readModelDecision, type ModelInput, type ModelDecision, type IntakeDecision } from '../../src/lib/catministrator/model'
 import { AnimalNameError, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from '../../src/lib/catministrator/requests'
+import { readIntakeDetails } from '../../src/lib/catministrator/animal-intake'
 import { createPhotoFlow, type PhotoWork } from '../../src/lib/catministrator/photo-flow'
 import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
 
@@ -61,6 +62,25 @@ test('the Vercel Gateway sends a caption and all five images to Luna together', 
     { action: 'create-animal', animal: undefined, details: {}, attachments: ['unknown', 'unknown'] })
   await assert.rejects(() => interpret(input), /request limit/)
   assert.equal(gateway.mock.callCount(), 1)
+})
+
+test('intake values use CMS choices and preserve only valid fields', () => {
+  assert.deepEqual(readIntakeDetails({
+    name: ' Will ', estimatedBirthDate: '2026-04-10', weight: 6.8, size: 'small', status: 'available',
+    colors: ['black', 'white', 'black', 'unsupported-color'],
+    compatibility: { cats: 'yes', dogs: null, children: 'unknown' },
+    rescueIntakeID: ' FIXTURE-2001 ', internalNotes: 'Vaccination record verified.',
+    careNeeds: 'Offer unscented litter.', compatibilityNotes: 'Friendly with other cats.',
+  }, new Date('2026-11-20T12:00:00Z')), {
+    name: 'Will', estimatedBirthDate: '2026-04-10', ageGroup: 'baby', weight: 6.8, size: 'small', status: 'available',
+    colors: ['black', 'white'], compatibility: { cats: 'yes' },
+    rescueIntakeID: 'FIXTURE-2001', internalNotes: 'Vaccination record verified.',
+    careNeeds: 'Offer unscented litter.', compatibilityNotes: 'Friendly with other cats.',
+  })
+  assert.deepEqual(readIntakeDetails({
+    estimatedBirthDate: '2025-02-29', weight: 'six', status: 'quarantine', colors: ['unspecified'],
+    compatibility: { cats: null, dogs: 'unknown', children: false },
+  }), {})
 })
 
 test('Telegram accounts must be linked and messages must be private before invoking AI or the CMS', async () => {
@@ -294,6 +314,9 @@ test('the mixed album goes to the model after authorization and only its public 
   let allowed = false
   let saved = false
   let calls = 0
+  const details = { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.', weight: 6.8,
+    colors: ['black', 'white'], compatibility: { cats: 'yes' }, internalNotes: 'Vaccination record verified.',
+    rescueIntakeID: 'FIXTURE-2001' } satisfies IntakeDecision['details']
   const downloaded: string[] = []
   const photoFlow = createPhotoFlow({
     load: async () => {
@@ -309,7 +332,7 @@ test('the mixed album goes to the model after authorization and only its public 
       return { digest: file.file_id, data: Buffer.from(file.file_id) }
     },
     save: async (_id, _date, plan, images) => {
-      assert.deepEqual(plan, { kind: 'create', fields: { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.' } })
+      assert.deepEqual(plan, { kind: 'create', fields: details })
       assert.deepEqual(images.map(image => image.digest), ['file-0', 'file-1', 'file-2', 'file-3'])
       saved = true
       return { message: 'Draft saved for Willow.', path: '/admin/collections/animals/7' }
@@ -323,7 +346,7 @@ test('the mixed album goes to the model after authorization and only its public 
       assert.equal(text, 'add this cat')
       assert.deepEqual(images.map(image => image.digest), files.map(file => file.file_id))
       calls++
-      return { action: 'create-animal', details: { name: 'Willow', species: 'cat', summary: 'Quiet and affectionate.' },
+      return { action: 'create-animal', details,
         attachments: ['photo', 'photo', 'photo', 'photo', 'reference'] }
     },
     save: async () => assert.fail('Expected the intake flow'),
@@ -338,6 +361,9 @@ test('the mixed album goes to the model after authorization and only its public 
   assert.match(proposed?.text || '', /Create an animal draft for Willow/)
   assert.match(proposed?.text || '', /Website photos: 1, 2, 3, 4/)
   assert.match(proposed?.text || '', /Reference images kept out of the gallery: 5/)
+  assert.match(proposed?.text || '', /6.8 lb/)
+  assert.match(proposed?.text || '', /Compatibility: cats yes/)
+  assert.match(proposed?.text || '', /Staff only · Intake ID: FIXTURE-2001/)
   assert.equal(saved, false)
   const button = proposed?.replyMarkup?.inline_keyboard[0][0]
   const result = await replyToTelegram(messageFromUpdate({

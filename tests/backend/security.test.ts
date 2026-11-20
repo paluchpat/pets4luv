@@ -1065,6 +1065,44 @@ test('Catministrator appends a photo to an animal draft without changing the liv
   await assert.rejects(() => payload.findByID({ collection: 'animals', id: intake.id, overrideAccess: false }))
 })
 
+test('Catministrator puts legible intake facts in structured draft fields and keeps staff notes private', async () => {
+  const name = 'Intake Details Fixture'
+  const status = 'available'
+  const fields = {
+    name, status, species: 'cat', size: 'small', estimatedBirthDate: '2026-04-10',
+    weight: 6.8, colors: ['black', 'white'], compatibility: { cats: 'yes' },
+    rescueIntakeID: 'CATMIN-FIXTURE-2001', internalNotes: 'Fictional vaccination note.',
+    summary: 'Quiet and affectionate.', description: 'Willow enjoys quiet afternoons.',
+  } as const
+  const created = await savePhotoDraft(payload, editor, {
+    kind: 'create', fields: { ...fields, colors: [...fields.colors] },
+  }, [])
+  assert.match(created.message, /Draft saved/)
+  const { docs: [intake] } = await payload.find({ collection: 'animals', draft: true, where: { name: { equals: name } } })
+  assert.equal(intake._status, 'draft')
+  assert.equal(intake.estimatedBirthDate?.slice(0, 10), fields.estimatedBirthDate)
+  assert.equal(intake.weight, 6.8)
+  assert.deepEqual(intake.colors, ['black', 'white'])
+  assert.equal(intake.compatibility.cats, 'yes')
+  assert.equal(intake.rescueIntakeID, fields.rescueIntakeID)
+  assert.equal(intake.internalNotes, fields.internalNotes)
+  assert.equal(intake.description, fields.description)
+  const publicContent = JSON.stringify(animalProfileDTO(intake))
+  assert.doesNotMatch(publicContent, /CATMIN-FIXTURE-2001|Fictional vaccination note/)
+  await assert.rejects(() => savePhotoDraft(payload, editor, {
+    kind: 'create', fields: { name: 'Duplicate ID Fixture', species: 'cat', rescueIntakeID: fields.rescueIntakeID },
+  }, []), /intake ID already belongs/)
+
+  await savePhotoDraft(payload, editor, {
+    kind: 'update', name, id: intake.id, fields: { compatibility: { dogs: 'no' }, internalNotes: 'Fictional follow-up note.' },
+  }, [])
+  const next = await payload.findByID({ collection: 'animals', id: intake.id, draft: true })
+  assert.equal(next.compatibility.dogs, 'no')
+  assert.equal(next.compatibility.cats, 'yes')
+  assert.equal(next.internalNotes, 'Fictional vaccination note.\n\nFictional follow-up note.')
+  await assert.rejects(() => payload.findByID({ collection: 'animals', id: intake.id, overrideAccess: false }))
+})
+
 test('Catministrator replaces exact article wording in a draft only', async () => {
   const page = await payload.create({ collection: 'pages', data: {
     title: 'Catministrator content fixture', slug: 'catministrator-content-fixture', body: pageBody('Visit on Saturday.'), _status: 'published',

@@ -19,7 +19,7 @@ export async function findPhotoAnimal(payload: Payload, editor: User, reference:
 
 export async function savePhotoDraft(payload: Payload, editor: User, plan: PhotoPlan, images: PreparedImage[]): Promise<DraftReceipt> {
   if (!isEditor(editor)) throw new DraftRequestError('This CMS account cannot edit animals.')
-  const { name, species, ...details } = readIntakeDetails(plan.fields || {})
+  const { name, species, compatibility, ...details } = readIntakeDetails(plan.fields || {})
   const req = await createLocalReq({ user: editor }, payload)
   const options = { req, overrideAccess: false, depth: 0 } as const
   const started = await initTransaction(req)
@@ -39,6 +39,19 @@ export async function savePhotoDraft(payload: Payload, editor: User, plan: Photo
       })
       if (docs.length) throw new DraftRequestError(`A profile already exists for ${name}. Tell me to use that animal’s draft instead.`)
     }
+    if (details.rescueIntakeID && details.rescueIntakeID !== current?.rescueIntakeID) {
+      const { docs: [existing] } = await payload.find({
+        ...options, collection: 'animals', draft: true, limit: 1,
+        where: { rescueIntakeID: { equals: details.rescueIntakeID } },
+      })
+      if (existing) throw new DraftRequestError(`That intake ID already belongs to ${existing.name}. Review the existing profile in the CMS.`)
+    }
+    if (details.internalNotes && current?.internalNotes) {
+      details.internalNotes = current.internalNotes.includes(details.internalNotes)
+        ? current.internalNotes
+        : [current.internalNotes, details.internalNotes].join('\n\n')
+    }
+
     const photos = [...current?.photos || []]
     let added = 0
     for (const image of images) {
@@ -56,13 +69,21 @@ export async function savePhotoDraft(payload: Payload, editor: User, plan: Photo
       added++
     }
 
-    if (current && !added && !Object.keys(details).length) {
+    if (current && !added && !compatibility && !Object.keys(details).length) {
       const message = images.length ? 'These photos are already on the profile.' : 'Send a clean photo or more profile details to add.'
       if (started) await commitTransaction(req)
       saved = true
       return { message, path: '/admin/collections/animals/' + current.id, changed: false }
     }
-    const values = { ...details, ...(photos.length ? { photos } : {}), _status: 'draft' as const }
+    const values = {
+      ...details,
+      ...(compatibility && { compatibility: {
+        cats: 'unknown' as const, dogs: 'unknown' as const, children: 'unknown' as const,
+        ...current?.compatibility, ...compatibility,
+      } }),
+      ...(photos.length ? { photos } : {}),
+      _status: 'draft' as const,
+    }
     const animal = current
       ? await payload.update({ ...options, collection: 'animals', id: current.id, draft: true, overrideLock: false, data: values })
       : await payload.create({ ...options, collection: 'animals', draft: true, data: { ...values, name, species } })

@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto'
-import type { IntakeDetails } from './animal-intake'
+import { animalColorOptions } from '../animal-colors'
+import { compatibilityFields, type IntakeDetails } from './animal-intake'
 import type { DraftReceipt } from './drafts'
 import type { AttachmentKind, IntakeDecision } from './model'
 import type { PhotoPlan } from './photo-drafts'
@@ -33,13 +34,35 @@ function pictureList(kinds: AttachmentKind[], kind: AttachmentKind) {
   return kinds.flatMap((value, i) => value === kind ? [i + 1] : []).join(', ')
 }
 
-function reviewDetails(details?: IntakeDetails) {
-  if (!details) return []
+function reviewDetails(details: IntakeDetails) {
+  const colors = animalColorOptions.filter(option => details.colors?.includes(option.value)).map(option => option.label)
+  const compatibility = compatibilityFields.flatMap(group => {
+    const assessment = details.compatibility?.[group]
+    return assessment ? [group + ' ' + assessment] : []
+  })
+  const measurements = [
+    details.size,
+    details.weight && `${details.weight} lb`,
+    details.status === 'on-hold' ? 'pending' : details.status,
+  ].filter(Boolean).join(' · ')
   return [
     [details.name, details.species, details.sex, details.ageGroup, details.breed].filter(Boolean).join(' · '),
+    colors.length ? 'Coat: ' + colors.join(', ') : '',
+    details.estimatedBirthDate && 'Estimated birth date: ' + details.estimatedBirthDate,
+    measurements,
     details.summary,
     details.description !== details.summary ? details.description : undefined,
+    compatibility.length ? 'Compatibility: ' + compatibility.join(', ') : '',
+    details.compatibilityNotes,
+    details.careNeeds && 'Care for adopter: ' + details.careNeeds,
+    details.rescueIntakeID && 'Staff only · Intake ID: ' + details.rescueIntakeID,
+    details.internalNotes && 'Staff only · ' + details.internalNotes,
   ].filter((line): line is string => Boolean(line))
+}
+
+function intakeReply(lines: string[]) {
+  const text = lines.join('\n')
+  return text.length <= 3900 ? text : text.slice(0, 3800) + '\n… Review the complete details in the CMS after saving.'
 }
 
 export function createPhotoFlow(options: PhotoFlowOptions) {
@@ -121,11 +144,11 @@ export function createPhotoFlow(options: PhotoFlowOptions) {
 
     const next = await remember(id, { ...pending, plan })
     if (!plan) return {
-      text: [...facts, ...pictureNotes, nextQuestion].join('\n'),
+      text: intakeReply([nextQuestion, ...pictureNotes, ...facts]),
     }
     const heading = plan.kind === 'create' ? `Create an animal draft for ${plan.fields.name}?` : `Save to ${plan.name}’s draft?`
     return {
-      text: [heading, ...facts, ...pictureNotes].join('\n'),
+      text: intakeReply([heading, ...pictureNotes, ...facts]),
       buttons: [[{ text: plan.kind === 'create' ? 'Create animal draft' : 'Save animal draft', callback_data: `/photo-action ${next.nonce} save` }]],
     }
   }

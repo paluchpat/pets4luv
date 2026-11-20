@@ -67,8 +67,8 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <li>
             <h2>Send photos and intake details together</h2>
             <p>Send an album with the animal’s photos and any intake sheet. A caption like “Add this cat” starts a new profile. To update a profile, say which animal the photos are for.</p>
-            <p>Catministrator reads the images and shows which ones it plans to use in the gallery. Check the extracted details and answer any follow-up questions, then tap <strong>Create animal draft</strong> or <strong>Save animal draft</strong>.</p>
-            <p>You can also ask it to read an intake sheet on its own. Say “Never mind” to clear pending work. Draft proposals expire after 30 minutes.</p>
+            <p>Catministrator reads the intake sheet and shows the details it found, including age, coat, weight, and compatibility when the form includes them. The rescue intake ID and medical notes go into staff-only CMS fields. Check the details and planned gallery photos, then tap <strong>Create animal draft</strong> or <strong>Save animal draft</strong>.</p>
+            <p>If the print is too small, send a close-up of the sheet or attach the original as a file. You can ask it to add those details to an existing animal’s draft. Say “Never mind” to clear pending work. Draft proposals expire after 30 minutes.</p>
           </li>
           <li>
             <h2>Review and publish</h2>
