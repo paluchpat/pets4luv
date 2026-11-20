@@ -46,6 +46,8 @@ Once API funding is confirmed, set `AI_GATEWAY_API_KEY`, `CATMINISTRATOR_AI_REQU
 
 Say “Set the first featured animal to Tiny” to change just the lead. Featured drafts can be reviewed in the homepage layout and published from the original Telegram reply. The signed preview and approval expire after 30 minutes, and publishing checks the current CMS role, draft version, and animal eligibility.
 
+To test another Gateway model for one worker session, start it with `CATMINISTRATOR_GATEWAY_MODEL=openai/gpt-6.1-terra ./scripts/local.sh catministrator`. The worker logs the selected model at startup.
+
 To connect the polling worker to the hosted demo, set `CATMINISTRATOR_CMS_ORIGIN` to its HTTPS origin and put the same randomly generated `CATMINISTRATOR_CMS_KEY` in the ignored worker settings and the Vercel Preview environment. On a protected deployment, configure `CATMINISTRATOR_VERCEL_BYPASS` in the worker settings for server-to-server access. Link the approved user's Telegram ID in the hosted CMS. Preview visitors still authenticate with Vercel wherever deployment protection applies.
 
 ## Search and social sharing

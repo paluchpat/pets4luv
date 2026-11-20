@@ -6,7 +6,7 @@ import { getPayload } from 'payload'
 import { publishCatministratorDraft, reviewCatministratorAnimal, saveCatministratorDraft, undoFeaturedPublication } from '../src/lib/catministrator/drafts'
 import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/catministrator/editors'
 import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
-import { openAIInterpreter } from '../src/lib/catministrator/model'
+import { gatewayModel, openAIInterpreter } from '../src/lib/catministrator/model'
 import { DraftRequestError } from '../src/lib/catministrator/requests'
 import { findPhotoAnimal, savePhotoDraft } from '../src/lib/catministrator/photo-drafts'
 import { createPhotoFlow, type PhotoWork } from '../src/lib/catministrator/photo-flow'
@@ -80,10 +80,12 @@ async function poll(botToken: string) {
   let offset = Number(await readState(offsetFile)) || 0
   const gatewayKey = process.env.AI_GATEWAY_API_KEY?.trim()
   const apiKey = gatewayKey || process.env.OPENAI_API_KEY
-  const model = gatewayKey ? undefined : process.env.CATMINISTRATOR_OPENAI_MODEL
+  const model = gatewayKey
+    ? process.env.CATMINISTRATOR_GATEWAY_MODEL?.trim() || gatewayModel
+    : process.env.CATMINISTRATOR_OPENAI_MODEL
   const requestLimit = Number(process.env.CATMINISTRATOR_AI_REQUEST_LIMIT)
   const usageDirectory = path.join(stateDirectory, 'model-requests')
-  const interpret = process.env.AI_ENABLED === 'true' && apiKey && (gatewayKey || model) && Number.isSafeInteger(requestLimit) && requestLimit > 0
+  const interpret = process.env.AI_ENABLED === 'true' && apiKey && model && Number.isSafeInteger(requestLimit) && requestLimit > 0
     ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory, signal: controller.signal })
     : undefined
   async function requireEditor(id: number, date: number) {
@@ -224,7 +226,7 @@ async function poll(botToken: string) {
       return result
     },
   }
-  console.log(`Listening for private messages to @${bot.username}. AI interpretation is ${interpret ? 'enabled' : 'disabled'}.`)
+  console.log(`Listening for private messages to @${bot.username}. ${interpret ? `AI model is ${model}.` : 'AI interpretation is disabled.'}`)
   while (!controller.signal.aborted) {
     try {
       const params = { limit: 100, offset, allowed_updates: ['message', 'callback_query'] }
