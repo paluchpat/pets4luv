@@ -1,4 +1,4 @@
-import { Phone } from 'lucide-react'
+import { Mail, Phone } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Script from 'next/script'
@@ -44,10 +44,16 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         <p>Bringing families together. One rescue at a time.</p>
         <address>{settings.address}</address>
         <div className="footer-contact">
-          <a className="footer-phone" href={phoneHref(settings.phone)} aria-label={`Call Pets4Luv at ${settings.phone}`}>
-            <Phone aria-hidden="true" focusable="false" />
-            <span>{settings.phone}</span>
-          </a>
+          <div className="footer-contact-details">
+            <a className="footer-contact-link" href={phoneHref(settings.phone)} aria-label={`Call Pets4Luv at ${settings.phone}`}>
+              <Phone aria-hidden="true" focusable="false" />
+              <span>{settings.phone}</span>
+            </a>
+            <a className="footer-contact-link" href={'mailto:' + settings.emailAddress}>
+              <Mail aria-hidden="true" focusable="false" />
+              <span>{settings.emailAddress}</span>
+            </a>
+          </div>
           <SocialLinks settings={settings} />
         </div>
       </div>

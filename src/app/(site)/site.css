@@ -808,19 +808,19 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   gap: 4px 16px;
 }
 .social-links a,
-.footer-phone {
+.footer-contact-link {
   display: inline-flex;
   align-items: center;
   gap: 0.375em;
   text-decoration-line: none;
 }
 .social-links a span,
-.footer-phone span {
+.footer-contact-link span {
   text-decoration-line: underline;
   text-decoration-thickness: inherit;
 }
 .social-links svg,
-.footer-phone svg {
+.footer-contact-link svg {
   flex: none;
   width: 1.125em;
   height: 1.125em;
@@ -836,8 +836,28 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   gap: 4px 12px;
   margin-top: 6px;
 }
+.footer-contact-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
+  gap: 4px 12px;
+}
+.footer-contact-details a[href^="tel:"] {
+  white-space: nowrap;
+}
+.footer-contact-details a[href^="mailto:"] {
+  overflow-wrap: anywhere;
+}
 .footer-contact .social-links {
   display: contents;
+}
+@media (max-width: 680px) {
+  .footer-contact .social-links {
+    display: flex;
+    flex-basis: 100%;
+    column-gap: 12px;
+  }
 }
 .contact-details .text-link {
   white-space: normal;
