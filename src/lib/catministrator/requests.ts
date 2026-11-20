@@ -22,6 +22,7 @@ const textFields = { summary: 220, description: 3000, breed: 150 }
 type Status = (typeof statuses)[number]
 export type AnimalPatch = { summary?: string; description?: string; breed?: string; status?: Status }
 export type DraftRequest =
+  | { action: 'page-text'; page: string; before: string; after: string }
   | { action: 'animal'; animal: string; patch: AnimalPatch }
   | { action: 'featured'; animals: string[] }
   | { action: 'lead'; animal: string }
@@ -36,6 +37,9 @@ export const commandHelp = [
   '/featured Fig, Frida, Rollo',
   '/lead Tiny — change the lead animal',
   '/replace Tiny | Mochachina — replace one featured animal',
+  '',
+  'Draft a page edit:',
+  '/page Contact | old wording | new wording',
 ].join('\n')
 
 function animalReference(value: unknown): string {
@@ -89,9 +93,19 @@ export function featuredReplacementRequest(animal: unknown, replacement: unknown
   return { action: 'replace-featured', animal: animalReference(animal), replacement: animalReference(replacement) }
 }
 
+export function pageTextDraftRequest(page: unknown, before: unknown, after: unknown): DraftRequest {
+  if (typeof page !== 'string' || !page.trim() || page.trim().length > 160 ||
+      typeof before !== 'string' || !before.trim() || before.trim().length > 1200 ||
+      typeof after !== 'string' || !after.trim() || after.trim().length > 1600) {
+    throw new DraftRequestError('Tell me the page title, the exact text to replace, and the new wording.')
+  }
+  return { action: 'page-text', page: page.trim(), before: before.trim(), after: after.trim() }
+}
+
 export function validateDraftRequest(draft: unknown): DraftRequest {
   if (!draft || typeof draft !== 'object') throw new DraftRequestError('Send one draft request.')
   const value = draft as Record<string, unknown>
+  if (value.action === 'page-text') return pageTextDraftRequest(value.page, value.before, value.after)
   if (value.action === 'lead') return leadDraftRequest(value.animal)
   if (value.action === 'featured') return featuredDraftRequest(value.animals)
   if (value.action === 'replace-featured') return featuredReplacementRequest(value.animal, value.replacement)
@@ -113,11 +127,16 @@ export function correctAnimalReference(request: DraftRequest, field: AnimalNameI
 }
 
 export function parseDraftCommand(message: string): DraftRequest | undefined {
-  const command = /^\/(edit|featured|lead|replace)(?:\s+([\s\S]+))?$/i.exec(message.trim())
+  const command = /^\/(edit|featured|lead|replace|page)(?:\s+([\s\S]+))?$/i.exec(message.trim())
   if (!command) return undefined
   const text = command[2] || ''
   if (command[1].toLowerCase() === 'featured') return featuredDraftRequest(text.split(','))
   if (command[1].toLowerCase() === 'lead') return leadDraftRequest(text)
+  if (command[1].toLowerCase() === 'page') {
+    const parts = text.split('|')
+    if (parts.length !== 3) throw new DraftRequestError('Use /page Page title | old wording | new wording.')
+    return pageTextDraftRequest(parts[0], parts[1], parts[2])
+  }
   if (command[1].toLowerCase() === 'replace') {
     const parts = text.split('|')
     if (parts.length !== 2) throw new DraftRequestError('Use /replace followed by the current animal, a |, and the replacement.')

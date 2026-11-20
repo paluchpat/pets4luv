@@ -5,7 +5,8 @@ import path from 'node:path'
 import { test } from 'node:test'
 import { openAIInterpreter, readModelDraftOutput } from '../../src/lib/catministrator/model'
 import { AnimalNameError, DeleteRequestError, DraftRequestError, parseDraftCommand, type DraftRequest } from '../../src/lib/catministrator/requests'
-import { messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
+import { createPhotoFlow, type PhotoWork } from '../../src/lib/catministrator/photo-flow'
+import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, type NameFollowUp } from '../../src/lib/catministrator/telegram'
 
 test('Catministrator parses explicit changes and rejects fields outside its draft scope', () => {
   assert.deepEqual(parseDraftCommand('/edit Test Cat | status=pending | summary=A calm cat.'), {
@@ -205,4 +206,95 @@ test('a suggested name or typed correction resumes the original draft in the sam
   await replyToTelegram(initial, handlers)
   assert.match((await replyToTelegram({ ...message, text: '/cancel' }, handlers))?.text || '', /clarification canceled/)
   assert.equal(pending.size, 0)
+})
+
+
+test('a textless Telegram album gets a reply and the chosen profile is saved only after confirmation', async () => {
+  const original = { chat: message.chat, from: message.from, date: message.date }
+  const first = { file_id: 'large-1', file_unique_id: 'photo-1' }
+  const second = { file_id: 'large-2', file_unique_id: 'photo-2' }
+  const [album] = combinePhotoUpdates([
+    { update_id: 1, message: { ...original, media_group_id: 'album', photo: [{ file_id: 'small', file_unique_id: 'small-1' }, first] } },
+    { update_id: 2, message: { ...original, media_group_id: 'album', photo: [second] } },
+  ])
+  assert.equal(album.update_id, 2)
+  let stored: PhotoWork | undefined
+  const downloaded: string[] = []
+  let allowed = false
+  const photoFlow = createPhotoFlow({
+    load: async () => stored,
+    store: async (_id, work) => { stored = work },
+    isLinked: async () => allowed,
+    find: async (_id, _date, name) => {
+      assert.equal(name, 'Fig')
+      return { id: 7, name }
+    },
+    download: async file => {
+      downloaded.push(file.file_id)
+      return { digest: file.file_id, data: Buffer.from(file.file_id) }
+    },
+    save: async (_id, _date, plan, images) => {
+      assert.deepEqual(plan, { kind: 'update', id: 7, name: 'Fig', fields: undefined })
+      assert.deepEqual(images.map(image => image.digest), ['large-1', 'large-2'])
+      return { message: 'Draft saved for Fig.', path: '/admin/collections/animals/7' }
+    },
+    onError: () => assert.fail('Photo flow failed'),
+  })
+  const handlers = {
+    cmsOrigin: 'https://example.invalid', photoFlow,
+    isLinked: async () => allowed,
+    save: async () => assert.fail('Expected the photo flow to handle this request'),
+    onError: () => assert.fail('Telegram request failed'),
+  }
+  assert.match((await replyToTelegram(messageFromUpdate(album), handlers))?.text || '', /needs to be linked/)
+  assert.equal(stored, undefined)
+  allowed = true
+  const receipt = await replyToTelegram(messageFromUpdate(album), handlers)
+  assert.match(receipt?.text || '', /received 2 photos.*animal’s name/)
+  const proposed = await replyToTelegram({ ...original, text: 'Can you add these photos to Fig’s profile?' }, handlers)
+  assert.match(proposed?.text || '', /Save to Fig’s draft/)
+  assert.deepEqual(downloaded, [])
+  const button = proposed?.replyMarkup?.inline_keyboard[0][0]
+  assert.equal(button?.text, 'Save animal draft')
+  const result = await replyToTelegram(messageFromUpdate({
+    update_id: 3, callback_query: { id: 'save', from: original.from, message: original, data: button?.callback_data },
+  }), handlers)
+  assert.match(result?.text || '', /Draft saved for Fig/)
+  assert.equal(result?.replyMarkup?.inline_keyboard[0][0].url, 'https://example.invalid/admin/collections/animals/7')
+  assert.equal(stored, undefined)
+})
+
+test('reading an intake flyer extracts facts without uploading the reference image', async () => {
+  let stored: PhotoWork | undefined
+  const flow = createPhotoFlow({
+    load: async () => stored,
+    store: async (_id, work) => { stored = work },
+    isLinked: async () => true,
+    find: async () => { throw new AnimalNameError('Unknown animal', { reference: 'Willow', field: 'animal', suggestions: [] }) },
+    download: async () => ({ digest: 'flyer', data: Buffer.from('reference image') }),
+    read: async images => {
+      assert.equal(images[0].digest, 'flyer')
+      return { name: 'Willow', species: 'cat', sex: 'female', summary: 'A gentle kitten.' }
+    },
+    save: async (_id, _date, plan, images) => {
+      assert.deepEqual(plan, { kind: 'create', fields: { name: 'Willow', species: 'cat', sex: 'female', summary: 'A gentle kitten.' } })
+      assert.deepEqual(images, [])
+      return { message: 'Draft saved for Willow.', path: '/admin/collections/animals/1' }
+    },
+    onError: () => assert.fail('Photo flow failed'),
+  })
+  const photo = { id: 123, date: 1000, text: '', photos: [{ file_id: 'flyer', file_unique_id: 'flyer' }] }
+  const received = await flow(photo)
+  assert.ok(received && 'text' in received)
+  const read = received.buttons?.[0][0]
+  assert.equal(read?.text, 'Read details from image')
+  const details = await flow({ ...photo, text: read!.callback_data, photos: [] })
+  assert.ok(details && 'text' in details)
+  assert.match(details.text, /Willow.*female[\s\S]*gentle kitten/)
+  assert.deepEqual(stored?.files, [])
+  const save = details.buttons?.[0][0]
+  assert.equal(save?.text, 'Create animal draft')
+  const result = await flow({ ...photo, text: save!.callback_data, photos: [] })
+  assert.ok(result && 'draft' in result)
+  assert.match(result.draft.message, /Draft saved for Willow/)
 })

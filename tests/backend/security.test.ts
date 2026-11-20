@@ -1,5 +1,7 @@
 import { after, before, test } from 'node:test'
 import assert from 'node:assert/strict'
+import { createHash } from 'node:crypto'
+import sharp from 'sharp'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -22,6 +24,7 @@ import { mainMenuDTO } from '../../src/lib/main-menu'
 import { loadAdminGalleryCards, loadAdminGalleryPageCards } from '../../src/components/admin/gallery-data'
 import { resolveRichTextLinks } from '../../src/lib/rich-text-links'
 import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../../src/lib/catministrator/drafts'
+import { savePhotoDraft } from '../../src/lib/catministrator/photo-drafts'
 import { latestFeaturedVersion, previewFeaturedAnimals } from '../../src/lib/catministrator/featured-review'
 import { linkedTelegramEditor } from '../../src/lib/catministrator/editors'
 import { prepareTelegramUsers } from '../../scripts/telegram-users-schema'
@@ -1036,4 +1039,40 @@ test('the featured name follow-up suggests CMS matches and protects newer revisi
     /The featured list changed/)
   const live = await payload.findGlobal({ ...options, draft: false })
   assert.deepEqual(live.featuredAnimals?.map(row => row.animal), [second.id, first.id])
+})
+
+
+test('Catministrator appends a photo to an animal draft without changing the live gallery', async () => {
+  const data = await sharp({ create: { width: 80, height: 60, channels: 3, background: '#978065' } }).jpeg().toBuffer()
+  const image = { data, digest: createHash('sha256').update(data).digest('hex') }
+  const animal = await payload.findByID({ collection: 'animals', id: publishedID, depth: 0 })
+  const plan = { kind: 'update', id: animal.id, name: animal.name } as const
+  const photo = (row: NonNullable<typeof animal.photos>[number]) => typeof row.photo === 'number' ? row.photo : row.photo.id
+  assert.match((await savePhotoDraft(payload, editor, plan, [image])).message, /Added 1 photo/)
+  const live = await payload.findByID({ collection: 'animals', id: animal.id, depth: 0 })
+  const draft = await payload.findByID({ collection: 'animals', id: animal.id, depth: 0, draft: true })
+  assert.deepEqual(live.photos?.map(photo), animal.photos?.map(photo))
+  assert.equal(draft.photos?.length, (animal.photos?.length || 0) + 1)
+  const [added] = draft.photos!.slice(-1).map(photo)
+  const file = await payload.findByID({ collection: 'media', id: added })
+  assert.equal(file.filename, 'catministrator-' + image.digest + '.webp')
+  assert.match((await savePhotoDraft(payload, editor, plan, [image])).message, /already on the profile/)
+  assert.match((await savePhotoDraft(payload, editor, { kind: 'create', fields: { name: 'Intake Fixture', species: 'cat' } }, [])).message, /Draft saved for Intake Fixture/)
+  const { docs: [intake] } = await payload.find({ collection: 'animals', draft: true, where: { name: { equals: 'Intake Fixture' } } })
+  assert.equal(intake._status, 'draft')
+  assert.equal(intake.species, 'cat')
+  assert.equal(intake.ageGroup, null)
+  await assert.rejects(() => payload.findByID({ collection: 'animals', id: intake.id, overrideAccess: false }))
+})
+
+test('Catministrator replaces exact article wording in a draft only', async () => {
+  const page = await payload.create({ collection: 'pages', data: {
+    title: 'Catministrator content fixture', slug: 'catministrator-content-fixture', body: pageBody('Visit on Saturday.'), _status: 'published',
+  } })
+  const request = parseDraftCommand('/page Catministrator content fixture | Visit on Saturday. | Visit on Sunday.')!
+  assert.match((await saveCatministratorDraft(payload, editor, request)).message, /Page draft saved/)
+  const live = await payload.findByID({ collection: 'pages', id: page.id })
+  const draft = await payload.findByID({ collection: 'pages', id: page.id, draft: true })
+  assert.equal(richTextToText(live.body), 'Visit on Saturday.')
+  assert.equal(richTextToText(draft.body), 'Visit on Sunday.')
 })

@@ -1,6 +1,7 @@
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest, type Where } from 'payload'
 import type { Animal, User } from '../../payload-types'
 import { featuredAnimalEligibility, featuredAnimalIds } from '../featured-animals'
+import { savePageTextDraft } from './page-drafts'
 import { isEditor } from './editors'
 import {
   featuredAnimalsByID, featuredReviewTokens, featuredUndoToken, featuredVersionKey, isFeaturedOnlyChange,
@@ -31,7 +32,7 @@ async function findNamedAnimals(req: PayloadRequest, reference: string, draft: b
   return docs.filter(doc => doc.slug === key || doc.name?.trim().toLowerCase() === key)
 }
 
-async function findAnimal(req: PayloadRequest, reference: string, draft: boolean, field: AnimalNameIssue['field'] = 'animal') {
+export async function findAnimal(req: PayloadRequest, reference: string, draft: boolean, field: AnimalNameIssue['field'] = 'animal') {
   const matches = await findNamedAnimals(req, reference, draft, draft ? undefined : featuredAnimalEligibility)
   if (matches.length > 1) {
     throw new AnimalNameError(`“${reference}” matches more than one animal.`, { field, reference, suggestions: nameChoices(matches) })
@@ -106,7 +107,9 @@ export async function saveCatministratorDraft(
   try {
     const options = { req, depth: 0, overrideAccess: false, draft: true } as const
     let result: DraftReceipt
-    if (request.action === 'animal') {
+    if (request.action === 'page-text') {
+      result = await savePageTextDraft(req, request)
+    } else if (request.action === 'animal') {
       const animal = await findAnimal(req, request.animal, true)
       const fields = Object.keys(request.patch) as (keyof typeof request.patch)[]
       const changed = fields.filter(field => (animal[field] || '') !== request.patch[field])

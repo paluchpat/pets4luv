@@ -6,9 +6,12 @@ import { getPayload } from 'payload'
 import { publishFeaturedDraft, saveCatministratorDraft, undoFeaturedPublication } from '../src/lib/catministrator/drafts'
 import { isEditor, isTelegramUserID, linkedTelegramEditor } from '../src/lib/catministrator/editors'
 import { hostedCatministratorCMS } from '../src/lib/catministrator/hosted-cms'
-import { openAIInterpreter } from '../src/lib/catministrator/model'
+import { animalImageReader, openAIInterpreter } from '../src/lib/catministrator/model'
 import { DraftRequestError } from '../src/lib/catministrator/requests'
-import { messageFromUpdate, replyToTelegram, telegramBot, type NameFollowUp, type TelegramUpdate } from '../src/lib/catministrator/telegram'
+import { findPhotoAnimal, savePhotoDraft } from '../src/lib/catministrator/photo-drafts'
+import { createPhotoFlow, type PhotoWork } from '../src/lib/catministrator/photo-flow'
+import { fetchTelegramImage } from '../src/lib/catministrator/photo-input'
+import { combinePhotoUpdates, messageFromUpdate, replyToTelegram, telegramBot, type NameFollowUp, type TelegramUpdate } from '../src/lib/catministrator/telegram'
 import { legacyTelegramEditors, prepareTelegramUsers } from './telegram-users-schema'
 
 const localDatabase = process.env.DATABASE_URL || 'file:./data/rescue.db'
@@ -79,8 +82,9 @@ async function poll(botToken: string) {
   const apiKey = gatewayKey || process.env.OPENAI_API_KEY
   const model = gatewayKey ? undefined : process.env.CATMINISTRATOR_OPENAI_MODEL
   const requestLimit = Number(process.env.CATMINISTRATOR_AI_REQUEST_LIMIT)
+  const usageDirectory = path.join(stateDirectory, 'model-requests')
   const interpret = process.env.AI_ENABLED === 'true' && apiKey && (gatewayKey || model) && Number.isSafeInteger(requestLimit) && requestLimit > 0
-    ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory: path.join(stateDirectory, 'model-requests') })
+    ? openAIInterpreter({ apiKey, model, viaGateway: Boolean(gatewayKey), requestLimit, usageDirectory })
     : undefined
   async function requireEditor(id: number, date: number) {
     const editor = await linkedTelegramEditor(payload, id, date)
@@ -125,9 +129,37 @@ async function poll(botToken: string) {
       console.error('Catministrator could not save the publication receipt.')
     })
   }
+  async function noteDraftSaved(id: number) {
+    const saved = await recall(id)
+    if (saved?.lastAction === 'publish') await remember(id, { ...saved, lastAction: 'draft' })
+  }
+  const photoFile = (id: number) => path.join(stateDirectory, 'telegram-' + bot.id + '-' + id + '.photos')
+  const photoFlow = process.env.CATMINISTRATOR_CMS_ORIGIN ? undefined : createPhotoFlow({
+    isLinked: cms.isLinked,
+    load: async id => {
+      try {
+        const value = await readState(photoFile(id))
+        return value ? JSON.parse(value) as PhotoWork : undefined
+      } catch {
+        console.error('Catministrator could not read the photo request.')
+      }
+    },
+    store: (id, work) => work ? writeState(photoFile(id), JSON.stringify(work)) : rm(photoFile(id), { force: true }),
+    find: async (id, date, name) => findPhotoAnimal(payload, await requireEditor(id, date), name),
+    download: file => fetchTelegramImage(
+      fileId => call('getFile', { file_id: fileId }), botToken, file, controller.signal,
+    ),
+    read: gatewayKey && interpret ? animalImageReader(gatewayKey, usageDirectory, requestLimit) : undefined,
+    save: async (id, date, plan, images) => {
+      const draft = await savePhotoDraft(payload, await requireEditor(id, date), plan, images)
+      if (draft.changed) await noteDraftSaved(id)
+      return draft
+    },
+    onError: () => console.error('Catministrator photo request failed.'),
+  })
   const followUpFile = (id: number) => path.join(stateDirectory, 'telegram-' + bot.id + '-' + id + '.name-follow-up')
   const handlers: Parameters<typeof replyToTelegram>[1] = {
-    ...cms, interpret, onError: () => console.error('Catministrator CMS request failed.'),
+    ...cms, interpret, photoFlow, onError: () => console.error('Catministrator CMS request failed.'),
     nameFollowUps: {
       load: async id => {
         try {
@@ -145,10 +177,7 @@ async function poll(botToken: string) {
     },
     save: async (id, date, request, featuredVersion) => {
       const result = await cms.save(id, date, request, featuredVersion)
-      if (result.changed) {
-        const saved = await recall(id)
-        if (saved?.lastAction === 'publish') await remember(id, { ...saved, lastAction: 'draft' })
-      }
+      if (result.changed) await noteDraftSaved(id)
       return result
     },
     publish: async (id, date, approval) => {
@@ -174,10 +203,9 @@ async function poll(botToken: string) {
   while (!controller.signal.aborted) {
     try {
       const updates = await call<TelegramUpdate[]>('getUpdates', {
-        timeout: 25, limit: 1, offset, allowed_updates: ['message', 'callback_query'],
+        timeout: 25, limit: 25, offset, allowed_updates: ['message', 'callback_query'],
       }, 35000)
-      for (const update of updates) {
-        if (!Number.isSafeInteger(update.update_id) || update.update_id < offset) continue
+      for (const update of combinePhotoUpdates(updates.filter(update => Number.isSafeInteger(update.update_id) && update.update_id >= offset))) {
         if (update.callback_query) {
           await call('answerCallbackQuery', { callback_query_id: update.callback_query.id }).catch(() => undefined)
         }

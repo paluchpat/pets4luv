@@ -1,5 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import type { DraftReceipt } from './drafts'
+import type { createPhotoFlow } from './photo-flow'
+import type { TelegramFile } from './photo-input'
 import {
   AnimalNameError, commandHelp, correctAnimalReference, DeleteRequestError, DraftRequestError,
   parseDraftCommand, type AnimalNameIssue, type DraftRequest,
@@ -10,6 +12,11 @@ type TelegramMessage = {
   date?: number
   from?: { id: number; is_bot?: boolean }
   text?: string
+  caption?: string
+  photo?: TelegramFile[]
+  document?: TelegramFile
+  media_group_id?: string
+  album?: TelegramFile[]
 }
 
 export type TelegramUpdate = {
@@ -32,10 +39,34 @@ type TelegramReply = {
 export function messageFromUpdate(update: TelegramUpdate): TelegramMessage | undefined {
   if (update.message) return update.message
   const callback = update.callback_query
-  if (!/^(?:\/publish|\/undo|\/name) /.test(callback?.data || '') || !callback?.message?.chat) return
+  if (!/^(?:\/publish|\/undo|\/name|\/photo-action) /.test(callback?.data || '') || !callback?.message?.chat) return
   return {
     chat: callback.message.chat, from: callback.from, date: Math.floor(Date.now() / 1000), text: callback.data,
   }
+}
+
+function messagePhotos(message: TelegramMessage): TelegramFile[] {
+  if (message.album) return message.album
+  const photo = message.photo?.at(-1)
+  if (photo) return [photo]
+  if (message.document?.mime_type?.startsWith('image/')) return [message.document]
+  return []
+}
+
+export function combinePhotoUpdates(updates: TelegramUpdate[]) {
+  const combined: TelegramUpdate[] = []
+  for (const update of updates) {
+    const message = update.message
+    const last = combined.at(-1)
+    const previous = last?.message
+    if (message?.media_group_id && previous?.media_group_id === message.media_group_id &&
+        previous.chat?.id === message.chat?.id && previous.from?.id === message.from?.id) {
+      combined[combined.length - 1] = { ...update, message: {
+        ...previous, caption: previous.caption || message.caption, album: [...messagePhotos(previous), ...messagePhotos(message)],
+      } }
+    } else combined.push(update)
+  }
+  return combined
 }
 
 function linkButton(text: string, path: string, cmsOrigin: string) {
@@ -130,12 +161,15 @@ export async function replyToTelegram(
     undo?: (id: number, date: number, request: { token?: string; featured: boolean }) => Promise<DraftReceipt>
     interpret?: (text: string) => Promise<DraftRequest>
     cmsOrigin: string
+    photoFlow?: ReturnType<typeof createPhotoFlow>
     onError: () => void
   },
 ): Promise<TelegramReply | undefined> {
-  const { chat, date, from, text } = message || {}
-  if (chat?.type !== 'private' || !from || from.is_bot || chat.id !== from.id || !Number.isSafeInteger(from.id) || from.id < 1 ||
-      typeof date !== 'number' || !Number.isSafeInteger(date) || typeof text !== 'string') return undefined
+  const { chat, date, from } = message || {}
+  if (!message || chat?.type !== 'private' || !from || from.is_bot || chat.id !== from.id || !Number.isSafeInteger(from.id) || from.id < 1 ||
+      typeof date !== 'number' || !Number.isSafeInteger(date)) return undefined
+  const text = message.text || message.caption || ''
+  const photos = messagePhotos(message)
   const id = from.id
   const answer = (reply: string) => ({ chat: id, text: reply })
   const undo = undoRequest(text)
@@ -153,6 +187,21 @@ export async function replyToTelegram(
         ? `Your Telegram user ID is ${id}. Give it to a Pets4Luv administrator to link your editor account.`
         : 'This Telegram account needs to be linked by a Pets4Luv administrator. Send /start to see your user ID.')
     }
+    if (text.length > 3500) return answer('Please send a shorter draft request.')
+    const mediaReply = await handlers.photoFlow?.({ id, date, text, photos })
+    if (mediaReply) {
+      if ('draft' in mediaReply) return reviewReply(id, mediaReply.draft, handlers.cmsOrigin, false)
+      return { ...answer(mediaReply.text), ...(mediaReply.buttons?.length && {
+        replyMarkup: { inline_keyboard: mediaReply.buttons },
+      }) }
+    }
+    if (photos.length) {
+      return {
+        ...answer('Photo handling is unavailable for this CMS connection. You can add photos in the CMS.'),
+        replyMarkup: { inline_keyboard: [[linkButton('Open the animals CMS', '/admin/collections/animals', handlers.cmsOrigin)]] },
+      }
+    }
+    if (!message.text || message.document) return answer('Send a photo, a JPG, PNG, or WebP file, or a text request. Send /help for examples.')
     pending = await handlers.nameFollowUps?.load(id)
     if (pending && (!Number.isSafeInteger(pending.requestedAt) || !Number.isFinite(pending.expiresAt) || pending.expiresAt <= Date.now())) await clearFollowUp()
     if (text.trim() === '/cancel') {
@@ -163,9 +212,9 @@ export async function replyToTelegram(
     if (['/start', '/help'].includes(text.trim())) {
       return answer('Catministrator saves drafts for review in the CMS.\n\n' + commandHelp +
         (handlers.undo ? '\n\n/undo — undo your latest featured publish.' : '') +
+        (handlers.photoFlow ? '\n\nSend photos and name the animal, or choose Read details from image for a flyer. /new cat Willow starts an animal draft.' : '') +
         (handlers.interpret ? '\n\nYou can also describe a single change in plain language.' : ''))
     }
-    if (text.length > 3500) return answer('Please send a shorter draft request.')
     if (/^(?:please\s+)?(?:\/delete|(?:permanently\s+)?delete)(?:\s|$)/i.test(text.trim())) throw new DeleteRequestError()
     if (undo && handlers.undo) {
       const result = await handlers.undo(id, date, undo)

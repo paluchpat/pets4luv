@@ -14,6 +14,7 @@ const examples = [
   { label: 'Set the homepage featured list', command: '/featured Fig, Frida, Rollo' },
   { label: 'Change the lead photo', command: '/lead Tiny' },
   { label: 'Replace one featured animal', command: '/replace Tiny | Mochachina' },
+  { label: 'Replace wording on a page', command: '/page Contact | old wording | new wording' },
 ]
 
 export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions }: AdminViewServerProps) {
@@ -40,7 +41,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
       <article className="cms-help-article" aria-labelledby="telegram-help-title">
         <header className="cms-help-header">
           <h1 id="telegram-help-title">Using the Telegram bot</h1>
-          <p>Send Catministrator a command in Telegram to draft an animal profile edit or update the homepage’s featured animals.</p>
+          <p>Use Catministrator in Telegram to draft animal profiles, add photos, update article text, and change the homepage’s featured animals.</p>
           <a className="cms-button cms-button-primary" href={botURL} target="_blank" rel="noopener noreferrer">
             Open Telegram bot<ArrowUpRight aria-hidden="true" /><span className="cms-sr-only"> (opens in a new tab)</span>
           </a>
@@ -68,11 +69,18 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
             <p>If a name needs clarification, tap a suggested animal or reply “I meant Mochachina.” The bot picks up the original request. Send <code>/cancel</code> to clear the pending clarification.</p>
           </li>
           <li>
+            <h2>Add photos or read an intake flyer</h2>
+            <p>Send one or more photos. Caption them “Photos for Fig” or reply with the animal’s name. Tap <strong>Save animal draft</strong> to add them to the profile.</p>
+            <p>To start a profile, send “New cat Willow” with a photo or by itself. Add any missing details in the CMS before publishing.</p>
+            <p>For a flyer or screenshot, tap <strong>Read details from image</strong> and check the extracted facts before saving. Send clean animal photos separately for the gallery.</p>
+            <p>Send <code>/cancel</code> to start over. Photo choices expire after 30 minutes.</p>
+          </li>
+          <li>
             <h2>Review and publish</h2>
             <p>For featured animals, open <strong>Preview homepage</strong>, then tap <strong>Publish this draft</strong> in Telegram when it’s ready. The links expire after 30 minutes. If the draft changes, review the new preview before publishing.</p>
             <p>After publishing featured animals, tap <strong>Undo featured publish</strong> or say “undo last action” to restore the previous live order. You can also send <code>/undo</code>. Undo applies to your publication while it’s still current. Review any newer featured draft in the CMS first.</p>
             <p>To discard a saved featured draft, open <strong>Review in the CMS</strong> and choose <strong>Discard draft</strong> from the three-dot menu.</p>
-            <p>For animal profile drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
+            <p>For animal and article drafts or featured replies with only a CMS link, open <strong>Review in the CMS</strong> and publish there when ready.</p>
             <p>To delete content, sign in to the CMS. Catministrator sends the login link when you ask to delete something.</p>
           </li>
         </ol>
@@ -81,7 +89,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           <h2 id="telegram-admin-title">For administrators</h2>
           <p>In the CMS the bot uses, open {administrator ? <Link href={usersURL}>Settings → Users</Link> : <strong>Settings → Users</strong>}. Select the staff account, enter the number in <strong>Telegram ID</strong>, and save.</p>
           <p>To revoke access, clear <strong>Telegram ID</strong> and save again.</p>
-          <p>The plain-language pilot uses GPT-6 Luna at medium effort with Vercel AI Gateway. Confirm Gateway access and set a request limit before enabling it.</p>
+          <p>With Vercel AI Gateway, GPT-6 Luna interprets text requests and GPT-6.1 Terra reads flyers. Both use medium effort and share the configured request limit. Photo intake currently saves to the local CMS.</p>
         </section>
         <p className="cms-help-note">{hosted
           ? 'If your demo asks for Vercel sign-in, sign in to view the preview. If the bot is quiet, ask an administrator to check its connection.'
