@@ -163,6 +163,7 @@ async function poll(botToken: string) {
   const followUpFile = (id: number) => path.join(stateDirectory, 'telegram-' + bot.id + '-' + id + '.name-follow-up')
   const handlers: Parameters<typeof replyToTelegram>[1] = {
     ...cms, interpret, photoFlow, onError: () => console.error('Catministrator request failed.'),
+    sendTyping: (id, signal) => call('sendChatAction', { chat_id: id, action: 'typing' }, 3000, signal),
     modelFollowUps: {
       load: async id => {
         try {

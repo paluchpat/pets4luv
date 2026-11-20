@@ -54,7 +54,7 @@ export function TelegramHelp({ i18n, initPageResult, payload, user, viewActions 
           </li>
           <li>
             <h2>Describe what you’d like to change</h2>
-            <p>Once linked, message Catministrator as you would a coworker. Include the animal’s name or the page title and describe the change you want.</p>
+            <p>Once linked, message Catministrator as you would a coworker. Include the animal’s name or the page title and describe the change you want. Telegram shows a typing indicator while Catministrator prepares its reply.</p>
             <dl className="cms-help-examples">
               {examples.map(({ label, message }) => <div key={label}>
                 <dt>{label}</dt>

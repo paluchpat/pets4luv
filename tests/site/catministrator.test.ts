@@ -88,6 +88,7 @@ test('Telegram accounts must be linked and messages must be private before invok
     cmsOrigin: 'https://example.invalid',
     isLinked: async () => false,
     interpret: async () => { throw new Error('Unexpected model call') },
+    sendTyping: async () => assert.fail('Unlinked senders should not receive a typing indicator'),
     save: async () => { throw new Error('Unexpected draft save') },
     onError: () => assert.fail('Authorization should not call the model or CMS'),
   }
@@ -96,6 +97,39 @@ test('Telegram accounts must be linked and messages must be private before invok
   assert.match((await replyToTelegram({ ...message, text: '/start' }, handlers))?.text || '', /user ID is 123/)
   assert.equal(await replyToTelegram({ ...message, chat: { ...message.chat, type: 'group' } }, handlers), undefined)
   assert.equal(await replyToTelegram({ ...message, from: { id: 456 } }, handlers), undefined)
+})
+
+test('Telegram refreshes the typing indicator while Luna is working and cancels it before the reply', async t => {
+  t.mock.timers.enable({ apis: ['setInterval'] })
+  const signals: AbortSignal[] = []
+  const modelStarted = Promise.withResolvers<void>()
+  const modelReply = Promise.withResolvers<ModelDecision>()
+  const request = replyToTelegram(message, {
+    cmsOrigin: 'https://example.invalid',
+    isLinked: async () => true,
+    sendTyping: async (id, signal) => {
+      assert.equal(id, message.chat.id)
+      signals.push(signal)
+      throw new Error('The optional typing update failed')
+    },
+    interpret: () => {
+      modelStarted.resolve()
+      return modelReply.promise
+    },
+    save: async () => assert.fail('A conversational reply cannot save a draft'),
+    onError: () => assert.fail('Typing updates should not interrupt a reply'),
+  })
+
+  await modelStarted.promise
+  assert.equal(signals.length, 1)
+  assert.equal(signals[0].aborted, false)
+  t.mock.timers.tick(4000)
+  assert.equal(signals.length, 2)
+  modelReply.resolve({ action: 'reply', message: 'Finished.' })
+  assert.equal((await request)?.text, 'Finished.')
+  assert.equal(signals[0].aborted, true)
+  t.mock.timers.tick(8000)
+  assert.equal(signals.length, 2)
 })
 
 test('Catministrator asks the model to respond to greetings, help, and check-ins', async () => {

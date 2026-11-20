@@ -160,6 +160,7 @@ export async function replyToTelegram(
     reviewAnimal?: (id: number, date: number, animal: string) => Promise<DraftReceipt>
     undo?: (id: number, date: number, request: { token?: string; featured: boolean }) => Promise<DraftReceipt>
     interpret?: (input: ModelInput) => Promise<ModelDecision>
+    sendTyping?: (id: number, signal: AbortSignal) => Promise<unknown>
     cmsOrigin: string
     photoFlow?: ReturnType<typeof createPhotoFlow>
     onError: () => void
@@ -178,6 +179,7 @@ export async function replyToTelegram(
   let attempt: DraftRequest | undefined
   let requestedAt = date
   let work: PhotoWork | undefined
+  let stopTyping: (() => void) | undefined
   const showReview = async (result: DraftReceipt) => {
     if (result.review?.kind === 'animal') {
       await handlers.modelFollowUps?.store(id, {
@@ -246,6 +248,18 @@ export async function replyToTelegram(
         ...answer('AI assistance is currently unavailable. You can make your update in the CMS.'),
         replyMarkup: { inline_keyboard: [[linkButton('Open the CMS', '/admin', handlers.cmsOrigin)]] },
       }
+    }
+    const sendTyping = handlers.sendTyping
+    if (sendTyping) {
+      const typing = new AbortController()
+      const refresh = () => { void sendTyping(id, typing.signal).catch(() => undefined) }
+      // Telegram clears this status after at most five seconds.
+      const timer = setInterval(refresh, 4000)
+      stopTyping = () => {
+        clearInterval(timer)
+        typing.abort()
+      }
+      refresh()
     }
     if (photoFlow && photos.length) work = await photoFlow.collect(id, date, work, photos)
     const images = await photoFlow?.download(work) || []
@@ -329,14 +343,18 @@ export async function replyToTelegram(
     if (!(error instanceof DraftRequestError)) handlers.onError()
     return answer(error instanceof DraftRequestError ? error.message
       : 'I couldn’t finish that request. Try again or use the CMS.')
+  } finally {
+    stopTyping?.()
   }
 }
 
 export function telegramBot(token: string, signal: AbortSignal) {
-  return async function call<T>(method: string, data: object = {}, timeoutMs = 15000): Promise<T> {
+  return async function call<T>(method: string, data: object = {}, timeoutMs = 15000, requestSignal?: AbortSignal): Promise<T> {
+    const signals = [signal, AbortSignal.timeout(timeoutMs)]
+    if (requestSignal) signals.push(requestSignal)
     const response = await fetch('https://api.telegram.org/bot' + token + '/' + method, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
-      signal: AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]),
+      signal: AbortSignal.any(signals),
     })
     const json = await response.json() as { ok: boolean; result: T; error_code?: number }
     if (!response.ok || !json.ok) {
