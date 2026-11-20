@@ -807,17 +807,20 @@ html,body{width:100%;min-width:0}main{width:100%;min-width:0}.hero,.hero picture
   flex-wrap: wrap;
   gap: 4px 16px;
 }
-.social-links a {
+.social-links a,
+.footer-phone {
   display: inline-flex;
   align-items: center;
   gap: 0.375em;
   text-decoration-line: none;
 }
-.social-links a span {
+.social-links a span,
+.footer-phone span {
   text-decoration-line: underline;
   text-decoration-thickness: inherit;
 }
-.social-links svg {
+.social-links svg,
+.footer-phone svg {
   flex: none;
   width: 1.125em;
   height: 1.125em;
